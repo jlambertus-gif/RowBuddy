@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  shared-kernel:
+    name: shared-kernel (lint, static analysis, tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/shared-kernel
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Pint (style)
+        run: vendor/bin/pint --test
+
+      - name: PHPStan (static analysis)
+        run: vendor/bin/phpstan analyse
+
+      - name: Pest (tests)
+        run: vendor/bin/pest
+
+  web:
+    name: apps/web (lint, static analysis, tests, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: rowbuddy_test
+          POSTGRES_USER: rowbuddy
+          POSTGRES_PASSWORD: rowbuddy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U rowbuddy"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, redis, intl, bcmath, gd, zip
+          tools: composer:v2
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install PHP dependencies (includes packages/shared-kernel via path repository)
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
+
+      - name: Copy environment file
+        run: cp .env.example .env
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Prove the PostgreSQL connection config is correct
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: rowbuddy_test
+          DB_USERNAME: rowbuddy
+          DB_PASSWORD: rowbuddy
+        run: php artisan migrate --force
+
+      - name: Pint (style)
+        run: vendor/bin/pint --test
+
+      - name: PHPStan (static analysis)
+        run: vendor/bin/phpstan analyse
+
+      - name: Pest (tests — architecture, translation parity, unit, feature)
+        run: vendor/bin/pest

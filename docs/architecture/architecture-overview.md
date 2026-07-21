@@ -1,0 +1,60 @@
+# Architecture Overview
+
+## Style
+
+Modular monolith with event-driven communication between modules.
+
+## Main modules
+
+- Identity
+- Localization
+- Queues
+- QueuePresence
+- Verification
+- Auctions
+- Bids
+- Payments
+- Transfers
+- Disputes
+- Ratings
+- Notifications
+- Administration
+- Audit
+- Fraud & Risk
+
+## Module boundary rules
+
+- No module accesses another module's Eloquent models directly.
+- Cross-module reads/writes go through the other module's application-service
+  interface, or are reconstructed locally from published domain events.
+- All cross-module side effects are expressed as domain events, dispatched
+  through Laravel's event system and queued via Horizon where not required
+  to be synchronous.
+- Module boundaries are enforced by an automated architecture test from
+  Phase 0 onward, so the option to extract a module into a separate service
+  later (per `decisions/001-modular-monolith.md`) remains real.
+
+## Shared kernel
+
+Value objects shared across modules, kept dependency-free of any single
+module: `Money`/`Currency`, `GeoPoint`/`Geofence`, `TranslatableText`,
+`Locale`.
+
+## Infrastructure
+
+- Laravel 12
+- PHP 8.4
+- React + Inertia
+- Tailwind CSS
+- PostgreSQL (with PostGIS for geospatial queue discovery)
+- Redis (separate logical use for cache, session, and queue)
+- Laravel Reverb
+- Laravel Horizon
+- Stripe Connect
+- S3-compatible storage
+- Docker
+
+## Full analysis
+
+See `docs/product/claude-mvp-analysis.md` for the complete bounded-context
+breakdown, database model, state machines, and phase plan.

@@ -1,0 +1,12 @@
+**/.git
+**/node_modules
+**/vendor
+apps/web/public/build
+apps/web/storage/framework/cache
+apps/web/storage/framework/sessions
+apps/web/storage/framework/views
+apps/web/storage/logs
+**/.env
+!apps/web/.env.example
+packages/*/vendor
+packages/*/build

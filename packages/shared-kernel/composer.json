@@ -1,0 +1,37 @@
+{
+    "name": "rowbuddy/shared-kernel",
+    "description": "Cross-cutting contracts, value objects, and shared infrastructure used by every RowBuddy module. No domain/business rules belong here.",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.0",
+        "laravel/pint": "^1.18",
+        "phpstan/phpstan": "^1.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "RowBuddy\\SharedKernel\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "RowBuddy\\SharedKernel\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "lint": "pint --test",
+        "stan": "phpstan analyse"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

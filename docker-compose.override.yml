@@ -1,0 +1,44 @@
+# Local-development-only overrides, merged automatically by `docker compose`
+# on top of docker-compose.yml. Kept separate so the base file stays closer
+# to a real deployment: bind mounts for live code editing, host ports for
+# connecting local GUI tools (DB client, Redis client), and the Vite dev
+# server, none of which belong in anything resembling production.
+
+services:
+    app:
+        volumes:
+            - ./apps/web:/var/www/apps/web
+            - ./packages/shared-kernel:/var/www/packages/shared-kernel
+
+    horizon:
+        volumes:
+            - ./apps/web:/var/www/apps/web
+            - ./packages/shared-kernel:/var/www/packages/shared-kernel
+
+    reverb:
+        volumes:
+            - ./apps/web:/var/www/apps/web
+            - ./packages/shared-kernel:/var/www/packages/shared-kernel
+
+    postgres:
+        ports:
+            - '5432:5432'
+
+    redis:
+        ports:
+            - '6379:6379'
+
+    node:
+        image: node:22-alpine
+        working_dir: /var/www/apps/web
+        command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+        volumes:
+            - ./apps/web:/var/www/apps/web
+        ports:
+            - '5173:5173'
+        networks:
+            - rowbuddy
+
+networks:
+    rowbuddy:
+        driver: bridge
