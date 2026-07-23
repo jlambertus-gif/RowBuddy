@@ -5110,12 +5110,13 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/Queues",
-                "reference": "98fd9d3e1cfa48b6aeb6e6e45fd0760486d0e07a"
+                "reference": "bc4f6894e0bfde1527283bfef0ed09025b6d803b"
             },
             "require": {
                 "illuminate/database": "^12.0",
                 "illuminate/support": "^12.0",
                 "php": "^8.2",
+                "ramsey/uuid": "^4.7",
                 "rowbuddy/shared-kernel": "@dev"
             },
             "require-dev": {
@@ -5126,7 +5127,8 @@
             "type": "library",
             "autoload": {
                 "psr-4": {
-                    "RowBuddy\\Queues\\": "src/"
+                    "RowBuddy\\Queues\\": "src/",
+                    "RowBuddy\\Queues\\Database\\Seeders\\": "database/seeders/"
                 }
             },
             "autoload-dev": {
