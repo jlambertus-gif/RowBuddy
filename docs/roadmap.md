@@ -4,7 +4,7 @@ Status legend: `not started` / `proposed` / `in progress` / `done`.
 
 ## Phase 0 — Foundations
 
-Status: **proposed** (structure pending founder review before creation).
+Status: **done**.
 
 - Laravel 12 installed at repository root (PHP 8.4 runtime via Docker).
 - Docker Compose: app (PHP-FPM), nginx, postgres, redis, reverb, horizon,
@@ -27,7 +27,7 @@ zero modules implemented.
 
 ## Phase 1 — Catalog
 
-Status: not started.
+Status: **in progress**.
 
 Queues bounded context: queue definitions, `pending/approved/published/
 rejected` status lifecycle (ADR-005), jurisdiction/restricted-category
