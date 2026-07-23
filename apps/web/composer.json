@@ -12,6 +12,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../../packages/Queues",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -23,6 +30,7 @@
         "laravel/reverb": "^1.11",
         "laravel/tinker": "^2.10.1",
         "predis/predis": "^3.5",
+        "rowbuddy/queues": "@dev",
         "rowbuddy/shared-kernel": "@dev"
     },
     "require-dev": {

@@ -5,10 +5,11 @@
 #
 # Build context is the REPOSITORY ROOT (not apps/web), so this image can
 # mirror the monorepo's own relative layout: apps/web/composer.json points
-# at packages/shared-kernel via a Composer path repository using
-# "../../packages/shared-kernel" — copying both into the image preserving
-# that same two-level nesting means the path repository resolves with zero
-# path rewriting inside the container.
+# at each bounded-context package (packages/shared-kernel, packages/Queues,
+# ...) via Composer path repositories — copying every package into the
+# image preserving that same two-level nesting means each path repository
+# resolves with zero path rewriting inside the container. Add a COPY line
+# here whenever a new packages/* module is wired into apps/web.
 #
 # This targets local development (dev dependencies included, no
 # multi-stage --no-dev hardening yet). Production hardening is a Phase 9
@@ -46,6 +47,7 @@ WORKDIR /var/www
 
 COPY apps/web/ /var/www/apps/web/
 COPY packages/shared-kernel/ /var/www/packages/shared-kernel/
+COPY packages/Queues/ /var/www/packages/Queues/
 
 WORKDIR /var/www/apps/web
 

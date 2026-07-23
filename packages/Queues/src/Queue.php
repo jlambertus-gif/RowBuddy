@@ -54,6 +54,31 @@ final class Queue
         );
     }
 
+    /**
+     * Reconstitutes a Queue from previously persisted state. Unlike the
+     * creation factories above, this never raises domain events — loading
+     * a queue back out of storage is not a business event in itself.
+     */
+    public static function fromPersistence(
+        string $id,
+        string $category,
+        string $jurisdictionCountry,
+        Geofence $geofence,
+        QueueAuthorship $authorship,
+        ?string $organizerReference,
+        QueueStatus $status,
+    ): self {
+        return new self(
+            id: $id,
+            category: $category,
+            jurisdictionCountry: $jurisdictionCountry,
+            geofence: $geofence,
+            authorship: $authorship,
+            organizerReference: $organizerReference,
+            status: $status,
+        );
+    }
+
     public static function submitForApproval(
         string $id,
         string $category,

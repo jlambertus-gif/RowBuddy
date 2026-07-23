@@ -9,16 +9,19 @@ services:
         volumes:
             - ./apps/web:/var/www/apps/web
             - ./packages/shared-kernel:/var/www/packages/shared-kernel
+            - ./packages/Queues:/var/www/packages/Queues
 
     horizon:
         volumes:
             - ./apps/web:/var/www/apps/web
             - ./packages/shared-kernel:/var/www/packages/shared-kernel
+            - ./packages/Queues:/var/www/packages/Queues
 
     reverb:
         volumes:
             - ./apps/web:/var/www/apps/web
             - ./packages/shared-kernel:/var/www/packages/shared-kernel
+            - ./packages/Queues:/var/www/packages/Queues
 
     postgres:
         ports:
