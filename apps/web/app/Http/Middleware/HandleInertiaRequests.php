@@ -40,6 +40,7 @@ class HandleInertiaRequests extends Middleware
                     'name',
                     'email',
                     'email_verified_at',
+                    'is_admin',
                 ]),
             ],
 

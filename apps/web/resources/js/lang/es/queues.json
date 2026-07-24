@@ -1,0 +1,50 @@
+{
+    "nav": {
+        "submit": "Enviar una cola",
+        "discover": "Descubrir colas",
+        "moderate": "Moderar colas"
+    },
+    "fields": {
+        "category": "Categoría",
+        "jurisdiction_country": "País (código de 2 letras)",
+        "latitude": "Latitud",
+        "longitude": "Longitud",
+        "radius_meters": "Radio (metros)"
+    },
+    "submit": {
+        "title": "Enviar una cola",
+        "subtitle": "Envía una cola física para revisión. Un administrador debe aprobarla antes de que pueda descubrirse.",
+        "submit_button": "Enviar para aprobación",
+        "submitting": "Enviando…"
+    },
+    "discover": {
+        "title": "Descubrir colas",
+        "subtitle": "Busca colas publicadas cerca de una ubicación.",
+        "search_button": "Buscar",
+        "searching": "Buscando…",
+        "empty": "No se encontraron colas publicadas cerca de esta ubicación.",
+        "load_error": "No se pudo buscar colas. Inténtalo de nuevo.",
+        "distance_away": "a {{distance}} m",
+        "previous": "Anterior",
+        "next": "Siguiente",
+        "page_indicator": "Página {{page}} de {{totalPages}}"
+    },
+    "moderation": {
+        "title": "Colas pendientes",
+        "subtitle": "Revisa, aprueba, rechaza o publica las colas enviadas.",
+        "empty": "No hay colas pendientes en este momento.",
+        "loading": "Cargando colas pendientes…",
+        "load_error": "No se pudieron cargar las colas pendientes.",
+        "approve": "Aprobar",
+        "reject": "Rechazar",
+        "publish": "Publicar",
+        "reason_placeholder": "Motivo del rechazo",
+        "reason_required": "Se requiere un motivo para rechazar una cola."
+    },
+    "status": {
+        "pending": "Pendiente",
+        "approved": "Aprobada",
+        "published": "Publicada",
+        "rejected": "Rechazada"
+    }
+}

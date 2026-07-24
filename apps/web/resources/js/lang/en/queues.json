@@ -1,0 +1,50 @@
+{
+    "nav": {
+        "submit": "Submit a queue",
+        "discover": "Discover queues",
+        "moderate": "Moderate queues"
+    },
+    "fields": {
+        "category": "Category",
+        "jurisdiction_country": "Country (2-letter code)",
+        "latitude": "Latitude",
+        "longitude": "Longitude",
+        "radius_meters": "Radius (meters)"
+    },
+    "submit": {
+        "title": "Submit a queue",
+        "subtitle": "Submit a physical queue for review. An administrator must approve it before it can be discovered.",
+        "submit_button": "Submit for approval",
+        "submitting": "Submitting…"
+    },
+    "discover": {
+        "title": "Discover queues",
+        "subtitle": "Search for published queues near a location.",
+        "search_button": "Search",
+        "searching": "Searching…",
+        "empty": "No published queues were found near this location.",
+        "load_error": "Could not search for queues. Please try again.",
+        "distance_away": "{{distance}} m away",
+        "previous": "Previous",
+        "next": "Next",
+        "page_indicator": "Page {{page}} of {{totalPages}}"
+    },
+    "moderation": {
+        "title": "Pending queues",
+        "subtitle": "Review, approve, reject, or publish submitted queues.",
+        "empty": "There are no pending queues right now.",
+        "loading": "Loading pending queues…",
+        "load_error": "Could not load pending queues.",
+        "approve": "Approve",
+        "reject": "Reject",
+        "publish": "Publish",
+        "reason_placeholder": "Reason for rejection",
+        "reason_required": "A reason is required to reject a queue."
+    },
+    "status": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "published": "Published",
+        "rejected": "Rejected"
+    }
+}

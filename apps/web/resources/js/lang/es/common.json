@@ -1,5 +1,10 @@
 {
     "app_name": "RowBuddy",
     "welcome_heading": "RowBuddy",
-    "welcome_subheading": "Andamiaje base — Fase 0"
+    "welcome_subheading": "Andamiaje base — Fase 0",
+    "nav": {
+        "dashboard": "Panel de control",
+        "logout": "Cerrar sesión",
+        "login": "Iniciar sesión"
+    }
 }

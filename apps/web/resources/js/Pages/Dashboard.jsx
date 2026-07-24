@@ -1,8 +1,10 @@
 import { Head, Link, usePage } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 
 export default function Dashboard() {
     const { auth } = usePage().props;
     const user = auth?.user;
+    const { t } = useTranslation('queues');
 
     return (
         <>
@@ -46,6 +48,31 @@ export default function Dashboard() {
                         <p className="mt-8 text-slate-300">
                             La autenticación base de RowBuddy está funcionando.
                         </p>
+
+                        <div className="mt-8 flex flex-wrap gap-3 border-t border-slate-800 pt-6">
+                            <Link
+                                href="/queues/submit"
+                                className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
+                            >
+                                {t('nav.submit')}
+                            </Link>
+
+                            <Link
+                                href="/discover"
+                                className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium transition hover:bg-slate-800"
+                            >
+                                {t('nav.discover')}
+                            </Link>
+
+                            {user?.is_admin && (
+                                <Link
+                                    href="/admin/queues/moderation"
+                                    className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium transition hover:bg-slate-800"
+                                >
+                                    {t('nav.moderate')}
+                                </Link>
+                            )}
+                        </div>
                     </div>
                 </section>
             </main>

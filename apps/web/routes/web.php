@@ -15,18 +15,31 @@ Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
 
-// Public: no authentication required to search/browse published queues.
+// Public JSON API: no authentication required to search published queues.
 Route::get('/queues/discover', DiscoverQueuesController::class)->name('queues.discover');
+
+// Public page: mirrors the API's accessibility above — the discovery
+// page itself fetches from /queues/discover client-side (Sprint 7).
+Route::get('/discover', function () {
+    return Inertia::render('Queues/Discover');
+})->name('queues.discover-page');
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
 
+    Route::get('/queues/submit', function () {
+        return Inertia::render('Queues/Submit');
+    })->name('queues.submit-page');
+
     Route::post('/queues', QueueSubmissionController::class)->name('queues.store');
 
     Route::middleware('can:queues.moderate')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/queues', [PendingQueuesController::class, 'index'])->name('queues.index');
+        Route::get('/queues/moderation', function () {
+            return Inertia::render('Admin/Moderation');
+        })->name('queues.moderation-page');
         Route::post('/queues/{queueId}/approve', ApproveQueueController::class)->name('queues.approve');
         Route::post('/queues/{queueId}/reject', RejectQueueController::class)->name('queues.reject');
         Route::post('/queues/{queueId}/publish', PublishQueueController::class)->name('queues.publish');

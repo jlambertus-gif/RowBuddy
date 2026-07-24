@@ -1,5 +1,10 @@
 {
     "app_name": "RowBuddy",
     "welcome_heading": "RowBuddy",
-    "welcome_subheading": "Foundation scaffold — Phase 0"
+    "welcome_subheading": "Foundation scaffold — Phase 0",
+    "nav": {
+        "dashboard": "Dashboard",
+        "logout": "Log out",
+        "login": "Log in"
+    }
 }
