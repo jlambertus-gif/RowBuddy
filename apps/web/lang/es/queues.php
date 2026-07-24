@@ -15,6 +15,8 @@ return [
         'longitude' => 'longitud',
         'radius_meters' => 'radio (metros)',
         'reason' => 'motivo',
+        'page' => 'página',
+        'per_page' => 'resultados por página',
     ],
     'moderation' => [
         'not_found' => 'Cola no encontrada.',

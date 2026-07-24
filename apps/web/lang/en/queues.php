@@ -15,6 +15,8 @@ return [
         'longitude' => 'longitude',
         'radius_meters' => 'radius (meters)',
         'reason' => 'reason',
+        'page' => 'page',
+        'per_page' => 'results per page',
     ],
     'moderation' => [
         'not_found' => 'Queue not found.',

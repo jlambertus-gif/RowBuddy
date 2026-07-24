@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use RowBuddy\Queues\Application\Discovery\CoverageAreaAssigner;
 use RowBuddy\Queues\Application\QueueModerationService;
 use RowBuddy\Queues\Events\QueueApproved;
 use RowBuddy\Queues\Events\QueuePublished;
@@ -12,6 +13,7 @@ use RowBuddy\Queues\Gating\JurisdictionGate;
 use RowBuddy\Queues\Gating\QueueGateChecker;
 use RowBuddy\Queues\Queue;
 use RowBuddy\Queues\Tests\Fakes\InMemoryJurisdictionRuleRepository;
+use RowBuddy\Queues\Tests\Fakes\InMemoryQueueDiscoveryRepository;
 use RowBuddy\Queues\Tests\Fakes\InMemoryQueueRepository;
 use RowBuddy\Queues\Tests\Fakes\InMemoryRestrictedCategoryRepository;
 use RowBuddy\Queues\Tests\Fakes\RecordingDomainEventPublisher;
@@ -33,12 +35,14 @@ function makeModerationService(
     InMemoryRestrictedCategoryRepository $restrictedCategories,
     InMemoryJurisdictionRuleRepository $jurisdictionRules,
     RecordingDomainEventPublisher $events,
+    ?InMemoryQueueDiscoveryRepository $discovery = null,
 ): QueueModerationService {
     return new QueueModerationService(
         $queues,
         new QueueGateChecker($restrictedCategories, $jurisdictionRules, new JurisdictionGate),
         $events,
         new FrozenClock(new DateTimeImmutable('2026-06-01')),
+        new CoverageAreaAssigner($discovery ?? new InMemoryQueueDiscoveryRepository),
     );
 }
 
@@ -153,6 +157,49 @@ it('publishes an approved queue, persists it, and publishes the domain event', f
     expect($published->status())->toBe(QueueStatus::Published)
         ->and($events->published)->toHaveCount(1)
         ->and($events->published[0])->toBeInstanceOf(QueuePublished::class);
+});
+
+it('assigns a default coverage area automatically when publishing', function () {
+    $queue = aPendingQueue('queue-9');
+    $queue->approve('admin-1', new FrozenClock);
+    $queue->releaseEvents();
+
+    $queues = new InMemoryQueueRepository;
+    $queues->save($queue);
+    $discovery = new InMemoryQueueDiscoveryRepository;
+
+    $service = makeModerationService(
+        $queues,
+        new InMemoryRestrictedCategoryRepository,
+        new InMemoryJurisdictionRuleRepository,
+        new RecordingDomainEventPublisher,
+        $discovery,
+    );
+
+    $service->publish('queue-9');
+
+    expect($discovery->assignedCoverageAreas)->toHaveKey('queue-9')
+        ->and($discovery->assignedCoverageAreas['queue-9']->polygons)->not->toBe([]);
+});
+
+it('does not assign a coverage area when a queue is only approved, not published', function () {
+    $queues = new InMemoryQueueRepository;
+    $queues->save(aPendingQueue('queue-10'));
+    $discovery = new InMemoryQueueDiscoveryRepository;
+    $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+
+    $service = makeModerationService(
+        $queues,
+        new InMemoryRestrictedCategoryRepository,
+        $jurisdictionRules,
+        new RecordingDomainEventPublisher,
+        $discovery,
+    );
+
+    $service->approve('queue-10', 'admin-1');
+
+    expect($discovery->assignedCoverageAreas)->toBe([]);
 });
 
 it('cannot publish a queue that is not approved', function () {

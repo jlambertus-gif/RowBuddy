@@ -5,6 +5,10 @@ declare(strict_types=1);
 use Illuminate\Database\Capsule\Manager as Capsule;
 use RowBuddy\Queues\Infrastructure\Eloquent\QueueModel;
 use RowBuddy\Queues\Infrastructure\PostGIS\PostGISQueueDiscoveryRepository;
+
+use function RowBuddy\Queues\Tests\Support\bootPostgisTestConnection;
+use function RowBuddy\Queues\Tests\Support\rollbackPostgisTestConnection;
+
 use RowBuddy\Queues\ValueObjects\CoverageArea;
 use RowBuddy\Queues\ValueObjects\LinearRing;
 use RowBuddy\Queues\ValueObjects\Polygon;
@@ -15,80 +19,12 @@ use RowBuddy\SharedKernel\ValueObjects\GeoPoint;
  * Real PostgreSQL/PostGIS integration test (ADR-007 §5/§7). SQLite has no
  * spatial support at all, so — unlike every other repository test in
  * this package — this one cannot run against an in-memory database.
- *
- * Connects to a dedicated `rowbuddy_test` database (created here if
- * missing), never the real dev `rowbuddy` database's `queues` table —
- * this suite creates and drops its own `queues` table inside
- * `rowbuddy_test` every run. Connection details come from env vars with
- * defaults matching docker-compose (so this runs correctly both from
- * inside the app container, where DB_HOST=postgres is already a real
- * container env var, and from the host via the published 5432 port).
- * Skips itself if no PostgreSQL/PostGIS connection is reachable, so the
- * rest of this package's suite stays usable without Docker.
+ * Connection/schema bootstrap lives in tests/Support/PostgisTestConnection.php,
+ * shared with the end-to-end test in tests/Integration/.
  */
-function postgisTestConnectionConfig(): array
-{
-    return [
-        'driver' => 'pgsql',
-        'host' => getenv('DB_HOST') ?: '127.0.0.1',
-        'port' => getenv('DB_PORT') ?: '5432',
-        'username' => getenv('DB_USERNAME') ?: 'rowbuddy',
-        'password' => getenv('DB_PASSWORD') ?: 'rowbuddy',
-        'charset' => 'utf8',
-    ];
-}
+beforeEach(fn () => bootPostgisTestConnection($this));
 
-beforeEach(function () {
-    $config = postgisTestConnectionConfig();
-
-    try {
-        $bootstrap = new Capsule;
-        $bootstrap->addConnection([...$config, 'database' => getenv('DB_DATABASE') ?: 'rowbuddy'], 'bootstrap');
-        $pdo = $bootstrap->getConnection('bootstrap')->getPdo();
-
-        $exists = $pdo->query("SELECT 1 FROM pg_database WHERE datname = 'rowbuddy_test'")->fetchColumn();
-
-        if (! $exists) {
-            $pdo->exec('CREATE DATABASE rowbuddy_test');
-        }
-    } catch (Throwable $e) {
-        $this->markTestSkipped('No reachable PostgreSQL/PostGIS connection: '.$e->getMessage());
-    }
-
-    $capsule = new Capsule;
-    $capsule->addConnection([...$config, 'database' => 'rowbuddy_test']);
-    $capsule->setAsGlobal();
-    $capsule->bootEloquent();
-
-    $connection = Capsule::connection();
-    $connection->statement('CREATE EXTENSION IF NOT EXISTS postgis');
-    $connection->statement('DROP TABLE IF EXISTS queues');
-    $connection->statement(<<<'SQL'
-        CREATE TABLE queues (
-            id uuid PRIMARY KEY,
-            category varchar(255) NOT NULL,
-            jurisdiction_country varchar(2) NOT NULL,
-            center_latitude decimal(10,7) NOT NULL,
-            center_longitude decimal(10,7) NOT NULL,
-            radius_meters double precision NOT NULL,
-            authorship varchar(255) NOT NULL,
-            organizer_reference varchar(255) NULL,
-            status varchar(255) NOT NULL,
-            coverage_area geometry(MultiPolygon, 4326) NULL,
-            created_at timestamp NULL,
-            updated_at timestamp NULL
-        )
-        SQL);
-    $connection->statement('CREATE INDEX queues_coverage_area_gist ON queues USING GIST (coverage_area)');
-
-    $connection->beginTransaction();
-});
-
-afterEach(function () {
-    if (Capsule::connection()->transactionLevel() > 0) {
-        Capsule::connection()->rollBack();
-    }
-});
+afterEach(fn () => rollbackPostgisTestConnection());
 
 function aStoredQueueForDiscovery(string $id, QueueStatus $status): QueueModel
 {

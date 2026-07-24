@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RowBuddy\Queues\Infrastructure\PostGIS;
 
+use Illuminate\Database\Connection;
 use Illuminate\Support\Collection;
 use RowBuddy\Queues\Contracts\QueueDiscoveryRepository;
 use RowBuddy\Queues\Infrastructure\Eloquent\QueueModel;
@@ -21,6 +22,14 @@ use RowBuddy\SharedKernel\ValueObjects\GeoPoint;
  * issues the `ST_*` calls directly — nothing above this class (domain,
  * application, or the {@see QueueDiscoveryRepository} port it
  * implements) ever sees a PostGIS function name or a WKT string.
+ *
+ * Both methods no-op harmlessly on any driver other than `pgsql`
+ * (ADR-007 §8) — `apps/web`'s own test suite runs against in-memory
+ * SQLite (Sprint 4's env fix), and publishing a queue now
+ * unconditionally attempts to assign a coverage area
+ * (`CoverageAreaAssigner`), so every existing Feature test for
+ * submission/moderation would otherwise break the moment this class is
+ * exercised outside a real PostGIS connection.
  */
 final class PostGISQueueDiscoveryRepository implements QueueDiscoveryRepository
 {
@@ -28,7 +37,13 @@ final class PostGISQueueDiscoveryRepository implements QueueDiscoveryRepository
 
     public function defineCoverageArea(string $queueId, CoverageArea $coverageArea): void
     {
-        QueueModel::query()->getConnection()->statement(
+        $connection = $this->postgresConnectionOrNull();
+
+        if ($connection === null) {
+            return;
+        }
+
+        $connection->statement(
             'UPDATE queues SET coverage_area = ST_GeomFromText(?, 4326) WHERE id = ?',
             [$this->toWkt($coverageArea), $queueId],
         );
@@ -36,6 +51,10 @@ final class PostGISQueueDiscoveryRepository implements QueueDiscoveryRepository
 
     public function discoverByLocation(GeoPoint $point): array
     {
+        if ($this->postgresConnectionOrNull() === null) {
+            return [];
+        }
+
         /** @var Collection<int, QueueModel> $models */
         $models = QueueModel::query()
             ->where('status', QueueStatus::Published->value)
@@ -73,5 +92,16 @@ final class PostGISQueueDiscoveryRepository implements QueueDiscoveryRepository
         );
 
         return '('.implode(', ', $points).')';
+    }
+
+    private function postgresConnectionOrNull(): ?Connection
+    {
+        $connection = QueueModel::query()->getConnection();
+
+        if (! $connection instanceof Connection || $connection->getDriverName() !== 'pgsql') {
+            return null;
+        }
+
+        return $connection;
     }
 }

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\ApproveQueueController;
+use App\Http\Controllers\DiscoverQueuesController;
 use App\Http\Controllers\PendingQueuesController;
 use App\Http\Controllers\PublishQueueController;
 use App\Http\Controllers\QueueSubmissionController;
@@ -13,6 +14,9 @@ use Inertia\Inertia;
 Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
+
+// Public: no authentication required to search/browse published queues.
+Route::get('/queues/discover', DiscoverQueuesController::class)->name('queues.discover');
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', function () {

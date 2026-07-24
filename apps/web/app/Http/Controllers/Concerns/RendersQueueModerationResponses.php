@@ -6,35 +6,17 @@ namespace App\Http\Controllers\Concerns;
 
 use Illuminate\Http\JsonResponse;
 use RowBuddy\Queues\Exceptions\QueueSubmissionBlocked;
-use RowBuddy\Queues\Queue;
 
 /**
  * Shared response-shaping for the moderation controllers — no business
- * logic, just translating a Queue aggregate or a known domain exception
- * into a plain JSON shape without leaking internals (exception classes,
- * raw status-transition messages) into the response.
+ * logic, just translating a known domain exception into a plain JSON
+ * shape without leaking internals (exception classes, raw
+ * status-transition messages) into the response. The Queue -> JSON
+ * mapping itself lives in RendersQueueResponses, shared with discovery.
  */
 trait RendersQueueModerationResponses
 {
-    /**
-     * @return array<string, mixed>
-     */
-    private function toResponse(Queue $queue): array
-    {
-        return [
-            'id' => $queue->id,
-            'category' => $queue->category,
-            'jurisdiction_country' => $queue->jurisdictionCountry,
-            'authorship' => $queue->authorship->value,
-            'organizer_reference' => $queue->organizerReference,
-            'status' => $queue->status()->value,
-            'geofence' => [
-                'latitude' => $queue->geofence->center->latitude,
-                'longitude' => $queue->geofence->center->longitude,
-                'radius_meters' => $queue->geofence->radiusInMeters,
-            ],
-        ];
-    }
+    use RendersQueueResponses;
 
     private function notFound(): JsonResponse
     {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RowBuddy\Queues\Application;
 
+use RowBuddy\Queues\Application\Discovery\CoverageAreaAssigner;
 use RowBuddy\Queues\Contracts\DomainEventPublisher;
 use RowBuddy\Queues\Contracts\QueueRepository;
 use RowBuddy\Queues\Exceptions\QueueSubmissionBlocked;
@@ -30,6 +31,7 @@ final class QueueSubmissionService
         private readonly QueueGateChecker $gateChecker,
         private readonly DomainEventPublisher $events,
         private readonly ClockInterface $clock,
+        private readonly CoverageAreaAssigner $coverageAreaAssigner,
     ) {}
 
     /**
@@ -66,6 +68,7 @@ final class QueueSubmissionService
         $queue = Queue::publishDirectly($id, $category, $jurisdictionCountry, $geofence, $organizerReference);
 
         $this->persist($queue);
+        $this->coverageAreaAssigner->assignDefaultCoverageArea($queue);
 
         return $queue;
     }

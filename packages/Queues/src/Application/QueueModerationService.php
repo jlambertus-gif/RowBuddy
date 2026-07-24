@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RowBuddy\Queues\Application;
 
+use RowBuddy\Queues\Application\Discovery\CoverageAreaAssigner;
 use RowBuddy\Queues\Contracts\DomainEventPublisher;
 use RowBuddy\Queues\Contracts\QueueRepository;
 use RowBuddy\Queues\Exceptions\InvalidQueueStatusTransition;
@@ -41,6 +42,7 @@ final class QueueModerationService
         private readonly QueueGateChecker $gateChecker,
         private readonly DomainEventPublisher $events,
         private readonly ClockInterface $clock,
+        private readonly CoverageAreaAssigner $coverageAreaAssigner,
     ) {}
 
     /**
@@ -95,6 +97,7 @@ final class QueueModerationService
         $queue->publish($this->clock);
 
         $this->persist($queue);
+        $this->coverageAreaAssigner->assignDefaultCoverageArea($queue);
 
         return $queue;
     }

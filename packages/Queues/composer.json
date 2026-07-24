@@ -33,7 +33,10 @@
     "autoload-dev": {
         "psr-4": {
             "RowBuddy\\Queues\\Tests\\": "tests/"
-        }
+        },
+        "files": [
+            "tests/Support/PostgisTestConnection.php"
+        ]
     },
     "scripts": {
         "test": "pest",

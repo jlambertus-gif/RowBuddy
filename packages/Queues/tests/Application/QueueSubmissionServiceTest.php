@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
+use RowBuddy\Queues\Application\Discovery\CoverageAreaAssigner;
 use RowBuddy\Queues\Application\QueueSubmissionService;
 use RowBuddy\Queues\Events\QueueSubmittedForApproval;
 use RowBuddy\Queues\Exceptions\QueueSubmissionBlocked;
 use RowBuddy\Queues\Gating\JurisdictionGate;
 use RowBuddy\Queues\Gating\QueueGateChecker;
 use RowBuddy\Queues\Tests\Fakes\InMemoryJurisdictionRuleRepository;
+use RowBuddy\Queues\Tests\Fakes\InMemoryQueueDiscoveryRepository;
 use RowBuddy\Queues\Tests\Fakes\InMemoryQueueRepository;
 use RowBuddy\Queues\Tests\Fakes\InMemoryRestrictedCategoryRepository;
 use RowBuddy\Queues\Tests\Fakes\RecordingDomainEventPublisher;
@@ -29,12 +31,14 @@ function makeQueueSubmissionService(
     InMemoryRestrictedCategoryRepository $restrictedCategories,
     InMemoryJurisdictionRuleRepository $jurisdictionRules,
     RecordingDomainEventPublisher $events,
+    ?InMemoryQueueDiscoveryRepository $discovery = null,
 ): QueueSubmissionService {
     return new QueueSubmissionService(
         $queues,
         new QueueGateChecker($restrictedCategories, $jurisdictionRules, new JurisdictionGate),
         $events,
         new FrozenClock(new DateTimeImmutable('2026-06-01')),
+        new CoverageAreaAssigner($discovery ?? new InMemoryQueueDiscoveryRepository),
     );
 }
 
@@ -122,6 +126,43 @@ it('blocks a direct-publish attempt for a restricted category, even for admin-cu
         ->toThrow(QueueSubmissionBlocked::class);
 
     expect($queues->findById('queue-5'))->toBeNull();
+});
+
+it('assigns a default coverage area automatically when publishing directly', function () {
+    $discovery = new InMemoryQueueDiscoveryRepository;
+    $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+
+    $service = makeQueueSubmissionService(
+        new InMemoryQueueRepository,
+        new InMemoryRestrictedCategoryRepository,
+        $jurisdictionRules,
+        new RecordingDomainEventPublisher,
+        $discovery,
+    );
+
+    $queue = $service->publishDirectly('queue-7', 'concert', 'US', aTestGeofence(), 'venue-42');
+
+    expect($discovery->assignedCoverageAreas)->toHaveKey('queue-7')
+        ->and($discovery->assignedCoverageAreas['queue-7']->polygons)->not->toBe([]);
+});
+
+it('does not assign a coverage area when a queue is only submitted for approval, not published', function () {
+    $discovery = new InMemoryQueueDiscoveryRepository;
+    $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+
+    $service = makeQueueSubmissionService(
+        new InMemoryQueueRepository,
+        new InMemoryRestrictedCategoryRepository,
+        $jurisdictionRules,
+        new RecordingDomainEventPublisher,
+        $discovery,
+    );
+
+    $service->submitForApproval('queue-8', 'concert', 'US', aTestGeofence(), 'user-9');
+
+    expect($discovery->assignedCoverageAreas)->toBe([]);
 });
 
 it('prefers a category-specific jurisdiction rule over a permissive country-wide one', function () {
