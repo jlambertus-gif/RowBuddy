@@ -25,6 +25,16 @@ export default defineConfig({
         },
 
         watch: {
+            // Windows-host bind mount into a Linux container: native
+            // filesystem change events (inotify) don't propagate across
+            // that boundary, so chokidar's default watcher silently never
+            // fires — Vite serves stale transforms indefinitely (new
+            // files never appear in import.meta.glob results, edited
+            // files never get HMR'd) until the dev server process is
+            // restarted. Polling works regardless of how the mount
+            // delivers (or fails to deliver) native FS events.
+            usePolling: true,
+            interval: 300,
             ignored: ['**/storage/framework/views/**'],
         },
     },
