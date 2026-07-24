@@ -24,8 +24,14 @@ Queues module has kept Eloquent out of its domain since Sprint 2.
 ### 1. Split Sprint 6
 
 - **Sprint 6a** (this ADR): geospatial infrastructure only.
-- **Sprint 6b** (later): discovery application service, HTTP endpoint,
-  ranking, pagination, and frontend integration.
+- **Sprint 6b** (this ADR, §9): discovery application service, HTTP
+  endpoint (JSON only), ranking, pagination, and automatic coverage-area
+  assignment.
+- **Sprint 7**: Inertia/React pages for submission, discovery, and
+  moderation — including the discovery page. Frontend integration was
+  originally listed under Sprint 6b; moved here to keep every sprint in
+  this phase backend-first and reviewable, matching how Sprints 4 and 5
+  already deferred their own frontends.
 
 ### 2. Sprint 6a scope
 
@@ -202,7 +208,65 @@ Package tests split by what they need:
   nothing broke — including a manual check that `/login` and `/register`
   still respond without a 500 after the Postgres image change.
 
-### 8. Delivery
+### 8. Sprint 6b — application service, HTTP endpoint, ranking, pagination, automatic coverage assignment
+
+These are implementation details within this ADR's existing decisions
+(the port and value objects from §4 don't change), not separate
+architectural decisions — no new ADR.
+
+**Ranking**: matches found via `discoverByLocation` are ordered by
+distance from the query point to each queue's existing `Geofence`
+center, computed in pure PHP via `GeoPoint::distanceInMetersTo()`
+(already in shared-kernel, Haversine formula) — ascending, nearest
+first. This is deliberately not "advanced" ranking (no popularity,
+freshness, or verification-tier weighting); it never touches
+`Infrastructure/PostGIS/` at all.
+
+**Pagination**: in-memory, in the application layer — fetch the full
+geo-matched candidate list, rank it, then slice for the requested page.
+The Sprint 6a port signature (`discoverByLocation(GeoPoint): array`,
+unparameterized) is unchanged. This doesn't scale indefinitely (a point
+matched by thousands of overlapping coverage areas would pull all of
+them into memory before paginating), but is the right tradeoff at
+Phase 1/MVP scale — revisit only if profiling shows a real bottleneck,
+at which point pushing `ORDER BY`/`LIMIT`/`OFFSET` into the PostGIS query
+would require amending this ADR's port signature.
+
+**Automatic coverage-area assignment**: `QueueSubmissionService::publishDirectly()`
+and `QueueModerationService::publish()` both assign a default
+`CoverageArea` immediately after persisting a queue's `published`
+status — approximating the queue's existing `Geofence` (center +
+radius) as a closed polygon (`CoverageArea::approximatingCircle()`, a
+new pure-PHP named constructor, no PostGIS/Laravel dependency, same as
+every other `CoverageArea` construction path). This is transparent and
+automatic: no admin or seller action defines it, no new domain event is
+raised for it — it's treated as part of the same publish operation that
+already raises `QueuePublished`, not a separate business event.
+Extracted into a shared `CoverageAreaAssigner` collaborator (used by
+both services) rather than duplicated, following the same pattern as
+`QueueGateChecker` (Sprint 5) and `QueueModelMapper` (Sprint 6a).
+
+**Driver guard extended to `PostGISQueueDiscoveryRepository` itself**:
+since publishing a queue now unconditionally calls `defineCoverageArea`,
+and `apps/web`'s Feature-test suite runs migrations and requests against
+in-memory SQLite (Sprint 4's env fix), both `defineCoverageArea` and
+`discoverByLocation` no-op (return immediately / return `[]`) when the
+active connection driver isn't `pgsql` — the same guard already applied
+to this sprint's migrations, now one layer up. Every existing Sprint 4/5
+Feature test (`QueueSubmissionTest`, `QueueModerationTest`) continues to
+pass unmodified under SQLite; the new discovery endpoint's `apps/web`
+Feature test proves routing, validation, and public (no-auth) access
+only — it cannot prove real spatial matching under SQLite. A dedicated
+integration test under `packages/Queues/tests/Integration/`, connected
+to real PostgreSQL/PostGIS, proves the full path end-to-end: publish →
+automatic coverage assignment → discoverable by location.
+
+**HTTP endpoint**: `GET /queues/discover`, public — no authentication
+required. Browsing/searching published queues is a discovery feature,
+unlike submission/moderation which act on a specific user's or admin's
+behalf.
+
+### 9. Delivery
 
 1. This ADR, as its own documentation commit.
 2. Sprint 6a implementation, as its own code commit — only once every
