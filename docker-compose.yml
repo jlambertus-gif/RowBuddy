@@ -39,7 +39,11 @@ services:
             - rowbuddy
 
     postgres:
-        image: postgres:16-alpine
+        # PostGIS-enabled image (ADR-007): no official Alpine PostGIS
+        # image exists, hence Debian-based here unlike the other
+        # Alpine-based services in this file. Same PostgreSQL major
+        # version (16) as before the switch.
+        image: postgis/postgis:16-3.4
         environment:
             POSTGRES_DB: rowbuddy
             POSTGRES_USER: rowbuddy

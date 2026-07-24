@@ -6,18 +6,18 @@ namespace RowBuddy\Queues\Infrastructure\Eloquent;
 
 use RowBuddy\Queues\Contracts\QueueRepository;
 use RowBuddy\Queues\Queue;
-use RowBuddy\Queues\ValueObjects\QueueAuthorship;
 use RowBuddy\Queues\ValueObjects\QueueStatus;
-use RowBuddy\SharedKernel\ValueObjects\Geofence;
-use RowBuddy\SharedKernel\ValueObjects\GeoPoint;
 
 /**
  * Translates between the {@see QueueModel} Eloquent record and the
- * {@see Queue} domain aggregate. This is the only place in the Queues
- * module allowed to know both shapes at once.
+ * {@see Queue} domain aggregate (via {@see QueueModelMapper}). This is
+ * the only place in the Queues module allowed to write a Queue back to
+ * storage.
  */
 final class EloquentQueueRepository implements QueueRepository
 {
+    public function __construct(private readonly QueueModelMapper $mapper = new QueueModelMapper) {}
+
     public function save(Queue $queue): void
     {
         QueueModel::query()->updateOrCreate(
@@ -43,7 +43,7 @@ final class EloquentQueueRepository implements QueueRepository
             return null;
         }
 
-        return $this->toDomain($model);
+        return $this->mapper->toDomain($model);
     }
 
     public function findByStatus(QueueStatus $status): array
@@ -51,24 +51,8 @@ final class EloquentQueueRepository implements QueueRepository
         return QueueModel::query()
             ->where('status', $status->value)
             ->get()
-            ->map(fn (QueueModel $model): Queue => $this->toDomain($model))
+            ->map(fn (QueueModel $model): Queue => $this->mapper->toDomain($model))
             ->values()
             ->all();
-    }
-
-    private function toDomain(QueueModel $model): Queue
-    {
-        return Queue::fromPersistence(
-            id: $model->id,
-            category: $model->category,
-            jurisdictionCountry: $model->jurisdiction_country,
-            geofence: new Geofence(
-                new GeoPoint((float) $model->center_latitude, (float) $model->center_longitude),
-                (float) $model->radius_meters,
-            ),
-            authorship: QueueAuthorship::from($model->authorship),
-            organizerReference: $model->organizer_reference,
-            status: QueueStatus::from($model->status),
-        );
     }
 }
