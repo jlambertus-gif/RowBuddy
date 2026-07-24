@@ -14,5 +14,13 @@ return [
         'latitude' => 'latitud',
         'longitude' => 'longitud',
         'radius_meters' => 'radio (metros)',
+        'reason' => 'motivo',
+    ],
+    'moderation' => [
+        'not_found' => 'Cola no encontrada.',
+        'invalid_transition' => 'Esta cola no puede pasar a ese estado en este momento.',
+        'approved' => 'Cola aprobada.',
+        'rejected' => 'Cola rechazada.',
+        'published' => 'Cola publicada.',
     ],
 ];

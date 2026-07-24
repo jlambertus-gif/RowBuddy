@@ -43,6 +43,21 @@ final class EloquentQueueRepository implements QueueRepository
             return null;
         }
 
+        return $this->toDomain($model);
+    }
+
+    public function findByStatus(QueueStatus $status): array
+    {
+        return QueueModel::query()
+            ->where('status', $status->value)
+            ->get()
+            ->map(fn (QueueModel $model): Queue => $this->toDomain($model))
+            ->values()
+            ->all();
+    }
+
+    private function toDomain(QueueModel $model): Queue
+    {
         return Queue::fromPersistence(
             id: $model->id,
             category: $model->category,

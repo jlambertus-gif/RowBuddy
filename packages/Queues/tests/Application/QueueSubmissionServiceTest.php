@@ -6,6 +6,7 @@ use RowBuddy\Queues\Application\QueueSubmissionService;
 use RowBuddy\Queues\Events\QueueSubmittedForApproval;
 use RowBuddy\Queues\Exceptions\QueueSubmissionBlocked;
 use RowBuddy\Queues\Gating\JurisdictionGate;
+use RowBuddy\Queues\Gating\QueueGateChecker;
 use RowBuddy\Queues\Tests\Fakes\InMemoryJurisdictionRuleRepository;
 use RowBuddy\Queues\Tests\Fakes\InMemoryQueueRepository;
 use RowBuddy\Queues\Tests\Fakes\InMemoryRestrictedCategoryRepository;
@@ -31,9 +32,7 @@ function makeQueueSubmissionService(
 ): QueueSubmissionService {
     return new QueueSubmissionService(
         $queues,
-        $restrictedCategories,
-        $jurisdictionRules,
-        new JurisdictionGate,
+        new QueueGateChecker($restrictedCategories, $jurisdictionRules, new JurisdictionGate),
         $events,
         new FrozenClock(new DateTimeImmutable('2026-06-01')),
     );

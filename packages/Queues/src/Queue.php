@@ -107,6 +107,9 @@ final class Queue
         return $this->status;
     }
 
+    /**
+     * @throws InvalidQueueStatusTransition
+     */
     public function approve(string $approvedByUserId, ClockInterface $clock): void
     {
         if ($this->status !== QueueStatus::Pending) {
@@ -117,6 +120,9 @@ final class Queue
         $this->recordedEvents[] = new QueueApproved($clock, $this->id, $approvedByUserId);
     }
 
+    /**
+     * @throws InvalidQueueStatusTransition
+     */
     public function publish(ClockInterface $clock): void
     {
         if ($this->status !== QueueStatus::Approved) {
@@ -127,6 +133,9 @@ final class Queue
         $this->recordedEvents[] = new QueuePublished($clock, $this->id);
     }
 
+    /**
+     * @throws InvalidQueueStatusTransition
+     */
     public function reject(string $rejectedByUserId, string $reason, ClockInterface $clock): void
     {
         if ($this->status !== QueueStatus::Pending) {

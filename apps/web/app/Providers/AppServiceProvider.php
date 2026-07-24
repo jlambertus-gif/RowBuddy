@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use RowBuddy\SharedKernel\Contracts\ClockInterface;
 use RowBuddy\SharedKernel\Support\SystemClock;
@@ -27,6 +29,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // A minimal is_admin flag stands in for the Identity module's
+        // future roles/permissions model (see the migration adding this
+        // column) — enough to authorize the Sprint 1 Administration
+        // moderation queue without inventing a full roles system early.
+        Gate::define('queues.moderate', static fn (User $user): bool => $user->is_admin);
     }
 }

@@ -6,6 +6,7 @@ namespace RowBuddy\Queues\Tests\Fakes;
 
 use RowBuddy\Queues\Contracts\QueueRepository;
 use RowBuddy\Queues\Queue;
+use RowBuddy\Queues\ValueObjects\QueueStatus;
 
 final class InMemoryQueueRepository implements QueueRepository
 {
@@ -20,5 +21,13 @@ final class InMemoryQueueRepository implements QueueRepository
     public function findById(string $id): ?Queue
     {
         return $this->saved[$id] ?? null;
+    }
+
+    public function findByStatus(QueueStatus $status): array
+    {
+        return array_values(array_filter(
+            $this->saved,
+            static fn (Queue $queue): bool => $queue->status() === $status,
+        ));
     }
 }

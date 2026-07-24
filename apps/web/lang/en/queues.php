@@ -14,5 +14,13 @@ return [
         'latitude' => 'latitude',
         'longitude' => 'longitude',
         'radius_meters' => 'radius (meters)',
+        'reason' => 'reason',
+    ],
+    'moderation' => [
+        'not_found' => 'Queue not found.',
+        'invalid_transition' => 'This queue cannot be moved to that state right now.',
+        'approved' => 'Queue approved.',
+        'rejected' => 'Queue rejected.',
+        'published' => 'Queue published.',
     ],
 ];
