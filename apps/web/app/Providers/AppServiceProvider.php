@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Infrastructure\EloquentQueueGeofenceLookup;
+use App\Infrastructure\LocalPrivateEvidenceStorage;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
 use RowBuddy\QueuePresence\Contracts\QueueGeofenceLookup;
 use RowBuddy\SharedKernel\Contracts\ClockInterface;
 use RowBuddy\SharedKernel\Support\SystemClock;
@@ -29,6 +31,11 @@ class AppServiceProvider extends ServiceProvider
         // own docblock): a cross-module concern, so it's bound at the
         // composition root, not inside either module's own provider.
         $this->app->bind(QueueGeofenceLookup::class, EloquentQueueGeofenceLookup::class);
+
+        // Needs a booted Laravel container (Storage facade, signed-route
+        // URL generation) that packages/QueuePresence's own standalone
+        // tests never boot — see LocalPrivateEvidenceStorage's docblock.
+        $this->app->bind(EvidenceStorage::class, LocalPrivateEvidenceStorage::class);
     }
 
     /**

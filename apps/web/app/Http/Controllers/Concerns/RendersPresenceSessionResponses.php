@@ -53,4 +53,9 @@ trait RendersPresenceSessionResponses
     {
         return response()->json(['message' => __('presence.errors.not_active')], 422);
     }
+
+    private function invalidPhoto(): JsonResponse
+    {
+        return response()->json(['message' => __('presence.errors.invalid_photo')], 422);
+    }
 }

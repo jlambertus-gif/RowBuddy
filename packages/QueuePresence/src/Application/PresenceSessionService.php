@@ -5,13 +5,21 @@ declare(strict_types=1);
 namespace RowBuddy\QueuePresence\Application;
 
 use RowBuddy\QueuePresence\Contracts\DomainEventPublisher;
+use RowBuddy\QueuePresence\Contracts\EvidencePhotoRepository;
+use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
 use RowBuddy\QueuePresence\Contracts\GpsPingRepository;
+use RowBuddy\QueuePresence\Contracts\ImageMetadataStripper;
 use RowBuddy\QueuePresence\Contracts\PresenceSessionRepository;
 use RowBuddy\QueuePresence\Contracts\QueueGeofenceLookup;
+use RowBuddy\QueuePresence\Exceptions\InvalidEvidencePhoto;
 use RowBuddy\QueuePresence\Exceptions\PresenceQueueUnavailable;
 use RowBuddy\QueuePresence\Exceptions\PresenceSessionAccessDenied;
+use RowBuddy\QueuePresence\Exceptions\PresenceSessionNotActive;
 use RowBuddy\QueuePresence\PresenceSession;
+use RowBuddy\QueuePresence\ValueObjects\EvidencePhotoRecord;
 use RowBuddy\QueuePresence\ValueObjects\GpsPingRecord;
+use RowBuddy\QueuePresence\ValueObjects\PresenceSessionStatus;
+use RowBuddy\QueuePresence\ValueObjects\TemporaryEvidenceUrl;
 use RowBuddy\SharedKernel\Contracts\ClockInterface;
 use RowBuddy\SharedKernel\Exceptions\NotFoundException;
 use RowBuddy\SharedKernel\ValueObjects\GeoPoint;
@@ -30,10 +38,15 @@ use RowBuddy\SharedKernel\ValueObjects\GeoPoint;
  */
 final class PresenceSessionService
 {
+    private const EVIDENCE_URL_TTL_SECONDS = 300;
+
     public function __construct(
         private readonly PresenceSessionRepository $sessions,
         private readonly GpsPingRepository $gpsPings,
+        private readonly EvidencePhotoRepository $evidencePhotos,
         private readonly QueueGeofenceLookup $queueGeofences,
+        private readonly EvidenceStorage $evidenceStorage,
+        private readonly ImageMetadataStripper $metadataStripper,
         private readonly DomainEventPublisher $events,
         private readonly ClockInterface $clock,
     ) {}
@@ -109,6 +122,72 @@ final class PresenceSessionService
         $this->persist($session);
 
         return $session;
+    }
+
+    /**
+     * @throws NotFoundException
+     * @throws PresenceSessionAccessDenied
+     * @throws PresenceSessionNotActive
+     * @throws InvalidEvidencePhoto
+     */
+    public function recordEvidencePhoto(
+        string $photoId,
+        string $sessionId,
+        string $requestingUserId,
+        string $imageContents,
+        string $mimeType,
+    ): PresenceSession {
+        $session = $this->findOrFail($sessionId);
+        $this->assertOwnedBy($session, $requestingUserId);
+
+        if ($session->status() !== PresenceSessionStatus::Active) {
+            throw PresenceSessionNotActive::forSessionId($session->id);
+        }
+
+        // Stripped and stored before touching the aggregate: if the
+        // session turned out not to be active, we'd rather fail before
+        // spending the image-processing work and a storage write than
+        // after, which would otherwise leave an orphaned file behind.
+        $strippedContents = $this->metadataStripper->strip($imageContents);
+        $storageReference = $this->evidenceStorage->store($session->id, $strippedContents);
+
+        $session->recordEvidencePhoto($storageReference, $this->clock);
+
+        $this->persist($session);
+
+        $this->evidencePhotos->record(new EvidencePhotoRecord(
+            $photoId,
+            $session->id,
+            $storageReference,
+            $mimeType,
+            strlen($strippedContents),
+            $this->clock->now(),
+        ));
+
+        return $session;
+    }
+
+    /**
+     * @throws NotFoundException
+     * @throws PresenceSessionAccessDenied
+     */
+    public function evidencePhotoUrl(string $sessionId, string $photoId, string $requestingUserId): TemporaryEvidenceUrl
+    {
+        $session = $this->findOrFail($sessionId);
+        $this->assertOwnedBy($session, $requestingUserId);
+
+        $photo = $this->evidencePhotos->findById($photoId);
+
+        if ($photo === null || $photo->presenceSessionId !== $session->id) {
+            throw new NotFoundException("Evidence photo [{$photoId}] not found.");
+        }
+
+        $expiresAt = $this->clock->now()->modify('+'.self::EVIDENCE_URL_TTL_SECONDS.' seconds');
+
+        return new TemporaryEvidenceUrl(
+            $this->evidenceStorage->temporaryUrl($photo->storageReference, $expiresAt),
+            $expiresAt,
+        );
     }
 
     /**

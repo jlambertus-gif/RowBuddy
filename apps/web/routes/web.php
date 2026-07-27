@@ -10,7 +10,9 @@ use App\Http\Controllers\PublishQueueController;
 use App\Http\Controllers\QueueSubmissionController;
 use App\Http\Controllers\RecordGpsPingController;
 use App\Http\Controllers\RejectQueueController;
+use App\Http\Controllers\ShowEvidencePhotoUrlController;
 use App\Http\Controllers\StartPresenceSessionController;
+use App\Http\Controllers\UploadEvidencePhotoController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -41,6 +43,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/presence-sessions', StartPresenceSessionController::class)->name('presence-sessions.start');
     Route::post('/presence-sessions/{sessionId}/gps-pings', RecordGpsPingController::class)->name('presence-sessions.gps-pings.record');
     Route::post('/presence-sessions/{sessionId}/end', EndPresenceSessionController::class)->name('presence-sessions.end');
+    Route::post('/presence-sessions/{sessionId}/evidence-photos', UploadEvidencePhotoController::class)->name('presence-sessions.evidence-photos.upload');
+    Route::get('/presence-sessions/{sessionId}/evidence-photos/{photoId}', ShowEvidencePhotoUrlController::class)->name('presence-sessions.evidence-photos.show');
 
     Route::middleware('can:queues.moderate')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/queues', [PendingQueuesController::class, 'index'])->name('queues.index');

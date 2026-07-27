@@ -8,6 +8,7 @@ return [
         'latitude' => 'latitud',
         'longitude' => 'longitud',
         'accuracy_meters' => 'precisión (metros)',
+        'photo' => 'foto',
     ],
     'errors' => [
         'not_found' => 'Sesión de presencia no encontrada.',
@@ -15,5 +16,6 @@ return [
         'queue_unavailable' => 'Esta cola no está disponible para captura de presencia.',
         'duplicate_active_session' => 'Ya tienes una sesión de presencia activa para esta cola.',
         'not_active' => 'Esta sesión de presencia ya ha finalizado.',
+        'invalid_photo' => 'No se pudo procesar la foto subida. Por favor intenta con otra.',
     ],
 ];
