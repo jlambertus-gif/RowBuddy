@@ -1,0 +1,25 @@
+<?php
+
+declare(strict_types=1);
+
+namespace RowBuddy\Auctions\Contracts;
+
+use RowBuddy\Auctions\Auction;
+use RowBuddy\Auctions\Exceptions\PresenceSessionAlreadyConsumed;
+
+/**
+ * Domain-facing persistence port. Deliberately expresses no ORM/storage
+ * concept — implementations (e.g. an Eloquent adapter) translate between
+ * whatever storage technology backs them and the {@see Auction} aggregate,
+ * never the reverse.
+ */
+interface AuctionRepository
+{
+    /**
+     * @throws PresenceSessionAlreadyConsumed if another auction already
+     *                                        references this presence session (ADR-009 §4)
+     */
+    public function save(Auction $auction): void;
+
+    public function findById(string $id): ?Auction;
+}

@@ -10,13 +10,6 @@ use RowBuddy\Auctions\Events\AuctionWon;
 use RowBuddy\Auctions\Exceptions\IllegalStateTransition;
 use RowBuddy\Auctions\ValueObjects\AuctionStatus;
 use RowBuddy\SharedKernel\Support\FrozenClock;
-use RowBuddy\SharedKernel\ValueObjects\Currency;
-use RowBuddy\SharedKernel\ValueObjects\Money;
-
-function usd(int $minorUnits): Money
-{
-    return new Money($minorUnits, new Currency('USD'));
-}
 
 it('opens an auction as open and raises an opened event', function () {
     $openedAt = new DateTimeImmutable('2026-09-10 09:00:00');
