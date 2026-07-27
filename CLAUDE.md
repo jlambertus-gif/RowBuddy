@@ -143,7 +143,9 @@ For each task:
 
 ## Repository status
 
-This repository currently contains documentation only. Application code,
-migrations, models, and controllers must not be generated until the
-Phase 0 foundation structure has been reviewed and explicitly approved.
-See `docs/roadmap.md` for the phase plan.
+Phase 0 (Foundations) and Phase 1 (Catalog) are complete and formally
+accepted — tagged `v0.1.0-foundation` and `v0.2.0-catalog`. Phase 2
+(Presence & Trust) implementation must not begin until explicitly
+authorized. See `docs/roadmap.md` for the phase plan and
+`docs/releases/phase-1-completion-report.md` for the Phase 1 completion
+report.

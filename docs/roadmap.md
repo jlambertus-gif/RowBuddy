@@ -27,16 +27,36 @@ zero modules implemented.
 
 ## Phase 1 — Catalog
 
-Status: **in progress**.
+Status: **done**. Tagged `v0.2.0-catalog`. Manual browser acceptance test
+passed and formally accepted 2026-07-27.
 
-Queues bounded context: queue definitions, `pending/approved/published/
-rejected` status lifecycle (ADR-005), jurisdiction/restricted-category
-gating engine, queue discovery/search (PostGIS). Administration moderation
-queue for pending user-submitted queues ships in this phase, not later.
+Queues bounded context, delivered across Sprints 1–7 (Sprint 6 split into
+6a/6b) in `packages/Queues`:
 
-Exit criteria: a queue can be created (admin-published or user-submitted),
-gated by jurisdiction/restricted-category rules, and discovered by
-location. No auctions, no money yet.
+- `Queue` aggregate with `pending/approved/published/rejected` status
+  lifecycle (ADR-005), immutable transitions, domain events for every
+  transition.
+- Eloquent persistence adapter behind a `QueueRepository` port —
+  domain/application layers have no Eloquent dependency.
+- Jurisdiction/restricted-category gating engine: versioned,
+  date-effective jurisdiction rules; fail-closed when no rule exists for
+  a country.
+- Queue submission (user-submitted, gated) and direct publish
+  (admin-curated, still gated) application services and HTTP layer.
+- Admin moderation queue: list pending, approve, reject (with reason),
+  publish.
+- Geospatial discovery (ADR-007): PostGIS-backed coverage areas
+  (`MULTIPOLYGON`, SRID 4326, GIST index), automatic coverage-area
+  assignment on publish, distance-ranked in-memory-paginated search.
+- Inertia/React frontend: submission form, discovery search, admin
+  moderation UI, dashboard navigation — all localized (en/es).
+- 113 automated tests (32 `apps/web`, 81 `packages/Queues`), Larastan and
+  Pint clean, module-boundary and translation-parity architecture tests
+  passing.
+
+Exit criteria met: a queue can be created (admin-published or
+user-submitted), gated by jurisdiction/restricted-category rules, and
+discovered by location. No auctions, no money yet.
 
 ## Phase 2 — Presence & Trust
 

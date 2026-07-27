@@ -1,5 +1,14 @@
 # Architecture Overview
 
+## Implementation status
+
+- **Identity**: implemented (Phase 0) — Fortify-backed authentication.
+- **Queues**: implemented (Phase 1, `packages/Queues`) — submission,
+  jurisdiction/restricted-category gating, moderation, PostGIS geospatial
+  discovery, Inertia/React frontend. See
+  `docs/releases/phase-1-completion-report.md`.
+- All other modules below: not started.
+
 ## Style
 
 Modular monolith with event-driven communication between modules.

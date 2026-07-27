@@ -18,15 +18,30 @@ RowBuddy is a multilingual marketplace for auctioning verified positions in elig
 
 ## Current status
 
-This repository currently contains product, architecture, and legal
-documentation only. The Phase 0 (foundation) implementation plan has been
-proposed and is pending structural review. Application code, migrations,
-models, and controllers must not be generated until that review is
-approved.
+- **Phase 0 — Foundations**: done (`v0.1.0-foundation`).
+- **Phase 1 — Catalog**: done (`v0.2.0-catalog`). The Queues bounded
+  context is implemented end-to-end: queue submission, jurisdiction/
+  restricted-category gating, admin moderation (approve/reject/publish),
+  PostGIS-backed geospatial discovery, and the Inertia/React frontend for
+  all of the above. Manually accepted via full browser walkthrough.
+- **Phase 2 — Presence & Trust**: not started, pending authorization.
 
-See `CLAUDE.md` for the operating instructions used when working in this
-repository, and `docs/` for the full product, architecture, legal, and
-decision record.
+See `docs/roadmap.md` for the full phase plan and
+`docs/releases/phase-1-completion-report.md` for the Phase 1 completion
+report. See `CLAUDE.md` for the operating instructions used when working
+in this repository, and `docs/` for the full product, architecture,
+legal, and decision record.
+
+## Running locally
+
+```
+docker compose up -d
+docker compose exec app php artisan migrate
+docker compose exec app php artisan db:seed
+```
+
+App: `http://localhost:8000`. Vite dev server: `http://localhost:5173`
+(runs inside the `node` service).
 
 ## Documentation map
 
