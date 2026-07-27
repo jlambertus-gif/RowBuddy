@@ -11,6 +11,7 @@ services:
             - ./packages/shared-kernel:/var/www/packages/shared-kernel
             - ./packages/Queues:/var/www/packages/Queues
             - ./packages/QueuePresence:/var/www/packages/QueuePresence
+            - ./packages/Auctions:/var/www/packages/Auctions
 
     horizon:
         volumes:
@@ -18,6 +19,7 @@ services:
             - ./packages/shared-kernel:/var/www/packages/shared-kernel
             - ./packages/Queues:/var/www/packages/Queues
             - ./packages/QueuePresence:/var/www/packages/QueuePresence
+            - ./packages/Auctions:/var/www/packages/Auctions
 
     reverb:
         volumes:
@@ -25,6 +27,7 @@ services:
             - ./packages/shared-kernel:/var/www/packages/shared-kernel
             - ./packages/Queues:/var/www/packages/Queues
             - ./packages/QueuePresence:/var/www/packages/QueuePresence
+            - ./packages/Auctions:/var/www/packages/Auctions
 
     postgres:
         ports:

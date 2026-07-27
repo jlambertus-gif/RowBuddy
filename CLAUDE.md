@@ -145,8 +145,11 @@ For each task:
 
 Phase 0 (Foundations), Phase 1 (Catalog), and Phase 2 (Presence & Trust)
 are complete and formally accepted — tagged `v0.1.0-foundation`,
-`v0.2.0-catalog`, and `v0.3.0-presence`. Phase 3 (Auctions & Bids)
-implementation must not begin until explicitly authorized. See
-`docs/roadmap.md` for the phase plan and
+`v0.2.0-catalog`, and `v0.3.0-presence`. Phase 3 (Auctions & Bids) is now
+in progress, authorized 2026-09-02 after ADR-009 and ADR-010 resolved the
+Auctions–Presence contract and the minimum confidence tier; Sprint 1
+(`Auction` aggregate scaffold, `packages/Auctions`) is complete. See
+`docs/roadmap.md` for the phase plan and sprint progress, and
 `docs/releases/phase-1-completion-report.md` /
-`docs/releases/phase-2-completion-report.md` for the completion reports.
+`docs/releases/phase-2-completion-report.md` for the completion reports of
+the closed phases.

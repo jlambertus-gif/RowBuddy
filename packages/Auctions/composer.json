@@ -1,0 +1,47 @@
+{
+    "name": "rowbuddy/auctions",
+    "description": "Auctions bounded context: the Auction aggregate's open/closing/won/expired state machine (Phase 3).",
+    "type": "library",
+    "license": "proprietary",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../shared-kernel",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "rowbuddy/shared-kernel": "@dev"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.0",
+        "laravel/pint": "^1.18",
+        "phpstan/phpstan": "^1.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "RowBuddy\\Auctions\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "RowBuddy\\Auctions\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "lint": "pint --test",
+        "stan": "phpstan analyse"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

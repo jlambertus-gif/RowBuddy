@@ -99,10 +99,38 @@ auditable.
 
 ## Phase 3 — Auctions & Bids
 
-Status: not started.
+Status: **in progress**. Authorized 2026-09-02 following the Phase 2
+closure and a dedicated architecture review (ADR-009, ADR-010).
 
 Auction state machine (§7.1 of the MVP analysis), Reverb-backed real-time
 bidding, concurrency-safe bid placement, anti-sniping soft-close.
+
+Before implementation began, two architectural decisions were resolved:
+
+- **ADR-009 — Auctions–Presence Verification Contract**: a synchronous
+  read port (`SellerPresenceVerification`), owned by Auctions and
+  implemented by an `apps/web` adapter, lets Auctions check a seller's
+  presence/confidence state without depending on QueuePresence internals.
+  One `PresenceSession` may back at most one auction — documented
+  explicitly as an MVP restriction, not a permanent domain invariant,
+  pending a future `Position` concept.
+- **ADR-010 — Minimum Confidence Tier and Live-Presence Policy**: Evidence
+  Verified is the minimum tier required to create/publish an auction
+  (Location Verified is reachable via GPS alone per ADR-008, so it cannot
+  satisfy "GPS alone is not sufficient verification"). Live proximity
+  while an auction is active is a separate, continuous, Auctions-owned
+  check. The staleness threshold, the consequence of losing proximity,
+  and the consequence of the seller ending their `PresenceSession` while
+  an auction is active are explicitly deferred open questions, due before
+  Sprint 4.
+
+Sprint progress in `packages/Auctions`:
+
+- **Sprint 1** (done): `Auction` aggregate scaffold — Open/Closing/Won/
+  Expired state machine, immutable accepted-winning-bid invariant,
+  domain events (`AuctionOpened`, `AuctionClosingStarted`, `AuctionWon`,
+  `AuctionExpired`). No persistence, no HTTP, no QueuePresence coupling.
+  11 tests, PHPStan level 8 and Pint clean.
 
 Exit criteria: an auction can run end-to-end (open → closing → winning bid
 selected) under simulated concurrent bidding with correct, tested

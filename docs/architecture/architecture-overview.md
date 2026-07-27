@@ -16,6 +16,11 @@
   the full Administration/Fraud-Risk-adjacent Audit context described
   below (case management, partitioning/archival, admin tooling remain
   unbuilt).
+- **Auctions**: in progress (Phase 3, `packages/Auctions`) — the `Auction`
+  aggregate's Open/Closing/Won/Expired state machine and immutable
+  accepted-bid invariant (Sprint 1). No persistence, no HTTP, no read
+  contract to QueuePresence yet (ADR-009/ADR-010 define but do not yet
+  implement that contract).
 - All other modules below: not started.
 
 ## Style
