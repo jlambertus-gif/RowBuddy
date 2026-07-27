@@ -123,6 +123,16 @@ Before implementation began, two architectural decisions were resolved:
   and the consequence of the seller ending their `PresenceSession` while
   an auction is active are explicitly deferred open questions, due before
   Sprint 4.
+- **ADR-011 — Live-Proximity Enforcement Policy**: resolved ADR-010's
+  three deferred questions — a 15-minute staleness threshold, a two-tier
+  consequence (flag "at risk" then a 10-minute grace period before
+  auto-cancelling; immediate cancellation when the backing
+  `PresenceSession` is no longer active, which is also how "seller ends
+  their session mid-auction" resolves, via the already-exposed
+  `sessionActive` field — no new QueuePresence code). Enforcement runs
+  lazily, invoked only by commands that act on an existing active
+  auction, never by a plain read; deliberately no scheduler or background
+  infrastructure this phase.
 
 Sprint progress in `packages/Auctions`:
 
@@ -150,6 +160,13 @@ Sprint progress in `packages/Auctions`:
   HTTP, no bidding — deferred to Sprint 4. 24 Auctions tests, 81
   QueuePresence tests (was 73), 72 apps/web tests (was 66); PHPStan and
   Pint clean throughout.
+- **Sprint 4** (done): implemented ADR-011 — a new `Cancelled` status,
+  `proximityAtRiskSince` tracking, and `LiveProximityChecker` applying
+  the two-tier policy. Invoked only by commands that act on an existing
+  active auction, never by a read; no scheduler introduced. Built
+  complete and fully tested with no caller yet — Sprint 5's bid-placement
+  command is expected to be the first one. 45 Auctions tests (was 24);
+  apps/web unchanged at 72; PHPStan and Pint clean throughout.
 
 Exit criteria: an auction can run end-to-end (open → closing → winning bid
 selected) under simulated concurrent bidding with correct, tested

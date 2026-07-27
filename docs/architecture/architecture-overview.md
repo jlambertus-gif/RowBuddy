@@ -17,12 +17,15 @@
   below (case management, partitioning/archival, admin tooling remain
   unbuilt).
 - **Auctions**: in progress (Phase 3, `packages/Auctions`) — the `Auction`
-  aggregate's Open/Closing/Won/Expired state machine and immutable
-  accepted-bid invariant (Sprint 1); the `AuctionRepository` persistence
-  layer (Sprint 2); the ADR-009 `SellerPresenceVerification` read
-  contract and its `apps/web` adapter, plus the ADR-010 Evidence Verified
-  gate in `AuctionService::open()` (Sprint 3). No HTTP, no bidding, no
-  live-proximity enforcement yet.
+  aggregate's Open/Closing/Won/Expired/Cancelled state machine and
+  immutable accepted-bid invariant (Sprint 1); the `AuctionRepository`
+  persistence layer (Sprint 2); the ADR-009 `SellerPresenceVerification`
+  read contract and its `apps/web` adapter, plus the ADR-010 Evidence
+  Verified gate in `AuctionService::open()` (Sprint 3); the ADR-011
+  `LiveProximityChecker` implementing the two-tier proximity policy
+  (Sprint 4) — built and fully tested, but not yet wired into any command
+  path, since Sprint 4 had no genuine command-type entry point acting on
+  an existing active auction. No HTTP, no bidding yet.
 - All other modules below: not started.
 
 ## Style
