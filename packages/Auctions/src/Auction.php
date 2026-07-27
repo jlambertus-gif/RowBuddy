@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace RowBuddy\Auctions;
 
 use DateTimeImmutable;
+use RowBuddy\Auctions\Application\LiveProximityChecker;
+use RowBuddy\Auctions\Events\AuctionCancelled;
 use RowBuddy\Auctions\Events\AuctionClosingStarted;
 use RowBuddy\Auctions\Events\AuctionExpired;
 use RowBuddy\Auctions\Events\AuctionOpened;
+use RowBuddy\Auctions\Events\AuctionProximityAtRisk;
+use RowBuddy\Auctions\Events\AuctionProximityRestored;
 use RowBuddy\Auctions\Events\AuctionWon;
 use RowBuddy\Auctions\Exceptions\IllegalStateTransition;
 use RowBuddy\Auctions\ValueObjects\AuctionStatus;
@@ -49,6 +53,7 @@ final class Auction
         private AuctionStatus $status,
         private ?string $winningBidId = null,
         private ?Money $winningAmount = null,
+        private ?DateTimeImmutable $proximityAtRiskSince = null,
     ) {}
 
     public static function open(
@@ -96,6 +101,7 @@ final class Auction
         AuctionStatus $status,
         ?string $winningBidId,
         ?Money $winningAmount,
+        ?DateTimeImmutable $proximityAtRiskSince = null,
     ): self {
         return new self(
             id: $id,
@@ -107,6 +113,7 @@ final class Auction
             status: $status,
             winningBidId: $winningBidId,
             winningAmount: $winningAmount,
+            proximityAtRiskSince: $proximityAtRiskSince,
         );
     }
 
@@ -123,6 +130,17 @@ final class Auction
     public function winningAmount(): ?Money
     {
         return $this->winningAmount;
+    }
+
+    /**
+     * The moment a live-proximity check (ADR-011) first detected this
+     * auction as stale — null while not at risk. Set once; not refreshed
+     * by subsequent stale detections, so a grace period measured from it
+     * is not extended indefinitely.
+     */
+    public function proximityAtRiskSince(): ?DateTimeImmutable
+    {
+        return $this->proximityAtRiskSince;
     }
 
     /**
@@ -168,11 +186,71 @@ final class Auction
     }
 
     /**
+     * Live-proximity enforcement (ADR-011, Sprint 4). Invoked only by
+     * domain commands that act on an already-existing active auction —
+     * never by a plain read — via {@see LiveProximityChecker}.
+     *
+     * @throws IllegalStateTransition
+     */
+    public function flagProximityAtRisk(ClockInterface $clock): void
+    {
+        $this->guardActiveLifecycle('flag proximity at risk');
+
+        if ($this->proximityAtRiskSince !== null) {
+            throw IllegalStateTransition::forAuctionAlreadyAtRisk($this->id);
+        }
+
+        $this->proximityAtRiskSince = $clock->now();
+        $this->recordedEvents[] = new AuctionProximityAtRisk($clock, $this->id);
+    }
+
+    /**
+     * @throws IllegalStateTransition
+     */
+    public function restoreProximity(ClockInterface $clock): void
+    {
+        $this->guardActiveLifecycle('restore proximity');
+
+        if ($this->proximityAtRiskSince === null) {
+            throw IllegalStateTransition::forAuctionNotAtRisk($this->id);
+        }
+
+        $this->proximityAtRiskSince = null;
+        $this->recordedEvents[] = new AuctionProximityRestored($clock, $this->id);
+    }
+
+    /**
+     * Covers both ADR-011 §2 cases: the grace period after staleness
+     * elapsing, and an immediate cancellation when the backing
+     * PresenceSession is no longer active (§3) — allowed regardless of
+     * whether the auction was ever flagged at risk first.
+     *
+     * @throws IllegalStateTransition
+     */
+    public function cancelForProximityLoss(ClockInterface $clock): void
+    {
+        $this->guardActiveLifecycle('cancel for proximity loss');
+
+        $this->status = AuctionStatus::Cancelled;
+        $this->recordedEvents[] = new AuctionCancelled($clock, $this->id);
+    }
+
+    /**
      * @throws IllegalStateTransition
      */
     private function guardStatus(AuctionStatus $expected, string $attemptedTransition): void
     {
         if ($this->status !== $expected) {
+            throw IllegalStateTransition::forAuction($this->id, $attemptedTransition, $this->status);
+        }
+    }
+
+    /**
+     * @throws IllegalStateTransition
+     */
+    private function guardActiveLifecycle(string $attemptedTransition): void
+    {
+        if ($this->status !== AuctionStatus::Open && $this->status !== AuctionStatus::Closing) {
             throw IllegalStateTransition::forAuction($this->id, $attemptedTransition, $this->status);
         }
     }

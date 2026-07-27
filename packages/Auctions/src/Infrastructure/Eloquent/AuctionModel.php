@@ -23,6 +23,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $winning_bid_id
  * @property int|null $winning_amount_minor_units
  * @property string|null $winning_amount_currency
+ * @property Carbon|null $proximity_at_risk_since
  */
 final class AuctionModel extends Model
 {
@@ -44,10 +45,12 @@ final class AuctionModel extends Model
         'winning_bid_id',
         'winning_amount_minor_units',
         'winning_amount_currency',
+        'proximity_at_risk_since',
     ];
 
     /** @var array<string, string> */
     protected $casts = [
         'opened_at' => 'datetime',
+        'proximity_at_risk_since' => 'datetime',
     ];
 }

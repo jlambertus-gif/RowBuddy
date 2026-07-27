@@ -18,4 +18,14 @@ final class IllegalStateTransition extends DomainException
             "Auction [{$auctionId}] cannot {$attemptedTransition} while in status [{$currentStatus->value}]."
         );
     }
+
+    public static function forAuctionAlreadyAtRisk(string $auctionId): self
+    {
+        return new self("Auction [{$auctionId}] is already flagged as proximity-at-risk.");
+    }
+
+    public static function forAuctionNotAtRisk(string $auctionId): self
+    {
+        return new self("Auction [{$auctionId}] is not currently flagged as proximity-at-risk.");
+    }
 }

@@ -32,6 +32,7 @@ beforeEach(function () {
         $table->string('winning_bid_id')->nullable();
         $table->unsignedBigInteger('winning_amount_minor_units')->nullable();
         $table->string('winning_amount_currency', 3)->nullable();
+        $table->timestamp('proximity_at_risk_since')->nullable();
         $table->timestamps();
     });
 });
@@ -125,4 +126,32 @@ it('allows two different presence sessions to each back an auction', function ()
 
     expect($repository->findById('auction-7')->presenceSessionId)->toBe('session-7')
         ->and($repository->findById('auction-8')->presenceSessionId)->toBe('session-8');
+});
+
+it('round-trips a cancelled auction with proximityAtRiskSince set', function () {
+    $repository = new EloquentAuctionRepository;
+    $flaggedAt = new DateTimeImmutable('2026-09-16 10:00:00');
+
+    $auction = Auction::open('auction-9', 'queue-1', '101', 'session-9', usd(1000), new FrozenClock);
+    $auction->flagProximityAtRisk(new FrozenClock($flaggedAt));
+    $repository->save($auction);
+
+    $found = $repository->findById('auction-9');
+    expect($found->status())->toBe(AuctionStatus::Open)
+        ->and($found->proximityAtRiskSince())->toEqual($flaggedAt);
+
+    $found->cancelForProximityLoss(new FrozenClock);
+    $repository->save($found);
+
+    $cancelled = $repository->findById('auction-9');
+    expect($cancelled->status())->toBe(AuctionStatus::Cancelled)
+        ->and($cancelled->proximityAtRiskSince())->toEqual($flaggedAt);
+});
+
+it('has no proximityAtRiskSince by default when round-tripped', function () {
+    $repository = new EloquentAuctionRepository;
+
+    $repository->save(Auction::open('auction-10', 'queue-1', '101', 'session-10', usd(1000), new FrozenClock));
+
+    expect($repository->findById('auction-10')->proximityAtRiskSince())->toBeNull();
 });

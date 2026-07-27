@@ -37,6 +37,7 @@ final class EloquentAuctionRepository implements AuctionRepository
                     'winning_bid_id' => $auction->winningBidId(),
                     'winning_amount_minor_units' => $winningAmount?->minorUnits,
                     'winning_amount_currency' => $winningAmount !== null ? (string) $winningAmount->currency : null,
+                    'proximity_at_risk_since' => $auction->proximityAtRiskSince(),
                 ],
             );
         } catch (UniqueConstraintViolationException) {
@@ -67,6 +68,7 @@ final class EloquentAuctionRepository implements AuctionRepository
             status: AuctionStatus::from($model->status),
             winningBidId: $model->winning_bid_id,
             winningAmount: $winningAmount,
+            proximityAtRiskSince: $model->proximity_at_risk_since?->toDateTimeImmutable(),
         );
     }
 }
