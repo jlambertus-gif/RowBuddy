@@ -6,6 +6,8 @@ namespace App\Http\Controllers\Concerns;
 
 use Illuminate\Http\JsonResponse;
 use RowBuddy\QueuePresence\PresenceSession;
+use RowBuddy\QueuePresence\ValueObjects\ConfidenceScoreRecord;
+use RowBuddy\QueuePresence\ValueObjects\ConfidenceTier;
 
 /**
  * Shared response-shaping for the presence-session controllers — no
@@ -16,9 +18,14 @@ use RowBuddy\QueuePresence\PresenceSession;
 trait RendersPresenceSessionResponses
 {
     /**
+     * $confidenceScore is null before any signal has ever been recorded
+     * for the session — rendered as Unverified/0 here (a display default,
+     * not a persisted fact) rather than pushing that default into the
+     * domain layer.
+     *
      * @return array<string, mixed>
      */
-    private function toResponse(PresenceSession $session): array
+    private function toResponse(PresenceSession $session, ?ConfidenceScoreRecord $confidenceScore = null): array
     {
         return [
             'id' => $session->id,
@@ -26,6 +33,10 @@ trait RendersPresenceSessionResponses
             'seller_id' => $session->sellerId,
             'started_at' => $session->startedAt->format(DATE_ATOM),
             'status' => $session->status()->value,
+            'confidence' => [
+                'points' => $confidenceScore === null ? 0 : $confidenceScore->points,
+                'tier' => $confidenceScore === null ? ConfidenceTier::Unverified->value : $confidenceScore->tier->value,
+            ],
         ];
     }
 
@@ -57,5 +68,10 @@ trait RendersPresenceSessionResponses
     private function invalidPhoto(): JsonResponse
     {
         return response()->json(['message' => __('presence.errors.invalid_photo')], 422);
+    }
+
+    private function storageFailed(): JsonResponse
+    {
+        return response()->json(['message' => __('presence.errors.storage_failed')], 500);
     }
 }

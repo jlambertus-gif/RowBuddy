@@ -27,7 +27,8 @@
         "distance_away": "{{distance}} m away",
         "previous": "Previous",
         "next": "Next",
-        "page_indicator": "Page {{page}} of {{totalPages}}"
+        "page_indicator": "Page {{page}} of {{totalPages}}",
+        "claim_presence": "Claim presence"
     },
     "moderation": {
         "title": "Pending queues",

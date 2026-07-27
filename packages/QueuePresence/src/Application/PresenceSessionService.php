@@ -11,11 +11,13 @@ use RowBuddy\QueuePresence\Contracts\GpsPingRepository;
 use RowBuddy\QueuePresence\Contracts\ImageMetadataStripper;
 use RowBuddy\QueuePresence\Contracts\PresenceSessionRepository;
 use RowBuddy\QueuePresence\Contracts\QueueGeofenceLookup;
+use RowBuddy\QueuePresence\Exceptions\EvidenceStorageFailed;
 use RowBuddy\QueuePresence\Exceptions\InvalidEvidencePhoto;
 use RowBuddy\QueuePresence\Exceptions\PresenceQueueUnavailable;
 use RowBuddy\QueuePresence\Exceptions\PresenceSessionAccessDenied;
 use RowBuddy\QueuePresence\Exceptions\PresenceSessionNotActive;
 use RowBuddy\QueuePresence\PresenceSession;
+use RowBuddy\QueuePresence\ValueObjects\ConfidenceScoreRecord;
 use RowBuddy\QueuePresence\ValueObjects\EvidencePhotoRecord;
 use RowBuddy\QueuePresence\ValueObjects\GpsPingRecord;
 use RowBuddy\QueuePresence\ValueObjects\PresenceSessionStatus;
@@ -120,6 +122,7 @@ final class PresenceSessionService
     /**
      * @throws NotFoundException
      * @throws PresenceSessionAccessDenied
+     * @throws PresenceSessionNotActive
      */
     public function end(string $sessionId, string $requestingUserId): PresenceSession
     {
@@ -138,6 +141,7 @@ final class PresenceSessionService
      * @throws PresenceSessionAccessDenied
      * @throws PresenceSessionNotActive
      * @throws InvalidEvidencePhoto
+     * @throws EvidenceStorageFailed
      */
     public function recordEvidencePhoto(
         string $photoId,
@@ -199,6 +203,22 @@ final class PresenceSessionService
             $this->evidenceStorage->temporaryUrl($photo->storageReference, $expiresAt),
             $expiresAt,
         );
+    }
+
+    /**
+     * The current confidence score for a session, for display after any
+     * action — null if no signal has been recorded yet (the UI treats
+     * that as Unverified/0, there is no row to default to).
+     *
+     * @throws NotFoundException
+     * @throws PresenceSessionAccessDenied
+     */
+    public function currentConfidenceScore(string $sessionId, string $requestingUserId): ?ConfidenceScoreRecord
+    {
+        $session = $this->findOrFail($sessionId);
+        $this->assertOwnedBy($session, $requestingUserId);
+
+        return $this->confidenceRecomputer->latestScoreFor($session->id);
     }
 
     /**

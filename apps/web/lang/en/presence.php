@@ -17,5 +17,6 @@ return [
         'duplicate_active_session' => 'You already have an active presence session for this queue.',
         'not_active' => 'This presence session has already ended.',
         'invalid_photo' => 'The uploaded photo could not be processed. Please try another one.',
+        'storage_failed' => 'Your photo could not be saved right now. Please try again in a moment.',
     ],
 ];

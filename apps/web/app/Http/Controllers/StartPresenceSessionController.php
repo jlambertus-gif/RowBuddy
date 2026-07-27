@@ -18,11 +18,13 @@ final class StartPresenceSessionController extends Controller
 
     public function __invoke(StartPresenceSessionRequest $request, PresenceSessionService $service): JsonResponse
     {
+        $sellerId = (string) $request->user()->id;
+
         try {
             $session = $service->start(
                 id: (string) Str::uuid(),
                 queueId: $request->string('queue_id')->toString(),
-                sellerId: (string) $request->user()->id,
+                sellerId: $sellerId,
             );
         } catch (PresenceQueueUnavailable) {
             return $this->queueUnavailable();
@@ -30,6 +32,8 @@ final class StartPresenceSessionController extends Controller
             return $this->duplicateActiveSession();
         }
 
-        return response()->json(['data' => $this->toResponse($session)], 201);
+        $confidence = $service->currentConfidenceScore($session->id, $sellerId);
+
+        return response()->json(['data' => $this->toResponse($session, $confidence)], 201);
     }
 }

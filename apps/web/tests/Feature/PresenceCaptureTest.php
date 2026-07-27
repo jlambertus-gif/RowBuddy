@@ -48,7 +48,8 @@ it('starts a presence session for an authenticated user against a published queu
     expect($session)->not->toBeNull()
         ->and($session->queue_id)->toBe($queueId)
         ->and((string) $session->seller_id)->toBe((string) $user->id)
-        ->and($session->status)->toBe('active');
+        ->and($session->status)->toBe('active')
+        ->and($response->json('data.confidence'))->toBe(['points' => 0, 'tier' => 'unverified']);
 });
 
 it('rejects starting a session against a queue that is not published', function () {
@@ -95,7 +96,8 @@ it('records a GPS ping within the geofence for the session owner', function () {
     $response->assertOk();
     $ping = GpsPingModel::query()->where('presence_session_id', $sessionId)->first();
     expect($ping)->not->toBeNull()
-        ->and($ping->within_geofence)->toBeTrue();
+        ->and($ping->within_geofence)->toBeTrue()
+        ->and($response->json('data.confidence'))->toBe(['points' => 60, 'tier' => 'location_verified']);
 });
 
 it('records a GPS ping outside the geofence as such', function () {

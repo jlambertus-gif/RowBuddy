@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
+use RowBuddy\QueuePresence\Exceptions\EvidenceStorageFailed;
 
 /**
  * The one real {@see EvidenceStorage} implementation for Phase 2, per the
@@ -29,7 +30,14 @@ final class LocalPrivateEvidenceStorage implements EvidenceStorage
     {
         $path = "presence-evidence/{$presenceSessionId}/".Str::uuid().'.jpg';
 
-        Storage::disk(self::DISK)->put($path, $contents);
+        // filesystems.php configures this disk with 'throw' => false, so a
+        // failed write returns false here rather than throwing on its
+        // own — checking the return value is the only thing standing
+        // between "the write failed" and silently recording a photo that
+        // was never actually persisted.
+        if (! Storage::disk(self::DISK)->put($path, $contents)) {
+            throw EvidenceStorageFailed::forPath($path);
+        }
 
         return $path;
     }

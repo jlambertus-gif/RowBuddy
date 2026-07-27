@@ -7,6 +7,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
+use RowBuddy\QueuePresence\Exceptions\EvidenceStorageFailed;
 use RowBuddy\QueuePresence\Infrastructure\Eloquent\EvidencePhotoModel;
 use RowBuddy\Queues\Infrastructure\Eloquent\QueueModel;
 use Tests\TestCase;
@@ -55,6 +57,34 @@ it('uploads an evidence photo for the session owner and stores it privately', fu
         ->and($photo->mime_type)->toBe('image/jpeg')
         ->and($photo->size_bytes)->toBeGreaterThan(0);
     Storage::disk('local')->assertExists($photo->storage_reference);
+
+    // Evidence alone, with no supporting GPS ping, earns no confidence
+    // credit at all (ADR-008 §3).
+    expect($response->json('data.confidence'))->toBe(['points' => 0, 'tier' => 'unverified']);
+});
+
+it('reaches evidence verified once a within-geofence ping and a photo have both been recorded', function () {
+    Storage::fake('local');
+    $queueId = createPublishedQueueForEvidenceTest();
+    $user = User::factory()->create();
+    $sessionId = startPresenceSessionForEvidenceTest($this, $user, $queueId);
+
+    $pingResponse = $this->actingAs($user)->post("/presence-sessions/{$sessionId}/gps-pings", [
+        'latitude' => 32.7157,
+        'longitude' => -117.1611,
+        'accuracy_meters' => 60.0,
+    ]);
+    expect($pingResponse->json('data.confidence'))->toBe(['points' => 40, 'tier' => 'location_verified']);
+
+    $photoResponse = $this->actingAs($user)->post("/presence-sessions/{$sessionId}/evidence-photos", [
+        'photo' => UploadedFile::fake()->image('evidence.jpg'),
+    ]);
+    expect($photoResponse->json('data.confidence'))->toBe(['points' => 140, 'tier' => 'evidence_verified']);
+
+    // Ending the session doesn't recompute — the last-known score still shows.
+    $endResponse = $this->actingAs($user)->post("/presence-sessions/{$sessionId}/end");
+    expect($endResponse->json('data.confidence'))->toBe(['points' => 140, 'tier' => 'evidence_verified'])
+        ->and($endResponse->json('data.status'))->toBe('ended');
 });
 
 it('rejects an upload without a photo', function () {
@@ -126,6 +156,41 @@ it('rejects uploading a photo once the session has ended', function () {
     ]);
 
     $response->assertStatus(422);
+});
+
+it('returns a clean error and records nothing when storage genuinely fails', function () {
+    // Found via real-browser acceptance testing (Sprint 7): filesystems.php
+    // configures the local disk with 'throw' => false, so a failed write
+    // returns false rather than throwing — LocalPrivateEvidenceStorage
+    // must check that itself (see EvidenceStorageFailed's docblock).
+    $this->app->bind(
+        EvidenceStorage::class,
+        function () {
+            return new class implements EvidenceStorage
+            {
+                public function store(string $presenceSessionId, string $contents): string
+                {
+                    throw EvidenceStorageFailed::forPath('simulated-failure');
+                }
+
+                public function temporaryUrl(string $reference, DateTimeImmutable $expiresAt): string
+                {
+                    throw new RuntimeException('not used in this test');
+                }
+            };
+        },
+    );
+
+    $queueId = createPublishedQueueForEvidenceTest();
+    $user = User::factory()->create();
+    $sessionId = startPresenceSessionForEvidenceTest($this, $user, $queueId);
+
+    $response = $this->actingAs($user)->post("/presence-sessions/{$sessionId}/evidence-photos", [
+        'photo' => UploadedFile::fake()->image('evidence.jpg'),
+    ]);
+
+    $response->assertStatus(500);
+    expect(EvidencePhotoModel::query()->where('presence_session_id', $sessionId)->count())->toBe(0);
 });
 
 it('returns a temporary signed url for the photo owner', function () {

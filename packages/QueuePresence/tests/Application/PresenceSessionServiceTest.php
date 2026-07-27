@@ -11,6 +11,7 @@ use RowBuddy\QueuePresence\Events\PresenceConfidenceComputed;
 use RowBuddy\QueuePresence\Events\PresenceSessionEnded;
 use RowBuddy\QueuePresence\Events\PresenceSessionStarted;
 use RowBuddy\QueuePresence\Exceptions\DuplicateActivePresenceSession;
+use RowBuddy\QueuePresence\Exceptions\EvidenceStorageFailed;
 use RowBuddy\QueuePresence\Exceptions\InvalidEvidencePhoto;
 use RowBuddy\QueuePresence\Exceptions\PresenceQueueUnavailable;
 use RowBuddy\QueuePresence\Exceptions\PresenceSessionAccessDenied;
@@ -274,6 +275,26 @@ it('refuses to record an evidence photo once the session has ended, without stor
     expect($evidenceStorage->stored)->toBe([]);
 });
 
+it('propagates a storage failure without recording a photo or recomputing confidence', function () {
+    $sessions = new InMemoryPresenceSessionRepository;
+    $queueGeofences = new InMemoryQueueGeofenceLookup;
+    $queueGeofences->publish('queue-1', aTestQueueGeofence());
+    $evidencePhotos = new InMemoryEvidencePhotoRepository;
+    $evidenceStorage = new InMemoryEvidenceStorage;
+    $evidenceStorage->shouldFail = true;
+    $events = new RecordingDomainEventPublisher;
+
+    $service = makePresenceSessionService($sessions, new RecordingGpsPingRepository, $queueGeofences, $events, $evidencePhotos, $evidenceStorage);
+    $service->start('session-22', 'queue-1', 'seller-1');
+    $events->published = [];
+
+    expect(fn () => $service->recordEvidencePhoto('photo-9', 'session-22', 'seller-1', 'raw-image-bytes', 'image/jpeg'))
+        ->toThrow(EvidenceStorageFailed::class);
+
+    expect($evidencePhotos->hasAnyForSession('session-22'))->toBeFalse()
+        ->and($events->published)->toBe([]);
+});
+
 it('propagates an invalid-image failure from the metadata stripper', function () {
     $sessions = new InMemoryPresenceSessionRepository;
     $queueGeofences = new InMemoryQueueGeofenceLookup;
@@ -359,5 +380,44 @@ it('refuses to return a url for a session that does not belong to the requester'
     $service->recordEvidencePhoto('photo-8', 'session-18', 'seller-1', 'raw-image-bytes', 'image/jpeg');
 
     expect(fn () => $service->evidencePhotoUrl('session-18', 'photo-8', 'seller-intruder'))
+        ->toThrow(PresenceSessionAccessDenied::class);
+});
+
+it('returns null for the current confidence score before any signal is recorded', function () {
+    $sessions = new InMemoryPresenceSessionRepository;
+    $queueGeofences = new InMemoryQueueGeofenceLookup;
+    $queueGeofences->publish('queue-1', aTestQueueGeofence());
+
+    $service = makePresenceSessionService($sessions, new RecordingGpsPingRepository, $queueGeofences, new RecordingDomainEventPublisher);
+    $service->start('session-19', 'queue-1', 'seller-1');
+
+    expect($service->currentConfidenceScore('session-19', 'seller-1'))->toBeNull();
+});
+
+it('returns the current confidence score after a signal is recorded', function () {
+    $sessions = new InMemoryPresenceSessionRepository;
+    $queueGeofences = new InMemoryQueueGeofenceLookup;
+    $queueGeofences->publish('queue-1', aTestQueueGeofence());
+    $gpsPings = new RecordingGpsPingRepository;
+
+    $service = makePresenceSessionService($sessions, $gpsPings, $queueGeofences, new RecordingDomainEventPublisher);
+    $service->start('session-20', 'queue-1', 'seller-1');
+    $service->recordGpsPing('ping-20', 'session-20', 'seller-1', 32.7157, -117.1611, 12.5);
+
+    $score = $service->currentConfidenceScore('session-20', 'seller-1');
+
+    expect($score)->not->toBeNull()
+        ->and($score->points)->toBe(60);
+});
+
+it('refuses to return a confidence score for a session that does not belong to the requester', function () {
+    $sessions = new InMemoryPresenceSessionRepository;
+    $queueGeofences = new InMemoryQueueGeofenceLookup;
+    $queueGeofences->publish('queue-1', aTestQueueGeofence());
+
+    $service = makePresenceSessionService($sessions, new RecordingGpsPingRepository, $queueGeofences, new RecordingDomainEventPublisher);
+    $service->start('session-21', 'queue-1', 'seller-1');
+
+    expect(fn () => $service->currentConfidenceScore('session-21', 'seller-intruder'))
         ->toThrow(PresenceSessionAccessDenied::class);
 });

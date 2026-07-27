@@ -44,6 +44,16 @@ final class ConfidenceRecomputer
         private readonly ClockInterface $clock,
     ) {}
 
+    /**
+     * The most recently computed score for a session, or null if it has
+     * never had a signal recorded against it yet (never Unverified/0 by
+     * default — the UI is responsible for that default display).
+     */
+    public function latestScoreFor(string $presenceSessionId): ?ConfidenceScoreRecord
+    {
+        return $this->scores->latestFor($presenceSessionId);
+    }
+
     public function recompute(PresenceSession $session): ConfidenceScoreRecord
     {
         $bestAccuracy = $this->gpsPings->bestAccuracyWithinGeofence($session->id);

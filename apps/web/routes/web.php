@@ -40,6 +40,10 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/queues', QueueSubmissionController::class)->name('queues.store');
 
+    Route::get('/queues/{queueId}/presence', function (string $queueId) {
+        return Inertia::render('Queues/Presence', ['queueId' => $queueId]);
+    })->name('queues.presence-page');
+
     Route::post('/presence-sessions', StartPresenceSessionController::class)->name('presence-sessions.start');
     Route::post('/presence-sessions/{sessionId}/gps-pings', RecordGpsPingController::class)->name('presence-sessions.gps-pings.record');
     Route::post('/presence-sessions/{sessionId}/end', EndPresenceSessionController::class)->name('presence-sessions.end');

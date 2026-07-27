@@ -17,5 +17,6 @@ return [
         'duplicate_active_session' => 'Ya tienes una sesión de presencia activa para esta cola.',
         'not_active' => 'Esta sesión de presencia ya ha finalizado.',
         'invalid_photo' => 'No se pudo procesar la foto subida. Por favor intenta con otra.',
+        'storage_failed' => 'No se pudo guardar tu foto en este momento. Por favor intenta de nuevo en un momento.',
     ],
 ];

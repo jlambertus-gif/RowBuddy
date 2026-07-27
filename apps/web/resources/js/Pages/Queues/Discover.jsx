@@ -1,3 +1,4 @@
+import { Link, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +13,7 @@ const PER_PAGE = 20;
 
 export default function Discover() {
     const { t } = useTranslation('queues');
+    const { auth } = usePage().props;
     const [coords, setCoords] = useState({ latitude: '', longitude: '' });
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -107,7 +109,20 @@ export default function Discover() {
                         <>
                             <div className="grid gap-4 sm:grid-cols-2">
                                 {result.data.map((queue) => (
-                                    <QueueCard key={queue.id} queue={queue} />
+                                    <QueueCard
+                                        key={queue.id}
+                                        queue={queue}
+                                        actions={
+                                            auth?.user && (
+                                                <Link
+                                                    href={`/queues/${queue.id}/presence`}
+                                                    className="inline-block rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-500"
+                                                >
+                                                    {t('discover.claim_presence')}
+                                                </Link>
+                                            )
+                                        }
+                                    />
                                 ))}
                             </div>
 

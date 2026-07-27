@@ -20,11 +20,13 @@ final class RecordGpsPingController extends Controller
 
     public function __invoke(RecordGpsPingRequest $request, PresenceSessionService $service, string $sessionId): JsonResponse
     {
+        $requestingUserId = (string) $request->user()->id;
+
         try {
             $session = $service->recordGpsPing(
                 pingId: (string) Str::uuid(),
                 sessionId: $sessionId,
-                requestingUserId: (string) $request->user()->id,
+                requestingUserId: $requestingUserId,
                 latitude: $request->float('latitude'),
                 longitude: $request->float('longitude'),
                 accuracyInMeters: $request->float('accuracy_meters'),
@@ -39,6 +41,8 @@ final class RecordGpsPingController extends Controller
             return $this->notActive();
         }
 
-        return response()->json(['data' => $this->toResponse($session)]);
+        $confidence = $service->currentConfidenceScore($session->id, $requestingUserId);
+
+        return response()->json(['data' => $this->toResponse($session, $confidence)]);
     }
 }

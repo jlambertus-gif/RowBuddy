@@ -18,8 +18,10 @@ final class EndPresenceSessionController extends Controller
 
     public function __invoke(Request $request, PresenceSessionService $service, string $sessionId): JsonResponse
     {
+        $requestingUserId = (string) $request->user()->id;
+
         try {
-            $session = $service->end($sessionId, (string) $request->user()->id);
+            $session = $service->end($sessionId, $requestingUserId);
         } catch (NotFoundException) {
             return $this->notFound();
         } catch (PresenceSessionAccessDenied) {
@@ -28,6 +30,8 @@ final class EndPresenceSessionController extends Controller
             return $this->notActive();
         }
 
-        return response()->json(['data' => $this->toResponse($session)]);
+        $confidence = $service->currentConfidenceScore($session->id, $requestingUserId);
+
+        return response()->json(['data' => $this->toResponse($session, $confidence)]);
     }
 }

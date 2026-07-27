@@ -27,7 +27,8 @@
         "distance_away": "a {{distance}} m",
         "previous": "Anterior",
         "next": "Siguiente",
-        "page_indicator": "Página {{page}} de {{totalPages}}"
+        "page_indicator": "Página {{page}} de {{totalPages}}",
+        "claim_presence": "Reclamar presencia"
     },
     "moderation": {
         "title": "Colas pendientes",

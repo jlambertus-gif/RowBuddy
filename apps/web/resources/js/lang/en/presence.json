@@ -1,0 +1,35 @@
+{
+    "title": "Presence session",
+    "subtitle": "Confirm your physical presence at this queue to build verified confidence.",
+    "session_status": "Session status",
+    "status": {
+        "active": "Active",
+        "ended": "Ended"
+    },
+    "tier": {
+        "unverified": "Unverified",
+        "location_verified": "Location verified",
+        "evidence_verified": "Evidence verified",
+        "community_verified": "Community verified",
+        "transfer_completed": "Transfer completed"
+    },
+    "points_suffix": "pts",
+    "actions": {
+        "start": "Start presence session",
+        "starting": "Starting…",
+        "record_gps": "Record my location",
+        "recording_gps": "Recording…",
+        "upload_photo": "Upload photo",
+        "uploading_photo": "Uploading…",
+        "end": "End session",
+        "ending": "Ending…"
+    },
+    "fields": {
+        "photo": "Evidence photo"
+    },
+    "errors": {
+        "generic": "Something went wrong. Please try again.",
+        "geolocation_unsupported": "Your browser does not support location services.",
+        "geolocation_denied": "Location access was denied. Please allow location access and try again."
+    }
+}

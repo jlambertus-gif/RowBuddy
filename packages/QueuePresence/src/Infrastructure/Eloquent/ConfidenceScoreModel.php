@@ -27,6 +27,17 @@ final class ConfidenceScoreModel extends Model
 
     protected $keyType = 'string';
 
+    /**
+     * Eloquent's default date format ('Y-m-d H:i:s') silently truncates
+     * microseconds before a value ever reaches the database, regardless
+     * of the column's timestamp(6) precision — two recomputations within
+     * the same real-world second (a routine occurrence: a GPS ping
+     * immediately followed by an evidence upload) would otherwise tie on
+     * computed_at and make "the latest score" ambiguous. This override is
+     * what actually gives that column's precision meaning.
+     */
+    protected $dateFormat = 'Y-m-d H:i:s.u';
+
     protected $fillable = [
         'id',
         'presence_session_id',

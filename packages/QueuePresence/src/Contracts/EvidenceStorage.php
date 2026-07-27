@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace RowBuddy\QueuePresence\Contracts;
 
 use DateTimeImmutable;
+use RowBuddy\QueuePresence\Exceptions\EvidenceStorageFailed;
 
 /**
  * Domain-facing port for storing and retrieving evidence photo bytes.
@@ -19,6 +20,11 @@ interface EvidenceStorage
     /**
      * Stores already-validated, already metadata-stripped image bytes
      * privately and returns an opaque reference — never a public URL.
+     *
+     * @throws EvidenceStorageFailed if the write did not actually
+     *                               succeed — implementations must check this themselves
+     *                               (e.g. Laravel disks configured with `throw: false` return
+     *                               `false` on failure rather than throwing on their own).
      */
     public function store(string $presenceSessionId, string $contents): string;
 

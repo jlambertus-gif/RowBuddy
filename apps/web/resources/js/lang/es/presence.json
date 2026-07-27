@@ -1,0 +1,35 @@
+{
+    "title": "Sesión de presencia",
+    "subtitle": "Confirma tu presencia física en esta cola para generar confianza verificada.",
+    "session_status": "Estado de la sesión",
+    "status": {
+        "active": "Activa",
+        "ended": "Finalizada"
+    },
+    "tier": {
+        "unverified": "Sin verificar",
+        "location_verified": "Ubicación verificada",
+        "evidence_verified": "Evidencia verificada",
+        "community_verified": "Verificado por la comunidad",
+        "transfer_completed": "Transferencia completada"
+    },
+    "points_suffix": "pts",
+    "actions": {
+        "start": "Iniciar sesión de presencia",
+        "starting": "Iniciando…",
+        "record_gps": "Registrar mi ubicación",
+        "recording_gps": "Registrando…",
+        "upload_photo": "Subir foto",
+        "uploading_photo": "Subiendo…",
+        "end": "Finalizar sesión",
+        "ending": "Finalizando…"
+    },
+    "fields": {
+        "photo": "Foto de evidencia"
+    },
+    "errors": {
+        "generic": "Algo salió mal. Inténtalo de nuevo.",
+        "geolocation_unsupported": "Tu navegador no admite servicios de ubicación.",
+        "geolocation_denied": "Se denegó el acceso a la ubicación. Permite el acceso y vuelve a intentarlo."
+    }
+}

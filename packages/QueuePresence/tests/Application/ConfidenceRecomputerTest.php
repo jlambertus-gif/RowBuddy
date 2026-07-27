@@ -47,6 +47,22 @@ it('scores an untouched session as unverified and does not publish an event', fu
         ->and($events->published)->toBe([]);
 });
 
+it('returns null for latestScoreFor when nothing has ever been computed', function () {
+    $recomputer = makeConfidenceRecomputer(new RecordingGpsPingRepository, new InMemoryEvidencePhotoRepository, new InMemoryConfidenceScoreRepository, new RecordingDomainEventPublisher);
+
+    expect($recomputer->latestScoreFor('missing-session'))->toBeNull();
+});
+
+it('returns the same record recompute() just persisted via latestScoreFor', function () {
+    $scores = new InMemoryConfidenceScoreRepository;
+    $recomputer = makeConfidenceRecomputer(new RecordingGpsPingRepository, new InMemoryEvidencePhotoRepository, $scores, new RecordingDomainEventPublisher);
+    $session = PresenceSession::start('session-1b', 'queue-1', 'seller-1', new FrozenClock(new DateTimeImmutable('2026-08-24 10:00:00')));
+
+    $record = $recomputer->recompute($session);
+
+    expect($recomputer->latestScoreFor('session-1b'))->toBe($record);
+});
+
 it('publishes a confidence-computed event the first time the tier leaves unverified', function () {
     $gpsPings = new RecordingGpsPingRepository;
     $gpsPings->record(new GpsPingRecord('ping-1', 'session-2', new GeoPoint(32.7157, -117.1611), 60.0, true, new DateTimeImmutable));
