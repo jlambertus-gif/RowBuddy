@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Infrastructure\EloquentQueueGeofenceLookup;
 use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use RowBuddy\QueuePresence\Contracts\QueueGeofenceLookup;
 use RowBuddy\SharedKernel\Contracts\ClockInterface;
 use RowBuddy\SharedKernel\Support\SystemClock;
 
@@ -22,6 +24,11 @@ class AppServiceProvider extends ServiceProvider
         // root bindings for them live here rather than in any one
         // module's provider.
         $this->app->singleton(ClockInterface::class, SystemClock::class);
+
+        // Bridges QueuePresence -> Queues (see EloquentQueueGeofenceLookup's
+        // own docblock): a cross-module concern, so it's bound at the
+        // composition root, not inside either module's own provider.
+        $this->app->bind(QueueGeofenceLookup::class, EloquentQueueGeofenceLookup::class);
     }
 
     /**

@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 use App\Http\Controllers\ApproveQueueController;
 use App\Http\Controllers\DiscoverQueuesController;
+use App\Http\Controllers\EndPresenceSessionController;
 use App\Http\Controllers\PendingQueuesController;
 use App\Http\Controllers\PublishQueueController;
 use App\Http\Controllers\QueueSubmissionController;
+use App\Http\Controllers\RecordGpsPingController;
 use App\Http\Controllers\RejectQueueController;
+use App\Http\Controllers\StartPresenceSessionController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -34,6 +37,10 @@ Route::middleware('auth')->group(function () {
     })->name('queues.submit-page');
 
     Route::post('/queues', QueueSubmissionController::class)->name('queues.store');
+
+    Route::post('/presence-sessions', StartPresenceSessionController::class)->name('presence-sessions.start');
+    Route::post('/presence-sessions/{sessionId}/gps-pings', RecordGpsPingController::class)->name('presence-sessions.gps-pings.record');
+    Route::post('/presence-sessions/{sessionId}/end', EndPresenceSessionController::class)->name('presence-sessions.end');
 
     Route::middleware('can:queues.moderate')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/queues', [PendingQueuesController::class, 'index'])->name('queues.index');
