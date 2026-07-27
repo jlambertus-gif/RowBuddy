@@ -21,4 +21,14 @@ final class EloquentGpsPingRepository implements GpsPingRepository
             'recorded_at' => $ping->recordedAt,
         ]);
     }
+
+    public function bestAccuracyWithinGeofence(string $presenceSessionId): ?float
+    {
+        $value = GpsPingModel::query()
+            ->where('presence_session_id', $presenceSessionId)
+            ->where('within_geofence', true)
+            ->min('accuracy_meters');
+
+        return $value !== null ? (float) $value : null;
+    }
 }

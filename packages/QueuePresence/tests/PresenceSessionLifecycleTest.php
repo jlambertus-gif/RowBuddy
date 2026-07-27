@@ -69,12 +69,37 @@ it('ends an active session and raises an ended event', function () {
     $session = PresenceSession::start('session-5', 'queue-1', 'seller-1', new FrozenClock);
     $session->releaseEvents();
 
-    $session->end(new FrozenClock);
+    $endedAt = new DateTimeImmutable('2026-08-01 10:05:00');
+    $session->end(new FrozenClock($endedAt));
 
-    expect($session->status())->toBe(PresenceSessionStatus::Ended);
+    expect($session->status())->toBe(PresenceSessionStatus::Ended)
+        ->and($session->endedAt())->toEqual($endedAt);
     $events = $session->releaseEvents();
     expect($events)->toHaveCount(1)
         ->and($events[0])->toBeInstanceOf(PresenceSessionEnded::class);
+});
+
+it('has no ended-at while active', function () {
+    $session = PresenceSession::start('session-9', 'queue-1', 'seller-1', new FrozenClock);
+
+    expect($session->endedAt())->toBeNull();
+});
+
+it('computes presence duration from start to now while active', function () {
+    $session = PresenceSession::start('session-10', 'queue-1', 'seller-1', new FrozenClock(new DateTimeImmutable('2026-08-01 10:00:00')));
+
+    $duration = $session->presenceDurationInSeconds(new FrozenClock(new DateTimeImmutable('2026-08-01 10:05:30')));
+
+    expect($duration)->toBe(330);
+});
+
+it('freezes presence duration at the moment it ended, not still growing afterward', function () {
+    $session = PresenceSession::start('session-11', 'queue-1', 'seller-1', new FrozenClock(new DateTimeImmutable('2026-08-01 10:00:00')));
+    $session->end(new FrozenClock(new DateTimeImmutable('2026-08-01 10:01:00')));
+
+    $duration = $session->presenceDurationInSeconds(new FrozenClock(new DateTimeImmutable('2026-08-02 00:00:00')));
+
+    expect($duration)->toBe(60);
 });
 
 it('cannot record a GPS ping once the session has ended', function () {

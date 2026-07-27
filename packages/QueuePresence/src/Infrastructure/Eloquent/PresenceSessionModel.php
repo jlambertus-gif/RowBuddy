@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
  * @property string $queue_id
  * @property int $seller_id
  * @property Carbon $started_at
+ * @property Carbon|null $ended_at
  * @property string $status
  */
 final class PresenceSessionModel extends Model
@@ -31,11 +32,13 @@ final class PresenceSessionModel extends Model
         'queue_id',
         'seller_id',
         'started_at',
+        'ended_at',
         'status',
     ];
 
     /** @var array<string, string> */
     protected $casts = [
         'started_at' => 'datetime',
+        'ended_at' => 'datetime',
     ];
 }

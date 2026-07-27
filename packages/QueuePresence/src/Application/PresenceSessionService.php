@@ -25,16 +25,22 @@ use RowBuddy\SharedKernel\Exceptions\NotFoundException;
 use RowBuddy\SharedKernel\ValueObjects\GeoPoint;
 
 /**
- * Orchestrates GPS presence capture: starting a session, recording a GPS
- * ping against it, and ending it. Depends only on domain-facing ports — no
- * Eloquent, no Laravel container — so every business decision here is
- * testable with plain in-memory fakes, no database.
+ * Orchestrates presence capture: starting a session, recording a GPS ping
+ * or evidence photo against it, and ending it. Depends only on
+ * domain-facing ports — no Eloquent, no Laravel container — so every
+ * business decision here is testable with plain in-memory fakes, no
+ * database.
  *
  * Ownership is enforced here, not left to the HTTP layer or a database
  * constraint: a request naming a session that belongs to a different
  * seller is a domain-level authorization failure
  * ({@see PresenceSessionAccessDenied}), the same way the legal gate is
  * enforced in Queues' application services rather than its controllers.
+ *
+ * Every GPS ping and evidence photo triggers a {@see ConfidenceRecomputer}
+ * recomputation (ADR-008) — the resulting score is always persisted, but
+ * it's only published as a domain event (and therefore audited) when the
+ * tier materially changes.
  */
 final class PresenceSessionService
 {
@@ -47,6 +53,7 @@ final class PresenceSessionService
         private readonly QueueGeofenceLookup $queueGeofences,
         private readonly EvidenceStorage $evidenceStorage,
         private readonly ImageMetadataStripper $metadataStripper,
+        private readonly ConfidenceRecomputer $confidenceRecomputer,
         private readonly DomainEventPublisher $events,
         private readonly ClockInterface $clock,
     ) {}
@@ -104,6 +111,8 @@ final class PresenceSessionService
             $withinGeofence,
             $this->clock->now(),
         ));
+
+        $this->confidenceRecomputer->recompute($session);
 
         return $session;
     }
@@ -163,6 +172,8 @@ final class PresenceSessionService
             strlen($strippedContents),
             $this->clock->now(),
         ));
+
+        $this->confidenceRecomputer->recompute($session);
 
         return $session;
     }

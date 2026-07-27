@@ -38,4 +38,11 @@ final class EloquentEvidencePhotoRepository implements EvidencePhotoRepository
             $model->recorded_at->toDateTimeImmutable(),
         );
     }
+
+    public function hasAnyForSession(string $presenceSessionId): bool
+    {
+        return EvidencePhotoModel::query()
+            ->where('presence_session_id', $presenceSessionId)
+            ->exists();
+    }
 }

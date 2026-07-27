@@ -6,11 +6,14 @@ namespace App\Providers;
 
 use App\Infrastructure\EloquentQueueGeofenceLookup;
 use App\Infrastructure\LocalPrivateEvidenceStorage;
+use App\Listeners\RecordAuditEvent;
 use App\Models\User;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
 use RowBuddy\QueuePresence\Contracts\QueueGeofenceLookup;
+use RowBuddy\SharedKernel\Contracts\AuditableAction;
 use RowBuddy\SharedKernel\Contracts\ClockInterface;
 use RowBuddy\SharedKernel\Support\SystemClock;
 
@@ -48,5 +51,11 @@ class AppServiceProvider extends ServiceProvider
         // column) — enough to authorize the Sprint 1 Administration
         // moderation queue without inventing a full roles system early.
         Gate::define('queues.moderate', static fn (User $user): bool => $user->is_admin);
+
+        // The one, platform-wide audit sink (Sprint 6): registered
+        // against the AuditableAction interface, not a concrete event
+        // class, so it fires for every module's audit-worthy events —
+        // Queues' and QueuePresence's alike — with no per-module wiring.
+        Event::listen(AuditableAction::class, RecordAuditEvent::class);
     }
 }

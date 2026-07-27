@@ -4,16 +4,21 @@ declare(strict_types=1);
 
 namespace RowBuddy\QueuePresence\Contracts;
 
+use RowBuddy\QueuePresence\Application\ConfidenceRecomputer;
 use RowBuddy\QueuePresence\ValueObjects\GpsPingRecord;
 
 /**
- * Domain-facing persistence port for recorded GPS pings. Write-only for
- * now — Sprint 4 only needs to durably record each ping; the read side
- * (e.g. "best accuracy among within-geofence pings for a session") is
- * added once the confidence-scoring engine is actually wired to real
- * signal history, not spec'd speculatively here.
+ * Domain-facing persistence port for recorded GPS pings.
  */
 interface GpsPingRepository
 {
     public function record(GpsPingRecord $ping): void;
+
+    /**
+     * The smallest (best) accuracy, in meters, among pings recorded
+     * within the queue's geofence for this session — or null if none
+     * exist. Feeds ADR-008's ConfidenceScorer via
+     * {@see ConfidenceRecomputer}.
+     */
+    public function bestAccuracyWithinGeofence(string $presenceSessionId): ?float;
 }

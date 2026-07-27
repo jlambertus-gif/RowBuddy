@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use RowBuddy\QueuePresence\Application\ConfidenceRecomputer;
 use RowBuddy\QueuePresence\Application\PresenceSessionService;
 use RowBuddy\QueuePresence\Contracts\ImageMetadataStripper;
 use RowBuddy\QueuePresence\Events\EvidencePhotoRecorded;
 use RowBuddy\QueuePresence\Events\GpsPingRecorded;
+use RowBuddy\QueuePresence\Events\PresenceConfidenceComputed;
 use RowBuddy\QueuePresence\Events\PresenceSessionEnded;
 use RowBuddy\QueuePresence\Events\PresenceSessionStarted;
 use RowBuddy\QueuePresence\Exceptions\DuplicateActivePresenceSession;
@@ -13,6 +15,8 @@ use RowBuddy\QueuePresence\Exceptions\InvalidEvidencePhoto;
 use RowBuddy\QueuePresence\Exceptions\PresenceQueueUnavailable;
 use RowBuddy\QueuePresence\Exceptions\PresenceSessionAccessDenied;
 use RowBuddy\QueuePresence\Exceptions\PresenceSessionNotActive;
+use RowBuddy\QueuePresence\Scoring\ConfidenceScorer;
+use RowBuddy\QueuePresence\Tests\Fakes\InMemoryConfidenceScoreRepository;
 use RowBuddy\QueuePresence\Tests\Fakes\InMemoryEvidencePhotoRepository;
 use RowBuddy\QueuePresence\Tests\Fakes\InMemoryEvidenceStorage;
 use RowBuddy\QueuePresence\Tests\Fakes\InMemoryPresenceSessionRepository;
@@ -39,15 +43,26 @@ function makePresenceSessionService(
     ?InMemoryEvidencePhotoRepository $evidencePhotos = null,
     ?InMemoryEvidenceStorage $evidenceStorage = null,
 ): PresenceSessionService {
+    $evidencePhotos ??= new InMemoryEvidencePhotoRepository;
+    $clock = new FrozenClock(new DateTimeImmutable('2026-08-10 10:00:00'));
+
     return new PresenceSessionService(
         $sessions,
         $gpsPings,
-        $evidencePhotos ?? new InMemoryEvidencePhotoRepository,
+        $evidencePhotos,
         $queueGeofences,
         $evidenceStorage ?? new InMemoryEvidenceStorage,
         new PassthroughMetadataStripper,
+        new ConfidenceRecomputer(
+            $gpsPings,
+            $evidencePhotos,
+            new InMemoryConfidenceScoreRepository,
+            new ConfidenceScorer,
+            $events,
+            $clock,
+        ),
         $events,
-        new FrozenClock(new DateTimeImmutable('2026-08-10 10:00:00')),
+        $clock,
     );
 }
 
@@ -108,11 +123,16 @@ it('records a within-geofence GPS ping and publishes its domain event', function
 
     $service->recordGpsPing('ping-1', 'session-5', 'seller-1', 32.7157, -117.1611, 12.5);
 
+    // A single excellent-accuracy within-geofence ping (40 + 20 = 60 points)
+    // crosses from Unverified into Location Verified — materially relevant,
+    // so a third event (the confidence computation) is published alongside
+    // the ping itself.
     expect($gpsPings->recorded)->toHaveCount(1)
         ->and($gpsPings->recorded[0]->withinGeofence)->toBeTrue()
         ->and($gpsPings->recorded[0]->accuracyInMeters)->toBe(12.5)
-        ->and($events->published)->toHaveCount(2)
-        ->and($events->published[1])->toBeInstanceOf(GpsPingRecorded::class);
+        ->and($events->published)->toHaveCount(3)
+        ->and($events->published[1])->toBeInstanceOf(GpsPingRecorded::class)
+        ->and($events->published[2])->toBeInstanceOf(PresenceConfidenceComputed::class);
 });
 
 it('records a GPS ping outside the geofence as such, without blocking it', function () {
@@ -259,10 +279,15 @@ it('propagates an invalid-image failure from the metadata stripper', function ()
     $queueGeofences = new InMemoryQueueGeofenceLookup;
     $queueGeofences->publish('queue-1', aTestQueueGeofence());
 
+    $gpsPings = new RecordingGpsPingRepository;
+    $evidencePhotos = new InMemoryEvidencePhotoRepository;
+    $events = new RecordingDomainEventPublisher;
+    $clock = new FrozenClock(new DateTimeImmutable('2026-08-10 10:00:00'));
+
     $service = new PresenceSessionService(
         $sessions,
-        new RecordingGpsPingRepository,
-        new InMemoryEvidencePhotoRepository,
+        $gpsPings,
+        $evidencePhotos,
         $queueGeofences,
         new InMemoryEvidenceStorage,
         new class implements ImageMetadataStripper
@@ -272,8 +297,16 @@ it('propagates an invalid-image failure from the metadata stripper', function ()
                 throw InvalidEvidencePhoto::notADecodableImage();
             }
         },
-        new RecordingDomainEventPublisher,
-        new FrozenClock(new DateTimeImmutable('2026-08-10 10:00:00')),
+        new ConfidenceRecomputer(
+            $gpsPings,
+            $evidencePhotos,
+            new InMemoryConfidenceScoreRepository,
+            new ConfidenceScorer,
+            $events,
+            $clock,
+        ),
+        $events,
+        $clock,
     );
     $service->start('session-14', 'queue-1', 'seller-1');
 

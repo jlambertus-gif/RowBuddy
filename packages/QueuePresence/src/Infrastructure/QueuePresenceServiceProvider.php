@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace RowBuddy\QueuePresence\Infrastructure;
 
 use Illuminate\Support\ServiceProvider;
+use RowBuddy\QueuePresence\Contracts\ConfidenceScoreRepository;
 use RowBuddy\QueuePresence\Contracts\DomainEventPublisher;
 use RowBuddy\QueuePresence\Contracts\EvidencePhotoRepository;
 use RowBuddy\QueuePresence\Contracts\GpsPingRepository;
 use RowBuddy\QueuePresence\Contracts\ImageMetadataStripper;
 use RowBuddy\QueuePresence\Contracts\PresenceSessionRepository;
+use RowBuddy\QueuePresence\Infrastructure\Eloquent\EloquentConfidenceScoreRepository;
 use RowBuddy\QueuePresence\Infrastructure\Eloquent\EloquentEvidencePhotoRepository;
 use RowBuddy\QueuePresence\Infrastructure\Eloquent\EloquentGpsPingRepository;
 use RowBuddy\QueuePresence\Infrastructure\Eloquent\EloquentPresenceSessionRepository;
@@ -23,6 +25,7 @@ final class QueuePresenceServiceProvider extends ServiceProvider
         $this->app->bind(PresenceSessionRepository::class, EloquentPresenceSessionRepository::class);
         $this->app->bind(GpsPingRepository::class, EloquentGpsPingRepository::class);
         $this->app->bind(EvidencePhotoRepository::class, EloquentEvidencePhotoRepository::class);
+        $this->app->bind(ConfidenceScoreRepository::class, EloquentConfidenceScoreRepository::class);
         $this->app->bind(ImageMetadataStripper::class, GdImageMetadataStripper::class);
         $this->app->bind(DomainEventPublisher::class, LaravelDomainEventPublisher::class);
 

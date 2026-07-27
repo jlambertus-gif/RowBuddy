@@ -58,3 +58,12 @@ it('records and finds an evidence photo by id', function () {
 it('returns null when the evidence photo does not exist', function () {
     expect((new EloquentEvidencePhotoRepository)->findById('missing'))->toBeNull();
 });
+
+it('reports whether any evidence photo exists for a session', function () {
+    $repository = new EloquentEvidencePhotoRepository;
+
+    $repository->record(new EvidencePhotoRecord('photo-2', 'session-2', 'ref-2', 'image/jpeg', 100, new DateTimeImmutable));
+
+    expect($repository->hasAnyForSession('session-2'))->toBeTrue()
+        ->and($repository->hasAnyForSession('session-3'))->toBeFalse();
+});

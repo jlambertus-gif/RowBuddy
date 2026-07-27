@@ -21,4 +21,15 @@ final class InMemoryEvidencePhotoRepository implements EvidencePhotoRepository
     {
         return $this->saved[$id] ?? null;
     }
+
+    public function hasAnyForSession(string $presenceSessionId): bool
+    {
+        foreach ($this->saved as $photo) {
+            if ($photo->presenceSessionId === $presenceSessionId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

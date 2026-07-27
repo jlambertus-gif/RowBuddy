@@ -67,3 +67,26 @@ it('records multiple pings for the same session', function () {
 
     expect(GpsPingModel::query()->where('presence_session_id', 'session-2')->count())->toBe(2);
 });
+
+it('returns the best accuracy among within-geofence pings only', function () {
+    $repository = new EloquentGpsPingRepository;
+
+    $repository->record(new GpsPingRecord('ping-4', 'session-3', new GeoPoint(0, 0), 5.0, false, new DateTimeImmutable));
+    $repository->record(new GpsPingRecord('ping-5', 'session-3', new GeoPoint(0, 0), 40.0, true, new DateTimeImmutable));
+    $repository->record(new GpsPingRecord('ping-6', 'session-3', new GeoPoint(0, 0), 15.0, true, new DateTimeImmutable));
+
+    // The excellent (5.0) reading is ignored because it wasn't within the geofence.
+    expect($repository->bestAccuracyWithinGeofence('session-3'))->toBe(15.0);
+});
+
+it('returns null when no within-geofence ping exists for the session', function () {
+    $repository = new EloquentGpsPingRepository;
+
+    $repository->record(new GpsPingRecord('ping-7', 'session-4', new GeoPoint(0, 0), 5.0, false, new DateTimeImmutable));
+
+    expect($repository->bestAccuracyWithinGeofence('session-4'))->toBeNull();
+});
+
+it('returns null when the session has no pings at all', function () {
+    expect((new EloquentGpsPingRepository)->bestAccuracyWithinGeofence('missing-session'))->toBeNull();
+});

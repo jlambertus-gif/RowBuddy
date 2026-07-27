@@ -5,22 +5,25 @@ declare(strict_types=1);
 namespace RowBuddy\QueuePresence;
 
 use DateTimeImmutable;
+use RowBuddy\QueuePresence\Application\ConfidenceRecomputer;
 use RowBuddy\QueuePresence\Events\EvidencePhotoRecorded;
 use RowBuddy\QueuePresence\Events\GpsPingRecorded;
 use RowBuddy\QueuePresence\Events\PresenceSessionEnded;
 use RowBuddy\QueuePresence\Events\PresenceSessionStarted;
 use RowBuddy\QueuePresence\Exceptions\PresenceSessionNotActive;
+use RowBuddy\QueuePresence\Scoring\ConfidenceScorer;
 use RowBuddy\QueuePresence\ValueObjects\PresenceSessionStatus;
 use RowBuddy\SharedKernel\Contracts\ClockInterface;
 use RowBuddy\SharedKernel\Contracts\DomainEvent;
 
 /**
  * Aggregate root for a seller's physical-presence claim at a queue (Phase 2,
- * docs/roadmap.md). Owns only the claim's own Active/Ended lifecycle and
- * the signals recorded against it (GPS pings, evidence photo) while Active
- * — the v1 confidence-scoring engine that turns those signals into a
- * score/tier, the "one active session per seller per queue" invariant, and
- * persistence are all deliberately out of scope here (later sprints).
+ * docs/roadmap.md). Owns only the claim's own Active/Ended lifecycle, the
+ * signals recorded against it (GPS pings, evidence photo) while Active, and
+ * its own elapsed-duration calculation — turning those facts into a
+ * confidence score/tier is {@see ConfidenceScorer}
+ * and {@see ConfidenceRecomputer}'s job,
+ * not this aggregate's.
  */
 final class PresenceSession
 {
@@ -33,6 +36,7 @@ final class PresenceSession
         public readonly string $sellerId,
         public readonly DateTimeImmutable $startedAt,
         private PresenceSessionStatus $status,
+        private ?DateTimeImmutable $endedAt = null,
     ) {}
 
     public static function start(
@@ -65,6 +69,7 @@ final class PresenceSession
         string $sellerId,
         DateTimeImmutable $startedAt,
         PresenceSessionStatus $status,
+        ?DateTimeImmutable $endedAt,
     ): self {
         return new self(
             id: $id,
@@ -72,12 +77,30 @@ final class PresenceSession
             sellerId: $sellerId,
             startedAt: $startedAt,
             status: $status,
+            endedAt: $endedAt,
         );
     }
 
     public function status(): PresenceSessionStatus
     {
         return $this->status;
+    }
+
+    public function endedAt(): ?DateTimeImmutable
+    {
+        return $this->endedAt;
+    }
+
+    /**
+     * Elapsed presence time in seconds: from start to now while Active, or
+     * from start to the moment it ended once Ended — frozen at that point,
+     * not still growing after the session is over.
+     */
+    public function presenceDurationInSeconds(ClockInterface $clock): int
+    {
+        $end = $this->endedAt ?? $clock->now();
+
+        return max(0, $end->getTimestamp() - $this->startedAt->getTimestamp());
     }
 
     /**
@@ -108,6 +131,7 @@ final class PresenceSession
         $this->guardActive();
 
         $this->status = PresenceSessionStatus::Ended;
+        $this->endedAt = $clock->now();
         $this->recordedEvents[] = new PresenceSessionEnded($clock, $this->id);
     }
 

@@ -16,4 +16,17 @@ final class RecordingGpsPingRepository implements GpsPingRepository
     {
         $this->recorded[] = $ping;
     }
+
+    public function bestAccuracyWithinGeofence(string $presenceSessionId): ?float
+    {
+        $accuracies = array_map(
+            static fn (GpsPingRecord $ping): float => $ping->accuracyInMeters,
+            array_filter(
+                $this->recorded,
+                static fn (GpsPingRecord $ping): bool => $ping->presenceSessionId === $presenceSessionId && $ping->withinGeofence,
+            ),
+        );
+
+        return $accuracies === [] ? null : min($accuracies);
+    }
 }

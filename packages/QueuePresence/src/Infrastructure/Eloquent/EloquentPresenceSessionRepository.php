@@ -26,6 +26,7 @@ final class EloquentPresenceSessionRepository implements PresenceSessionReposito
                     'queue_id' => $session->queueId,
                     'seller_id' => $session->sellerId,
                     'started_at' => $session->startedAt,
+                    'ended_at' => $session->endedAt(),
                     'status' => $session->status()->value,
                 ],
             );
@@ -48,6 +49,7 @@ final class EloquentPresenceSessionRepository implements PresenceSessionReposito
             sellerId: (string) $model->seller_id,
             startedAt: $model->started_at->toDateTimeImmutable(),
             status: PresenceSessionStatus::from($model->status),
+            endedAt: $model->ended_at?->toDateTimeImmutable(),
         );
     }
 }

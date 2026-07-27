@@ -25,6 +25,7 @@ beforeEach(function () {
         $table->string('queue_id');
         $table->unsignedBigInteger('seller_id');
         $table->timestamp('started_at');
+        $table->timestamp('ended_at')->nullable();
         $table->string('status');
         $table->timestamps();
     });
@@ -55,7 +56,19 @@ it('round-trips an active presence session through the repository', function () 
         ->and($found->sellerId)->toBe('101')
         ->and($found->startedAt)->toEqual($startedAt)
         ->and($found->status())->toBe(PresenceSessionStatus::Active)
+        ->and($found->endedAt())->toBeNull()
         ->and($found->releaseEvents())->toBe([]);
+});
+
+it('round-trips ended_at once a session has ended', function () {
+    $repository = new EloquentPresenceSessionRepository;
+    $endedAt = new DateTimeImmutable('2026-08-01 10:05:00');
+
+    $session = PresenceSession::start('session-11', 'queue-1', '101', new FrozenClock);
+    $session->end(new FrozenClock($endedAt));
+    $repository->save($session);
+
+    expect($repository->findById('session-11')->endedAt())->toEqual($endedAt);
 });
 
 it('returns null when the session does not exist', function () {
