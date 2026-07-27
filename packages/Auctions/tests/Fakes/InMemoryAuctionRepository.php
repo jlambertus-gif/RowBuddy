@@ -32,6 +32,11 @@ final class InMemoryAuctionRepository implements AuctionRepository
         return $this->saved[$id] ?? null;
     }
 
+    public function findByIdForUpdate(string $id): ?Auction
+    {
+        return $this->saved[$id] ?? null;
+    }
+
     private function consumedByAnotherAuction(Auction $auction): bool
     {
         foreach ($this->saved as $existing) {

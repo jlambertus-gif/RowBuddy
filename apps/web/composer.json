@@ -33,6 +33,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../../packages/Bids",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -45,6 +52,7 @@
         "laravel/tinker": "^2.10.1",
         "predis/predis": "^3.5",
         "rowbuddy/auctions": "@dev",
+        "rowbuddy/bids": "@dev",
         "rowbuddy/queue-presence": "@dev",
         "rowbuddy/queues": "@dev",
         "rowbuddy/shared-kernel": "@dev"

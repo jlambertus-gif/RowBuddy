@@ -64,6 +64,13 @@ final class Money
             && $this->currency->equals($other->currency);
     }
 
+    public function isGreaterThan(Money $other): bool
+    {
+        $this->assertSameCurrency($other);
+
+        return $this->minorUnits > $other->minorUnits;
+    }
+
     public function isZero(): bool
     {
         return $this->minorUnits === 0;

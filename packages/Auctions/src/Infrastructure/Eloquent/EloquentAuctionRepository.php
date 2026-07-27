@@ -53,6 +53,23 @@ final class EloquentAuctionRepository implements AuctionRepository
             return null;
         }
 
+        return $this->toDomain($model);
+    }
+
+    public function findByIdForUpdate(string $id): ?Auction
+    {
+        /** @var AuctionModel|null $model */
+        $model = AuctionModel::query()->lockForUpdate()->find($id);
+
+        if ($model === null) {
+            return null;
+        }
+
+        return $this->toDomain($model);
+    }
+
+    private function toDomain(AuctionModel $model): Auction
+    {
         $winningAmount = null;
         if ($model->winning_amount_minor_units !== null && $model->winning_amount_currency !== null) {
             $winningAmount = new Money($model->winning_amount_minor_units, new Currency($model->winning_amount_currency));

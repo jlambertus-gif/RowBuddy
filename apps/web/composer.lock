@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7b72f5f555b1a55b70301f7e9982757f",
+    "content-hash": "93fc584b143919c75e30b6ece3d96c29",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -5149,6 +5149,56 @@
                 "proprietary"
             ],
             "description": "Auctions bounded context: the Auction aggregate's open/closing/won/expired state machine (Phase 3).",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "rowbuddy/bids",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../../packages/Bids",
+                "reference": "8ac30f2f015b29931ce37b12cb83317be4ca1577"
+            },
+            "require": {
+                "illuminate/database": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2",
+                "rowbuddy/shared-kernel": "@dev"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.18",
+                "pestphp/pest": "^3.0",
+                "phpstan/phpstan": "^1.12"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "RowBuddy\\Bids\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "RowBuddy\\Bids\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "lint": [
+                    "pint --test"
+                ],
+                "stan": [
+                    "phpstan analyse"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Bids bounded context: immutable, append-only bid placement against an Auction, with concurrency-safe validation (Phase 3).",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -12011,6 +12061,7 @@
     "minimum-stability": "stable",
     "stability-flags": {
         "rowbuddy/auctions": 20,
+        "rowbuddy/bids": 20,
         "rowbuddy/queue-presence": 20,
         "rowbuddy/queues": 20,
         "rowbuddy/shared-kernel": 20

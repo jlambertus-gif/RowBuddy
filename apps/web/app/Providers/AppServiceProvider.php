@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Infrastructure\EloquentAuctionGateway;
 use App\Infrastructure\EloquentQueueGeofenceLookup;
+use App\Infrastructure\LaravelTransactionManager;
 use App\Infrastructure\LocalPrivateEvidenceStorage;
 use App\Infrastructure\QueuePresenceSellerVerification;
 use App\Listeners\RecordAuditEvent;
@@ -13,6 +15,8 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use RowBuddy\Auctions\Contracts\SellerPresenceVerification;
+use RowBuddy\Bids\Contracts\AuctionGateway;
+use RowBuddy\Bids\Contracts\TransactionManager;
 use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
 use RowBuddy\QueuePresence\Contracts\QueueGeofenceLookup;
 use RowBuddy\SharedKernel\Contracts\AuditableAction;
@@ -47,6 +51,16 @@ class AppServiceProvider extends ServiceProvider
         // concern, so it's bound at the composition root, not inside
         // either module's own provider.
         $this->app->bind(SellerPresenceVerification::class, QueuePresenceSellerVerification::class);
+
+        // Bridges Bids -> Auctions (ADR-012 §5; see
+        // EloquentAuctionGateway's own docblock): a cross-module concern,
+        // so it's bound at the composition root, not inside either
+        // module's own provider.
+        $this->app->bind(AuctionGateway::class, EloquentAuctionGateway::class);
+
+        // Wraps DB::transaction() — composition-root territory, not
+        // something packages/Bids' own standalone tests ever boot.
+        $this->app->bind(TransactionManager::class, LaravelTransactionManager::class);
     }
 
     /**

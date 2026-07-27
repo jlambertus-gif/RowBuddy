@@ -38,3 +38,16 @@ it('reports zero correctly', function () {
     expect(usd(0)->isZero())->toBeTrue();
     expect(usd(1)->isZero())->toBeFalse();
 });
+
+it('reports greater-than correctly', function () {
+    expect(usd(200)->isGreaterThan(usd(100)))->toBeTrue()
+        ->and(usd(100)->isGreaterThan(usd(200)))->toBeFalse()
+        ->and(usd(100)->isGreaterThan(usd(100)))->toBeFalse();
+});
+
+it('rejects comparing different currencies', function () {
+    $usd = usd(100);
+    $mxn = new Money(100, new Currency('MXN'));
+
+    $usd->isGreaterThan($mxn);
+})->throws(ValidationException::class);

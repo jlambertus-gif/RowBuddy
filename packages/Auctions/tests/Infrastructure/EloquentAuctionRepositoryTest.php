@@ -155,3 +155,19 @@ it('has no proximityAtRiskSince by default when round-tripped', function () {
 
     expect($repository->findById('auction-10')->proximityAtRiskSince())->toBeNull();
 });
+
+it('finds the same auction via findByIdForUpdate as findById', function () {
+    $repository = new EloquentAuctionRepository;
+
+    $repository->save(Auction::open('auction-11', 'queue-1', '101', 'session-11', usd(1000), new FrozenClock));
+
+    $found = $repository->findByIdForUpdate('auction-11');
+
+    expect($found)->not->toBeNull()
+        ->and($found->id)->toBe('auction-11')
+        ->and($found->status())->toBe(AuctionStatus::Open);
+});
+
+it('returns null from findByIdForUpdate when the auction does not exist', function () {
+    expect((new EloquentAuctionRepository)->findByIdForUpdate('missing'))->toBeNull();
+});
