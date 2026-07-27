@@ -143,9 +143,10 @@ For each task:
 
 ## Repository status
 
-Phase 0 (Foundations) and Phase 1 (Catalog) are complete and formally
-accepted — tagged `v0.1.0-foundation` and `v0.2.0-catalog`. Phase 2
-(Presence & Trust) implementation must not begin until explicitly
-authorized. See `docs/roadmap.md` for the phase plan and
-`docs/releases/phase-1-completion-report.md` for the Phase 1 completion
-report.
+Phase 0 (Foundations), Phase 1 (Catalog), and Phase 2 (Presence & Trust)
+are complete and formally accepted — tagged `v0.1.0-foundation`,
+`v0.2.0-catalog`, and `v0.3.0-presence`. Phase 3 (Auctions & Bids)
+implementation must not begin until explicitly authorized. See
+`docs/roadmap.md` for the phase plan and
+`docs/releases/phase-1-completion-report.md` /
+`docs/releases/phase-2-completion-report.md` for the completion reports.

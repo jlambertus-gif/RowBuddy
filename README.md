@@ -24,13 +24,20 @@ RowBuddy is a multilingual marketplace for auctioning verified positions in elig
   restricted-category gating, admin moderation (approve/reject/publish),
   PostGIS-backed geospatial discovery, and the Inertia/React frontend for
   all of the above. Manually accepted via full browser walkthrough.
-- **Phase 2 — Presence & Trust**: not started, pending authorization.
+- **Phase 2 — Presence & Trust**: done (`v0.3.0-presence`). The
+  QueuePresence bounded context is implemented end-to-end: GPS presence
+  capture, evidence-photo capture with private storage and signed URLs,
+  the v1 confidence-scoring engine (ADR-008), a minimal platform-wide
+  audit sink, and the Inertia/React frontend for all of the above.
+  Manually accepted via full browser walkthrough.
+- **Phase 3 — Auctions & Bids**: not started, pending authorization.
 
-See `docs/roadmap.md` for the full phase plan and
-`docs/releases/phase-1-completion-report.md` for the Phase 1 completion
-report. See `CLAUDE.md` for the operating instructions used when working
-in this repository, and `docs/` for the full product, architecture,
-legal, and decision record.
+See `docs/roadmap.md` for the full phase plan,
+`docs/releases/phase-1-completion-report.md` and
+`docs/releases/phase-2-completion-report.md` for the completion reports.
+See `CLAUDE.md` for the operating instructions used when working in this
+repository, and `docs/` for the full product, architecture, legal, and
+decision record.
 
 ## Running locally
 

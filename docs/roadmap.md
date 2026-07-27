@@ -60,12 +60,40 @@ discovered by location. No auctions, no money yet.
 
 ## Phase 2 — Presence & Trust
 
-Status: not started.
+Status: **done**. Tagged `v0.3.0-presence`. Manual browser acceptance test
+passed and formally accepted 2026-08-31.
 
-QueuePresence bounded context: GPS capture, in-app evidence capture,
-multi-signal confidence scoring engine v1 (rules-based).
+QueuePresence bounded context, delivered across Sprints 1–7 in
+`packages/QueuePresence`:
 
-Exit criteria: a seller can register presence at a queue and receive a
+- `PresenceSession` aggregate: Active/Ended lifecycle, GPS ping and
+  evidence-photo signal recording guarded to the Active state, its own
+  elapsed-duration calculation (frozen once ended).
+- Eloquent persistence adapters behind domain-facing repository
+  ports — domain/application layers have no Eloquent dependency, mirroring
+  Queues' pattern.
+- `QueueGeofenceLookup`: a port owned by QueuePresence (not Queues),
+  bridged by a composition-root adapter in `apps/web` — the one place
+  allowed to depend on both packages' internals.
+- v1 confidence-scoring engine (ADR-008): a pure, dependency-free
+  `ConfidenceScorer` over the four approved signals (GPS within-geofence +
+  best accuracy, presence duration, evidence photo), wired to real
+  persisted signal history via `ConfidenceRecomputer`.
+- Evidence capture: private local-disk storage behind a swappable
+  `EvidenceStorage` port, GD-based metadata (EXIF) stripping, signed
+  temporary URLs.
+- Append-only confidence-score history (never mutated in place) and a
+  minimal, platform-wide audit sink (`audit_events`) driven by the shared
+  `AuditableAction` interface — audits any module's event generically,
+  proven against an existing Queues event with zero Queues-side changes.
+- Inertia/React frontend: presence-session UI (start, record GPS, upload
+  evidence, end session) with the confidence tier/score shown after every
+  action; a "Claim presence" entry point from Discover — all localized
+  (en/es).
+- 220 automated tests (73 `packages/QueuePresence`, 81 `packages/Queues`,
+  66 `apps/web`), Larastan and Pint clean.
+
+Exit criteria met: a seller can register presence at a queue and receive a
 computed confidence score/tier, with signals independently recorded and
 auditable.
 

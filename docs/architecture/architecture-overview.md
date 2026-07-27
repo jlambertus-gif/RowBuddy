@@ -7,6 +7,15 @@
   jurisdiction/restricted-category gating, moderation, PostGIS geospatial
   discovery, Inertia/React frontend. See
   `docs/releases/phase-1-completion-report.md`.
+- **QueuePresence**: implemented (Phase 2, `packages/QueuePresence`) — GPS
+  presence capture, evidence-photo capture with private storage and
+  signed URLs, the v1 confidence-scoring engine (ADR-008), Inertia/React
+  frontend. See `docs/releases/phase-2-completion-report.md`.
+- **Audit**: partially implemented (Phase 2) — a minimal, platform-wide
+  append-only sink driven by the shared `AuditableAction` interface, not
+  the full Administration/Fraud-Risk-adjacent Audit context described
+  below (case management, partitioning/archival, admin tooling remain
+  unbuilt).
 - All other modules below: not started.
 
 ## Style
