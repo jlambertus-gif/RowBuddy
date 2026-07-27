@@ -131,6 +131,25 @@ Sprint progress in `packages/Auctions`:
   domain events (`AuctionOpened`, `AuctionClosingStarted`, `AuctionWon`,
   `AuctionExpired`). No persistence, no HTTP, no QueuePresence coupling.
   11 tests, PHPStan level 8 and Pint clean.
+- **Sprint 2** (done): persistence layer — `AuctionRepository` port,
+  `EloquentAuctionRepository` adapter, `auctions` migration with a full
+  (not partial) unique constraint on `presence_session_id` enforcing
+  ADR-009 §4's MVP restriction, translated to a domain-level
+  `PresenceSessionAlreadyConsumed` exception. 18 tests, PHPStan and Pint
+  clean.
+- **Sprint 3** (done): implemented ADR-009 and ADR-010 — the
+  `SellerPresenceVerification` port and `PresenceVerificationSnapshot`
+  DTO (both Auctions-owned), the `apps/web` bridging adapter
+  (`QueuePresenceSellerVerification`), and the Evidence Verified gate in
+  `AuctionService::open()`, fail-closed throughout. Required two minimal,
+  purely additive read methods on QueuePresence
+  (`findLatestBySellerAndQueue`, `latestWithinGeofencePingAt`) to expose
+  already-persisted signals cross-module — no QueuePresence business
+  rule, persistence semantics, or public API changed incompatibly; all
+  prior Phase 2 tests pass unmodified. No live-proximity enforcement, no
+  HTTP, no bidding — deferred to Sprint 4. 24 Auctions tests, 81
+  QueuePresence tests (was 73), 72 apps/web tests (was 66); PHPStan and
+  Pint clean throughout.
 
 Exit criteria: an auction can run end-to-end (open → closing → winning bid
 selected) under simulated concurrent bidding with correct, tested

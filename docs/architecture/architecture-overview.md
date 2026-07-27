@@ -18,9 +18,11 @@
   unbuilt).
 - **Auctions**: in progress (Phase 3, `packages/Auctions`) — the `Auction`
   aggregate's Open/Closing/Won/Expired state machine and immutable
-  accepted-bid invariant (Sprint 1). No persistence, no HTTP, no read
-  contract to QueuePresence yet (ADR-009/ADR-010 define but do not yet
-  implement that contract).
+  accepted-bid invariant (Sprint 1); the `AuctionRepository` persistence
+  layer (Sprint 2); the ADR-009 `SellerPresenceVerification` read
+  contract and its `apps/web` adapter, plus the ADR-010 Evidence Verified
+  gate in `AuctionService::open()` (Sprint 3). No HTTP, no bidding, no
+  live-proximity enforcement yet.
 - All other modules below: not started.
 
 ## Style
