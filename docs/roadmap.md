@@ -133,8 +133,19 @@ Before implementation began, two architectural decisions were resolved:
   lazily, invoked only by commands that act on an existing active
   auction, never by a plain read; deliberately no scheduler or background
   infrastructure this phase.
+- **ADR-012 — Bids–Auctions Gateway Contract and Concurrency Strategy**:
+  a synchronous `AuctionGateway` port (owned by Bids, mirroring ADR-009's
+  shape) locks the auction row as the sole serialization anchor for bid
+  placement — one transaction, one connection, spanning the lock,
+  `LiveProximityChecker`, the highest-bid lookup, validation, and
+  insertion. Expected business rejections (auction not open, wrong
+  currency, seller bidding on their own auction, bid too low) are
+  returned as data (`BidPlacementOutcome`), never thrown inside the
+  transaction, so a legitimate proximity transition stays committed
+  regardless of whether the triggering bid is accepted. Events are
+  collected and published only after commit; no outbox introduced.
 
-Sprint progress in `packages/Auctions`:
+Sprint progress in `packages/Auctions` and `packages/Bids`:
 
 - **Sprint 1** (done): `Auction` aggregate scaffold — Open/Closing/Won/
   Expired state machine, immutable accepted-winning-bid invariant,
@@ -167,6 +178,20 @@ Sprint progress in `packages/Auctions`:
   complete and fully tested with no caller yet — Sprint 5's bid-placement
   command is expected to be the first one. 45 Auctions tests (was 24);
   apps/web unchanged at 72; PHPStan and Pint clean throughout.
+- **Sprint 5** (done): implemented ADR-012 — a new `packages/Bids`
+  bounded context: an immutable, append-only `Bid` aggregate, a
+  record-only `BidRepository`, and `BidService::place()` orchestrating
+  placement inside one transaction (auction-row lock →
+  `LiveProximityChecker` → highest-bid lookup → validation → insertion),
+  with `BidPlacementOutcome` keeping expected rejections from rolling
+  back a legitimate proximity transition. `AuctionGateway`'s real
+  implementation in `apps/web` is `LiveProximityChecker`'s first real
+  caller, per ADR-011 §5. A real-Postgres test (two independent PDO
+  connections, bounded `lock_timeout`) proves the row lock prevents a
+  bidder from validating against a stale highest-bid reading. No HTTP,
+  no anti-sniping, no closing/winner-selection trigger yet. 19 Bids
+  tests, 47 Auctions tests (was 45), 31 shared-kernel tests (was 29), 77
+  apps/web tests (was 72); PHPStan and Pint clean throughout.
 
 Exit criteria: an auction can run end-to-end (open → closing → winning bid
 selected) under simulated concurrent bidding with correct, tested
