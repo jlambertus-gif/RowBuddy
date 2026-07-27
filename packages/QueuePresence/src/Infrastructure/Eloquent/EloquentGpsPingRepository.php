@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace RowBuddy\QueuePresence\Infrastructure\Eloquent;
 
+use DateTimeImmutable;
+use Illuminate\Support\Carbon;
 use RowBuddy\QueuePresence\Contracts\GpsPingRepository;
 use RowBuddy\QueuePresence\ValueObjects\GpsPingRecord;
 
@@ -30,5 +32,15 @@ final class EloquentGpsPingRepository implements GpsPingRepository
             ->min('accuracy_meters');
 
         return $value !== null ? (float) $value : null;
+    }
+
+    public function latestWithinGeofencePingAt(string $presenceSessionId): ?DateTimeImmutable
+    {
+        $value = GpsPingModel::query()
+            ->where('presence_session_id', $presenceSessionId)
+            ->where('within_geofence', true)
+            ->max('recorded_at');
+
+        return $value !== null ? Carbon::parse($value)->toDateTimeImmutable() : null;
     }
 }

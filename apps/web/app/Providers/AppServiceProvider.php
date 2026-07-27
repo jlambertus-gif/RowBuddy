@@ -6,11 +6,13 @@ namespace App\Providers;
 
 use App\Infrastructure\EloquentQueueGeofenceLookup;
 use App\Infrastructure\LocalPrivateEvidenceStorage;
+use App\Infrastructure\QueuePresenceSellerVerification;
 use App\Listeners\RecordAuditEvent;
 use App\Models\User;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use RowBuddy\Auctions\Contracts\SellerPresenceVerification;
 use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
 use RowBuddy\QueuePresence\Contracts\QueueGeofenceLookup;
 use RowBuddy\SharedKernel\Contracts\AuditableAction;
@@ -39,6 +41,12 @@ class AppServiceProvider extends ServiceProvider
         // URL generation) that packages/QueuePresence's own standalone
         // tests never boot — see LocalPrivateEvidenceStorage's docblock.
         $this->app->bind(EvidenceStorage::class, LocalPrivateEvidenceStorage::class);
+
+        // Bridges Auctions -> QueuePresence (ADR-009 §1; see
+        // QueuePresenceSellerVerification's own docblock): a cross-module
+        // concern, so it's bound at the composition root, not inside
+        // either module's own provider.
+        $this->app->bind(SellerPresenceVerification::class, QueuePresenceSellerVerification::class);
     }
 
     /**

@@ -128,3 +128,22 @@ it('allows the same seller to have active sessions at two different queues', fun
     expect($repository->findById('session-9')->status())->toBe(PresenceSessionStatus::Active)
         ->and($repository->findById('session-10')->status())->toBe(PresenceSessionStatus::Active);
 });
+
+it('finds the most recently started session for a seller and queue, regardless of status', function () {
+    $repository = new EloquentPresenceSessionRepository;
+
+    $older = PresenceSession::start('session-12', 'queue-1', '101', new FrozenClock(new DateTimeImmutable('2026-08-01 10:00:00')));
+    $older->end(new FrozenClock);
+    $repository->save($older);
+
+    $repository->save(PresenceSession::start('session-13', 'queue-1', '101', new FrozenClock(new DateTimeImmutable('2026-08-01 11:00:00'))));
+
+    $latest = $repository->findLatestBySellerAndQueue('101', 'queue-1');
+
+    expect($latest->id)->toBe('session-13')
+        ->and($latest->status())->toBe(PresenceSessionStatus::Active);
+});
+
+it('returns null from findLatestBySellerAndQueue when no session exists for that pair', function () {
+    expect((new EloquentPresenceSessionRepository)->findLatestBySellerAndQueue('999', 'queue-missing'))->toBeNull();
+});

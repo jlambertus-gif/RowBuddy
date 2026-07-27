@@ -43,6 +43,27 @@ final class EloquentPresenceSessionRepository implements PresenceSessionReposito
             return null;
         }
 
+        return $this->toDomain($model);
+    }
+
+    public function findLatestBySellerAndQueue(string $sellerId, string $queueId): ?PresenceSession
+    {
+        /** @var PresenceSessionModel|null $model */
+        $model = PresenceSessionModel::query()
+            ->where('seller_id', $sellerId)
+            ->where('queue_id', $queueId)
+            ->orderByDesc('started_at')
+            ->first();
+
+        if ($model === null) {
+            return null;
+        }
+
+        return $this->toDomain($model);
+    }
+
+    private function toDomain(PresenceSessionModel $model): PresenceSession
+    {
         return PresenceSession::fromPersistence(
             id: $model->id,
             queueId: $model->queue_id,

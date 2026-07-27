@@ -22,4 +22,13 @@ interface PresenceSessionRepository
     public function save(PresenceSession $session): void;
 
     public function findById(string $id): ?PresenceSession;
+
+    /**
+     * The most recently started session for this seller and queue,
+     * regardless of its Active/Ended status — or null if none exists at
+     * all. Feeds cross-module presence-verification reads (e.g. the
+     * Auctions module's SellerPresenceVerification adapter); this
+     * QueuePresence package remains unaware of any such caller.
+     */
+    public function findLatestBySellerAndQueue(string $sellerId, string $queueId): ?PresenceSession;
 }

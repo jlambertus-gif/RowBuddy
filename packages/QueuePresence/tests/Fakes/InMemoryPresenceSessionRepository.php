@@ -34,6 +34,22 @@ final class InMemoryPresenceSessionRepository implements PresenceSessionReposito
         return $this->saved[$id] ?? null;
     }
 
+    public function findLatestBySellerAndQueue(string $sellerId, string $queueId): ?PresenceSession
+    {
+        $matches = array_filter(
+            $this->saved,
+            static fn (PresenceSession $session): bool => $session->sellerId === $sellerId && $session->queueId === $queueId,
+        );
+
+        if ($matches === []) {
+            return null;
+        }
+
+        usort($matches, static fn (PresenceSession $a, PresenceSession $b): int => $b->startedAt <=> $a->startedAt);
+
+        return $matches[array_key_first($matches)];
+    }
+
     private function hasAnotherActiveSession(PresenceSession $session): bool
     {
         foreach ($this->saved as $existing) {

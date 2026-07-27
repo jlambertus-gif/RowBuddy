@@ -421,3 +421,48 @@ it('refuses to return a confidence score for a session that does not belong to t
     expect(fn () => $service->currentConfidenceScore('session-21', 'seller-intruder'))
         ->toThrow(PresenceSessionAccessDenied::class);
 });
+
+it('finds the latest session for a seller and queue', function () {
+    $sessions = new InMemoryPresenceSessionRepository;
+    $queueGeofences = new InMemoryQueueGeofenceLookup;
+    $queueGeofences->publish('queue-1', aTestQueueGeofence());
+
+    $service = makePresenceSessionService($sessions, new RecordingGpsPingRepository, $queueGeofences, new RecordingDomainEventPublisher);
+    $service->start('session-22', 'queue-1', 'seller-1');
+
+    $found = $service->latestSessionFor('seller-1', 'queue-1');
+
+    expect($found)->not->toBeNull()
+        ->and($found->id)->toBe('session-22');
+});
+
+it('returns null from latestSessionFor when the seller has no session for that queue', function () {
+    $sessions = new InMemoryPresenceSessionRepository;
+    $queueGeofences = new InMemoryQueueGeofenceLookup;
+
+    $service = makePresenceSessionService($sessions, new RecordingGpsPingRepository, $queueGeofences, new RecordingDomainEventPublisher);
+
+    expect($service->latestSessionFor('seller-missing', 'queue-missing'))->toBeNull();
+});
+
+it('returns the latest within-geofence ping timestamp for a session', function () {
+    $sessions = new InMemoryPresenceSessionRepository;
+    $queueGeofences = new InMemoryQueueGeofenceLookup;
+    $queueGeofences->publish('queue-1', aTestQueueGeofence());
+    $gpsPings = new RecordingGpsPingRepository;
+
+    $service = makePresenceSessionService($sessions, $gpsPings, $queueGeofences, new RecordingDomainEventPublisher);
+    $service->start('session-23', 'queue-1', 'seller-1');
+    $service->recordGpsPing('ping-23', 'session-23', 'seller-1', 32.7157, -117.1611, 12.5);
+
+    expect($service->latestWithinGeofencePingAt('session-23'))->not->toBeNull();
+});
+
+it('returns null for latestWithinGeofencePingAt when no signal has been recorded', function () {
+    $sessions = new InMemoryPresenceSessionRepository;
+    $queueGeofences = new InMemoryQueueGeofenceLookup;
+
+    $service = makePresenceSessionService($sessions, new RecordingGpsPingRepository, $queueGeofences, new RecordingDomainEventPublisher);
+
+    expect($service->latestWithinGeofencePingAt('session-missing'))->toBeNull();
+});

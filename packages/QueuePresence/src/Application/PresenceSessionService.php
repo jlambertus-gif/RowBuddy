@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RowBuddy\QueuePresence\Application;
 
+use DateTimeImmutable;
 use RowBuddy\QueuePresence\Contracts\DomainEventPublisher;
 use RowBuddy\QueuePresence\Contracts\EvidencePhotoRepository;
 use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
@@ -219,6 +220,28 @@ final class PresenceSessionService
         $this->assertOwnedBy($session, $requestingUserId);
 
         return $this->confidenceRecomputer->latestScoreFor($session->id);
+    }
+
+    /**
+     * The most recently started session for this seller and queue,
+     * regardless of Active/Ended status — or null if none exists. For
+     * cross-module presence-verification reads (e.g. Auctions'
+     * SellerPresenceVerification adapter); deliberately has no ownership
+     * check of its own, since the seller ID is the lookup key itself.
+     */
+    public function latestSessionFor(string $sellerId, string $queueId): ?PresenceSession
+    {
+        return $this->sessions->findLatestBySellerAndQueue($sellerId, $queueId);
+    }
+
+    /**
+     * The most recent within-geofence GPS ping for a session, or null if
+     * none exists. For cross-module presence-verification reads; this
+     * package has no opinion on what "stale" means to any such caller.
+     */
+    public function latestWithinGeofencePingAt(string $sessionId): ?DateTimeImmutable
+    {
+        return $this->gpsPings->latestWithinGeofencePingAt($sessionId);
     }
 
     /**

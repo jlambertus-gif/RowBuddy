@@ -6,4 +6,5 @@ return [
     App\Providers\HorizonServiceProvider::class,
     RowBuddy\Queues\Infrastructure\QueuesServiceProvider::class,
     RowBuddy\QueuePresence\Infrastructure\QueuePresenceServiceProvider::class,
+    RowBuddy\Auctions\Infrastructure\AuctionsServiceProvider::class,
 ];

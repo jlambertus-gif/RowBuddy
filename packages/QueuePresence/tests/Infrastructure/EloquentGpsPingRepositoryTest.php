@@ -90,3 +90,23 @@ it('returns null when no within-geofence ping exists for the session', function 
 it('returns null when the session has no pings at all', function () {
     expect((new EloquentGpsPingRepository)->bestAccuracyWithinGeofence('missing-session'))->toBeNull();
 });
+
+it('returns the most recent within-geofence ping timestamp', function () {
+    $repository = new EloquentGpsPingRepository;
+    $earlier = new DateTimeImmutable('2026-08-10 10:00:00');
+    $later = new DateTimeImmutable('2026-08-10 10:05:00');
+
+    $repository->record(new GpsPingRecord('ping-8', 'session-5', new GeoPoint(0, 0), 15.0, true, $earlier));
+    $repository->record(new GpsPingRecord('ping-9', 'session-5', new GeoPoint(0, 0), 15.0, true, $later));
+    $repository->record(new GpsPingRecord('ping-10', 'session-5', new GeoPoint(0, 0), 5.0, false, new DateTimeImmutable('2026-08-10 10:10:00')));
+
+    expect($repository->latestWithinGeofencePingAt('session-5'))->toEqual($later);
+});
+
+it('returns null for latestWithinGeofencePingAt when no within-geofence ping exists', function () {
+    $repository = new EloquentGpsPingRepository;
+
+    $repository->record(new GpsPingRecord('ping-11', 'session-6', new GeoPoint(0, 0), 5.0, false, new DateTimeImmutable));
+
+    expect($repository->latestWithinGeofencePingAt('session-6'))->toBeNull();
+});

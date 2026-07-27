@@ -26,6 +26,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../../packages/Auctions",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -37,6 +44,7 @@
         "laravel/reverb": "^1.11",
         "laravel/tinker": "^2.10.1",
         "predis/predis": "^3.5",
+        "rowbuddy/auctions": "@dev",
         "rowbuddy/queue-presence": "@dev",
         "rowbuddy/queues": "@dev",
         "rowbuddy/shared-kernel": "@dev"
