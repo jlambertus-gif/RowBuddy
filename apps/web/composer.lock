@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e74a28e49152dadec7131a36a27da4c1",
+    "content-hash": "90291e20fd78bc083e48ac223963580e",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -5105,12 +5105,63 @@
             "time": "2024-06-11T12:45:25+00:00"
         },
         {
+            "name": "rowbuddy/queue-presence",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../../packages/QueuePresence",
+                "reference": "d98a7fba627bba9198902d442a1e36e28b708f7f"
+            },
+            "require": {
+                "illuminate/database": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2",
+                "ramsey/uuid": "^4.7",
+                "rowbuddy/shared-kernel": "@dev"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.18",
+                "pestphp/pest": "^3.0",
+                "phpstan/phpstan": "^1.12"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "RowBuddy\\QueuePresence\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "RowBuddy\\QueuePresence\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "lint": [
+                    "pint --test"
+                ],
+                "stan": [
+                    "phpstan analyse"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "QueuePresence bounded context: a seller's physical-presence claim at a queue (GPS pings, evidence, presence duration) and the v1 confidence-scoring engine.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
             "name": "rowbuddy/queues",
-            "version": "dev-feat/phase-1-authentication",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "../../packages/Queues",
-                "reference": "bc4f6894e0bfde1527283bfef0ed09025b6d803b"
+                "reference": "de357d58867a13cb917e0d5a1fd0f16f83cce042"
             },
             "require": {
                 "illuminate/database": "^12.0",
@@ -5134,7 +5185,10 @@
             "autoload-dev": {
                 "psr-4": {
                     "RowBuddy\\Queues\\Tests\\": "tests/"
-                }
+                },
+                "files": [
+                    "tests/Support/PostgisTestConnection.php"
+                ]
             },
             "scripts": {
                 "test": [
@@ -5158,7 +5212,7 @@
         },
         {
             "name": "rowbuddy/shared-kernel",
-            "version": "dev-feat/phase-1-authentication",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "../../packages/shared-kernel",
@@ -11906,6 +11960,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "rowbuddy/queue-presence": 20,
         "rowbuddy/queues": 20,
         "rowbuddy/shared-kernel": 20
     },

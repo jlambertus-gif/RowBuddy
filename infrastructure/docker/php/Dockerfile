@@ -48,6 +48,7 @@ WORKDIR /var/www
 COPY apps/web/ /var/www/apps/web/
 COPY packages/shared-kernel/ /var/www/packages/shared-kernel/
 COPY packages/Queues/ /var/www/packages/Queues/
+COPY packages/QueuePresence/ /var/www/packages/QueuePresence/
 
 WORKDIR /var/www/apps/web
 

@@ -10,18 +10,21 @@ services:
             - ./apps/web:/var/www/apps/web
             - ./packages/shared-kernel:/var/www/packages/shared-kernel
             - ./packages/Queues:/var/www/packages/Queues
+            - ./packages/QueuePresence:/var/www/packages/QueuePresence
 
     horizon:
         volumes:
             - ./apps/web:/var/www/apps/web
             - ./packages/shared-kernel:/var/www/packages/shared-kernel
             - ./packages/Queues:/var/www/packages/Queues
+            - ./packages/QueuePresence:/var/www/packages/QueuePresence
 
     reverb:
         volumes:
             - ./apps/web:/var/www/apps/web
             - ./packages/shared-kernel:/var/www/packages/shared-kernel
             - ./packages/Queues:/var/www/packages/Queues
+            - ./packages/QueuePresence:/var/www/packages/QueuePresence
 
     postgres:
         ports:

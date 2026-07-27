@@ -54,6 +54,27 @@ final class PresenceSession
         return $session;
     }
 
+    /**
+     * Reconstitutes a PresenceSession from previously persisted state.
+     * Unlike start() above, this never raises domain events — loading a
+     * session back out of storage is not a business event in itself.
+     */
+    public static function fromPersistence(
+        string $id,
+        string $queueId,
+        string $sellerId,
+        DateTimeImmutable $startedAt,
+        PresenceSessionStatus $status,
+    ): self {
+        return new self(
+            id: $id,
+            queueId: $queueId,
+            sellerId: $sellerId,
+            startedAt: $startedAt,
+            status: $status,
+        );
+    }
+
     public function status(): PresenceSessionStatus
     {
         return $this->status;
