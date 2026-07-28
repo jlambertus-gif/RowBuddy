@@ -99,8 +99,18 @@ auditable.
 
 ## Phase 3 — Auctions & Bids
 
-Status: **in progress**. Authorized 2026-09-02 following the Phase 2
-closure and a dedicated architecture review (ADR-009, ADR-010).
+Status: **done**. Tagged `v0.4.0-auctions`. Domain/backend scope formally
+accepted 2026-10-01. Authorized 2026-09-02 following the Phase 2 closure
+and a dedicated architecture review (ADR-009, ADR-010).
+
+**Closure scope note**: this phase's exit criteria (below) were defined
+and met at the domain/backend level. Unlike Phases 1 and 2, HTTP
+controllers, the frontend, Reverb, and a manual browser acceptance test
+were explicitly deferred to a later delivery-layer phase by deliberate
+decision, not oversight — the Phase 3 objective was the Auctions/Bids
+*domain*, not its delivery layer. See
+`docs/releases/phase-3-completion-report.md` for the full rationale and
+final report.
 
 Auction state machine (§7.1 of the MVP analysis), Reverb-backed real-time
 bidding, concurrency-safe bid placement, anti-sniping soft-close.
@@ -219,11 +229,13 @@ Sprint progress in `packages/Auctions` and `packages/Bids`:
 
 Exit criteria: an auction can run end-to-end (open → closing → winning bid
 selected) under simulated concurrent bidding with correct, tested
-row-locking behavior — **met** as of Sprint 6, at the backend/domain
-level. No payments yet. See `docs/releases/phase-3-completion-review.md`
-for the full sprint-by-sprint review and what remains before this phase
-can be formally tagged and closed (notably: no HTTP, no frontend, no
-manual browser acceptance test yet — unlike Phases 1 and 2's closure bar).
+row-locking behavior — **met**, at the backend/domain level, and formally
+accepted as this phase's closure bar. No payments yet. HTTP, frontend,
+Reverb, and a manual browser acceptance test are explicitly out of scope
+for this phase's closure and deferred to a later delivery-layer phase.
+See `docs/releases/phase-3-completion-report.md` for the full report and
+`docs/releases/phase-3-completion-review.md` for the pre-closure review
+that recommended it.
 
 ## Phase 4 — Payments
 
