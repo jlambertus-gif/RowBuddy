@@ -5210,13 +5210,14 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/Payments",
-                "reference": "9fc4e37fa733a8cc84ed2ccab1bf59a4f895cd28"
+                "reference": "9a497d8545b39874c3776bc864fe41575109b1f4"
             },
             "require": {
                 "illuminate/database": "^12.0",
                 "illuminate/support": "^12.0",
                 "php": "^8.2",
-                "rowbuddy/shared-kernel": "@dev"
+                "rowbuddy/shared-kernel": "@dev",
+                "stripe/stripe-php": "^21.0"
             },
             "require-dev": {
                 "laravel/pint": "^1.18",
@@ -5586,6 +5587,68 @@
                 }
             ],
             "time": "2026-07-16T10:28:45+00:00"
+        },
+        {
+            "name": "stripe/stripe-php",
+            "version": "v21.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/stripe/stripe-php.git",
+                "reference": "0498d20d0c33490c38df956dd7cef49b3a2ad6f0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/stripe/stripe-php/zipball/0498d20d0c33490c38df956dd7cef49b3a2ad6f0",
+                "reference": "0498d20d0c33490c38df956dd7cef49b3a2ad6f0",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "ext-mbstring": "*",
+                "php": ">=7.2.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "3.94.0",
+                "phpstan/phpstan": "^1.2",
+                "phpunit/phpunit": "^8.0 || ^9.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "2.0-dev"
+                }
+            },
+            "autoload": {
+                "files": [
+                    "lib/version_check.php"
+                ],
+                "psr-4": {
+                    "Stripe\\": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Stripe and contributors",
+                    "homepage": "https://github.com/stripe/stripe-php/contributors"
+                }
+            ],
+            "description": "Stripe PHP Library",
+            "homepage": "https://stripe.com/",
+            "keywords": [
+                "api",
+                "payment processing",
+                "stripe"
+            ],
+            "support": {
+                "issues": "https://github.com/stripe/stripe-php/issues",
+                "source": "https://github.com/stripe/stripe-php/tree/v21.0.0"
+            },
+            "time": "2026-07-16T00:34:23+00:00"
         },
         {
             "name": "symfony/clock",

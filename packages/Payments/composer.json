@@ -16,7 +16,8 @@
         "php": "^8.2",
         "illuminate/database": "^12.0",
         "illuminate/support": "^12.0",
-        "rowbuddy/shared-kernel": "@dev"
+        "rowbuddy/shared-kernel": "@dev",
+        "stripe/stripe-php": "^21.0"
     },
     "require-dev": {
         "pestphp/pest": "^3.0",
