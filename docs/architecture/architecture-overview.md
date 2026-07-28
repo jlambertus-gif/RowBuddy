@@ -44,6 +44,29 @@
   internals — only through `AuctionGateway`, implemented in `apps/web`.
   No HTTP, no frontend — deferred alongside Auctions', see
   `docs/releases/phase-3-completion-report.md`.
+- **Payments**: implemented, domain/backend scope only (Phase 4,
+  `packages/Payments`) — the `PaymentIntent` aggregate modeling
+  authorization only (`Authorized`/`Failed`; no `Captured`/`Held`/
+  `ReleasedToSeller`/`RefundedToBuyer` exist in code, per ADR-015);
+  `SellerPayoutAccount` and a `ConnectAccountGateway` Stripe adapter for
+  Connect Express onboarding, with eligibility always read live from
+  Stripe, never cached (Sprint 3); `AuctionWinAuthorizationService`, the
+  real `AuctionWon` consumer, authorizing the buyer's total (bid + fee)
+  via the separate-charges-and-transfers model with no dependency on
+  seller Connect status, assuming an already-obtained Stripe PaymentMethod
+  id (ADR-016, Sprint 4); `WebhookSignatureVerifier` and
+  `StripeWebhookProcessor` — real local HMAC-SHA256 verification and a
+  `ProcessedWebhookEvent` idempotency ledger keyed by Stripe event id
+  (Sprint 5); `PayoutPreparationService`, combining authorization,
+  account-linkage, and live eligibility into a read-only readiness
+  snapshot plus an expected-settlement estimate — no payout ever executed
+  (Sprint 6). Payments tracks its own lifecycle keyed by `auctionId`/
+  `winningBidId` (ADR-014) — `Auction` gained no new states. Capture,
+  transfer confirmation, payout execution, and re-authorization before
+  expiry are deferred to Phase 5 (Transfers), which does not exist yet.
+  One real HTTP endpoint exists (`POST /webhooks/stripe`, Sprint 5) —
+  otherwise no HTTP, no frontend. See
+  `docs/releases/phase-4-completion-report.md`.
 - All other modules below: not started.
 
 ## Style

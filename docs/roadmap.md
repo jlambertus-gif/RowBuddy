@@ -239,17 +239,43 @@ that recommended it.
 
 ## Phase 4 — Payments
 
-Status: not started. Blocked until remaining open questions in
-`docs/product/claude-mvp-analysis.md` §10.2 (exact fee %, launch market,
-KYC tier, protection-period duration) are answered.
+Status: **done**. Tagged `v0.5.0-payments`. Domain/backend scope formally
+accepted 2026-10-22.
 
-Stripe Connect seller onboarding, authorize-now/capture-at-transfer escrow
-(ADR-004), platform fee (ADR-006), webhook idempotency ledger,
-re-authorization flow for transfer windows nearing expiry.
+**Closure scope note**: launch-market, Stripe account type, fee
+percentage, KYC tier, currency, and transaction-limit product decisions
+were resolved first (United States, USD-only, Stripe Connect Express,
+10% buyer-side fee, Stripe's own onboarding gate as the sole KYC
+requirement, $500 transaction cap). Two architectural boundaries were
+then fixed before any code: ADR-014 (Payments tracks its own lifecycle
+keyed by `auctionId`/`winningBidId`; `AuctionStatus` is never extended)
+and ADR-015 (Phase 4 stops at authorization, webhook handling, and payout
+preparation — capture and payout execution are Phase 5/Transfers'
+responsibility, with no placeholder trigger introduced to simulate it).
+ADR-016 further scoped Sprint 4: authorization assumes a buyer Stripe
+PaymentMethod id was already obtained by a separate, not-yet-built
+capability, and uses the separate-charges-and-transfers model so
+authorization never depends on seller Connect onboarding status. See
+`docs/releases/phase-4-completion-report.md` for the full report.
 
-Exit criteria: a winning bid can be authorized, captured on transfer
-confirmation, and paid out to a verified seller, entirely in Stripe test
-mode, with idempotent webhook handling proven under replay.
+Stripe Connect Express seller onboarding, buyer payment authorization on
+auction win (ADR-004/ADR-006/ADR-016), webhook signature verification and
+an idempotency ledger, and payout preparation (readiness validation plus
+an expected-settlement estimate) — implemented across 6 sprints in
+`packages/Payments`. Re-authorization before expiry and capture/payout
+execution are deferred to Phase 5, for the same reason ADR-015 already
+gives for capture: both depend on Transfers' not-yet-designed handoff
+timing.
+
+Exit criteria: a winning bid's buyer-side total (bid + platform fee) can
+be authorized in Stripe test mode, with idempotent webhook handling
+proven under replay, and a seller's payout can be fully *prepared*
+(linked Connect account, live eligibility, expected settlement) —
+**met**, at the backend/domain level. Capture, transfer confirmation, and
+actual payout execution are explicitly **not** part of this phase's exit
+criteria — they require Phase 5 (Transfers) to exist first, a narrower
+bar than this phase's original roadmap description assumed, the same
+kind of scope narrowing Phase 3's closure documented for HTTP/frontend.
 
 ## Phase 5 — Transfers
 

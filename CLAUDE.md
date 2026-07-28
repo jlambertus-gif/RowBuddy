@@ -143,22 +143,40 @@ For each task:
 
 ## Repository status
 
-Phase 0 (Foundations), Phase 1 (Catalog), Phase 2 (Presence & Trust), and
-Phase 3 (Auctions & Bids) are complete and formally accepted — tagged
-`v0.1.0-foundation`, `v0.2.0-catalog`, `v0.3.0-presence`, and
-`v0.4.0-auctions`. Phase 3's acceptance covers the domain/backend scope
-only: the `Auction` aggregate scaffold and persistence, the ADR-009/
-ADR-010 verification contract and Evidence Verified gate, the ADR-011
-live-proximity enforcement policy, the ADR-012 `packages/Bids`
-concurrency-safe bid placement, and the ADR-013 closing/winner-selection/
-anti-sniping policy — all proven under real-Postgres concurrency tests.
+Phase 0 (Foundations), Phase 1 (Catalog), Phase 2 (Presence & Trust),
+Phase 3 (Auctions & Bids), and Phase 4 (Payments) are complete and
+formally accepted — tagged `v0.1.0-foundation`, `v0.2.0-catalog`,
+`v0.3.0-presence`, `v0.4.0-auctions`, and `v0.5.0-payments`. Phase 3's
+and Phase 4's acceptance both cover the domain/backend scope only.
+
+Phase 4 delivered, in `packages/Payments`: Stripe Connect Express seller
+onboarding (Sprint 3); buyer payment authorization on auction win via the
+separate-charges-and-transfers model, assuming a buyer Stripe
+PaymentMethod id already exists (ADR-016, Sprint 4); Stripe webhook
+signature verification and an idempotency ledger (Sprint 5); and payout
+preparation — readiness validation plus an expected-settlement estimate,
+with no payout ever executed (Sprint 6). ADR-014 keeps Payments'
+lifecycle entirely independent of `Auction`'s own status (no new
+`AuctionStatus` states); ADR-015 stops Phase 4 at authorization/webhooks/
+payout-preparation, deferring capture and payout execution to Phase 5
+(Transfers) with no placeholder trigger introduced for it; ADR-016 scopes
+Sprint 4's assumed payment-method input and charge model. Re-
+authorization before expiry is deferred to Phase 5 for the same reason as
+capture: both depend on Transfers' not-yet-designed handoff timing. See
+`docs/releases/phase-4-completion-report.md` for the full report.
+
 By deliberate decision, HTTP, frontend, Reverb, and a manual browser
 acceptance test were deferred to a later delivery-layer phase rather than
-required for this phase's closure — a departure from Phases 1 and 2's
-closure bar. See `docs/releases/phase-3-completion-report.md` for the
-full report and rationale. Phase 4 (Payments) implementation must not
-begin until explicitly authorized. See `docs/roadmap.md` for the phase
-plan and sprint progress, and `docs/releases/phase-1-completion-report.md`
-/ `docs/releases/phase-2-completion-report.md` /
-`docs/releases/phase-3-completion-report.md` for the completion reports of
+required for Phase 3's closure — a departure from Phases 1 and 2's
+closure bar — and Phase 4 follows the same posture, with one exception:
+Sprint 5 introduced a real HTTP endpoint (`POST /webhooks/stripe`) since
+receiving Stripe webhooks genuinely requires one. See
+`docs/releases/phase-3-completion-report.md` and
+`docs/releases/phase-4-completion-report.md` for the full reports and
+rationale. Phase 5 (Transfers) implementation must not begin until
+explicitly authorized. See `docs/roadmap.md` for the phase plan and
+sprint progress, and `docs/releases/phase-1-completion-report.md` /
+`docs/releases/phase-2-completion-report.md` /
+`docs/releases/phase-3-completion-report.md` /
+`docs/releases/phase-4-completion-report.md` for the completion reports of
 the closed phases.
