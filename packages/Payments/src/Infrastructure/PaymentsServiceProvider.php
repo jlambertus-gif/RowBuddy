@@ -7,12 +7,14 @@ namespace RowBuddy\Payments\Infrastructure;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\ServiceProvider;
+use RowBuddy\Payments\Application\FixedPaymentProcessingCostPolicy;
 use RowBuddy\Payments\Application\FixedPlatformFeePolicy;
 use RowBuddy\Payments\Application\FixedTransactionValueLimitPolicy;
 use RowBuddy\Payments\Contracts\ConnectAccountGateway;
 use RowBuddy\Payments\Contracts\DomainEventPublisher;
 use RowBuddy\Payments\Contracts\PaymentAuthorizationGateway;
 use RowBuddy\Payments\Contracts\PaymentIntentRepository;
+use RowBuddy\Payments\Contracts\PaymentProcessingCostPolicy;
 use RowBuddy\Payments\Contracts\PlatformFeePolicy;
 use RowBuddy\Payments\Contracts\SellerPayoutAccountRepository;
 use RowBuddy\Payments\Contracts\TransactionValueLimitPolicy;
@@ -80,6 +82,14 @@ final class PaymentsServiceProvider extends ServiceProvider
             $limitUsd = (int) $config->get('payments.transaction_value_limit_usd', 500);
 
             return new FixedTransactionValueLimitPolicy(new Money($limitUsd * 100, new Currency('USD')));
+        });
+
+        $this->app->bind(PaymentProcessingCostPolicy::class, function ($app) {
+            $config = $app->make(Repository::class);
+            $percentage = (int) $config->get('payments.processing_fee_percentage', 3);
+            $fixedFeeCents = (int) $config->get('payments.processing_fee_fixed_cents', 30);
+
+            return new FixedPaymentProcessingCostPolicy($percentage, new Money($fixedFeeCents, new Currency('USD')));
         });
     }
 

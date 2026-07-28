@@ -32,4 +32,21 @@ return [
 
     'transaction_value_limit_usd' => (int) env('PAYMENTS_TRANSACTION_VALUE_LIMIT_USD', 500),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Estimated payment-processing cost
+    |--------------------------------------------------------------------------
+    |
+    | A whole-number percentage plus a fixed fee (in cents) approximating
+    | Stripe's real card-processing rate, used only for Phase 4's
+    | "expected settlement" estimate (ADR-015 §1) — not the real, final
+    | cost, which is only known once a payout actually executes. See
+    | RowBuddy\Payments\Contracts\PaymentProcessingCostPolicy.
+    |
+    */
+
+    'processing_fee_percentage' => (int) env('PAYMENTS_PROCESSING_FEE_PERCENTAGE', 3),
+
+    'processing_fee_fixed_cents' => (int) env('PAYMENTS_PROCESSING_FEE_FIXED_CENTS', 30),
+
 ];
