@@ -13,6 +13,7 @@ services:
             - ./packages/QueuePresence:/var/www/packages/QueuePresence
             - ./packages/Auctions:/var/www/packages/Auctions
             - ./packages/Bids:/var/www/packages/Bids
+            - ./packages/Payments:/var/www/packages/Payments
 
     horizon:
         volumes:
@@ -22,6 +23,7 @@ services:
             - ./packages/QueuePresence:/var/www/packages/QueuePresence
             - ./packages/Auctions:/var/www/packages/Auctions
             - ./packages/Bids:/var/www/packages/Bids
+            - ./packages/Payments:/var/www/packages/Payments
 
     reverb:
         volumes:
@@ -31,6 +33,7 @@ services:
             - ./packages/QueuePresence:/var/www/packages/QueuePresence
             - ./packages/Auctions:/var/www/packages/Auctions
             - ./packages/Bids:/var/www/packages/Bids
+            - ./packages/Payments:/var/www/packages/Payments
 
     postgres:
         ports:

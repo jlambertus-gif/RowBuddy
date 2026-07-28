@@ -40,6 +40,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../../packages/Payments",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -53,6 +60,7 @@
         "predis/predis": "^3.5",
         "rowbuddy/auctions": "@dev",
         "rowbuddy/bids": "@dev",
+        "rowbuddy/payments": "@dev",
         "rowbuddy/queue-presence": "@dev",
         "rowbuddy/queues": "@dev",
         "rowbuddy/shared-kernel": "@dev"

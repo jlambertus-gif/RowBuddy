@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "93fc584b143919c75e30b6ece3d96c29",
+    "content-hash": "36c4fc9cf1b9f488c70f98bb6d1d2adc",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -5199,6 +5199,56 @@
                 "proprietary"
             ],
             "description": "Bids bounded context: immutable, append-only bid placement against an Auction, with concurrency-safe validation (Phase 3).",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "rowbuddy/payments",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../../packages/Payments",
+                "reference": "9fc4e37fa733a8cc84ed2ccab1bf59a4f895cd28"
+            },
+            "require": {
+                "illuminate/database": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2",
+                "rowbuddy/shared-kernel": "@dev"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.18",
+                "pestphp/pest": "^3.0",
+                "phpstan/phpstan": "^1.12"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "RowBuddy\\Payments\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "RowBuddy\\Payments\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "lint": [
+                    "pint --test"
+                ],
+                "stan": [
+                    "phpstan analyse"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Payments bounded context: PaymentIntent authorization, fee calculation, and payout preparation for a won auction (Phase 4).",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -12062,6 +12112,7 @@
     "stability-flags": {
         "rowbuddy/auctions": 20,
         "rowbuddy/bids": 20,
+        "rowbuddy/payments": 20,
         "rowbuddy/queue-presence": 20,
         "rowbuddy/queues": 20,
         "rowbuddy/shared-kernel": 20
