@@ -16,11 +16,15 @@ use RowBuddy\Payments\Contracts\PaymentIntentRepository;
 use RowBuddy\Payments\Contracts\PlatformFeePolicy;
 use RowBuddy\Payments\Contracts\SellerPayoutAccountRepository;
 use RowBuddy\Payments\Contracts\TransactionValueLimitPolicy;
+use RowBuddy\Payments\Contracts\WebhookEventRepository;
+use RowBuddy\Payments\Contracts\WebhookSignatureVerifier;
 use RowBuddy\Payments\Infrastructure\Eloquent\EloquentPaymentIntentRepository;
 use RowBuddy\Payments\Infrastructure\Eloquent\EloquentSellerPayoutAccountRepository;
+use RowBuddy\Payments\Infrastructure\Eloquent\EloquentWebhookEventRepository;
 use RowBuddy\Payments\Infrastructure\Events\LaravelDomainEventPublisher;
 use RowBuddy\Payments\Infrastructure\Stripe\StripeConnectAccountGateway;
 use RowBuddy\Payments\Infrastructure\Stripe\StripePaymentAuthorizationGateway;
+use RowBuddy\Payments\Infrastructure\Stripe\StripeWebhookSignatureVerifier;
 use RowBuddy\SharedKernel\ValueObjects\Currency;
 use RowBuddy\SharedKernel\ValueObjects\Money;
 use Stripe\StripeClient;
@@ -31,6 +35,7 @@ final class PaymentsServiceProvider extends ServiceProvider
     {
         $this->app->bind(PaymentIntentRepository::class, EloquentPaymentIntentRepository::class);
         $this->app->bind(SellerPayoutAccountRepository::class, EloquentSellerPayoutAccountRepository::class);
+        $this->app->bind(WebhookEventRepository::class, EloquentWebhookEventRepository::class);
 
         $this->app->bind(DomainEventPublisher::class, function ($app) {
             return new LaravelDomainEventPublisher($app->make(Dispatcher::class));
@@ -48,6 +53,12 @@ final class PaymentsServiceProvider extends ServiceProvider
 
         $this->app->bind(PaymentAuthorizationGateway::class, function ($app) {
             return new StripePaymentAuthorizationGateway($app->make(StripeClient::class));
+        });
+
+        $this->app->bind(WebhookSignatureVerifier::class, function ($app) {
+            $config = $app->make(Repository::class);
+
+            return new StripeWebhookSignatureVerifier((string) $config->get('services.stripe.webhook_secret'));
         });
 
         // Provisional MVP configuration values, not permanent domain

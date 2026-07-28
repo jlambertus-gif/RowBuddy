@@ -12,6 +12,7 @@ use App\Http\Controllers\RecordGpsPingController;
 use App\Http\Controllers\RejectQueueController;
 use App\Http\Controllers\ShowEvidencePhotoUrlController;
 use App\Http\Controllers\StartPresenceSessionController;
+use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\UploadEvidencePhotoController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -19,6 +20,10 @@ use Inertia\Inertia;
 Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
+
+// Called only by Stripe's own systems, authenticated by signature header,
+// not a session/user — CSRF-exempt (see bootstrap/app.php).
+Route::post('/webhooks/stripe', StripeWebhookController::class)->name('webhooks.stripe');
 
 // Public JSON API: no authentication required to search published queues.
 Route::get('/queues/discover', DiscoverQueuesController::class)->name('queues.discover');
