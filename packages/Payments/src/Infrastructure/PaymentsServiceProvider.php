@@ -8,8 +8,10 @@ use Illuminate\Contracts\Config\Repository;
 use Illuminate\Support\ServiceProvider;
 use RowBuddy\Payments\Application\FixedPlatformFeePolicy;
 use RowBuddy\Payments\Application\FixedTransactionValueLimitPolicy;
+use RowBuddy\Payments\Contracts\PaymentIntentRepository;
 use RowBuddy\Payments\Contracts\PlatformFeePolicy;
 use RowBuddy\Payments\Contracts\TransactionValueLimitPolicy;
+use RowBuddy\Payments\Infrastructure\Eloquent\EloquentPaymentIntentRepository;
 use RowBuddy\SharedKernel\ValueObjects\Currency;
 use RowBuddy\SharedKernel\ValueObjects\Money;
 
@@ -17,6 +19,8 @@ final class PaymentsServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->bind(PaymentIntentRepository::class, EloquentPaymentIntentRepository::class);
+
         // Provisional MVP configuration values, not permanent domain
         // invariants — isolated in exactly these two bindings, each
         // reading from config/payments.php (env-overridable), so they can
@@ -37,5 +41,10 @@ final class PaymentsServiceProvider extends ServiceProvider
 
             return new FixedTransactionValueLimitPolicy(new Money($limitUsd * 100, new Currency('USD')));
         });
+    }
+
+    public function boot(): void
+    {
+        $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
     }
 }
