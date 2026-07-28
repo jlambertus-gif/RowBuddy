@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use RowBuddy\Auctions\Application\AuctionService;
+use RowBuddy\Auctions\Application\FixedAuctionDurationPolicy;
 use RowBuddy\Auctions\Contracts\SellerPresenceVerification;
 use RowBuddy\Auctions\Events\AuctionOpened;
 use RowBuddy\Auctions\Exceptions\InsufficientConfidenceTier;
@@ -41,7 +42,7 @@ function makeAuctionService(
     InMemorySellerPresenceVerification $presenceVerification,
     RecordingDomainEventPublisher $events,
 ): AuctionService {
-    return new AuctionService($auctions, $presenceVerification, $events, new FrozenClock);
+    return new AuctionService($auctions, $presenceVerification, new FixedAuctionDurationPolicy(30 * 60), $events, new FrozenClock);
 }
 
 it('opens an auction when the seller is Evidence Verified for the queue', function () {
@@ -58,6 +59,20 @@ it('opens an auction when the seller is Evidence Verified for the queue', functi
         ->and($auctions->findById('auction-1'))->not->toBeNull()
         ->and($events->published)->toHaveCount(1)
         ->and($events->published[0])->toBeInstanceOf(AuctionOpened::class);
+});
+
+it('computes closesAt from the injected AuctionDurationPolicy', function () {
+    $auctions = new InMemoryAuctionRepository;
+    $presenceVerification = new InMemorySellerPresenceVerification;
+    $presenceVerification->stub('seller-1', 'queue-1', aSnapshot(ConfidenceTier::EvidenceVerified, 180));
+    $events = new RecordingDomainEventPublisher;
+    $clock = new FrozenClock(new DateTimeImmutable('2026-09-30 10:00:00'));
+
+    $service = new AuctionService($auctions, $presenceVerification, new FixedAuctionDurationPolicy(30 * 60), $events, $clock);
+
+    $auction = $service->open('auction-8', 'queue-1', 'seller-1', 'session-8', usd(1000));
+
+    expect($auction->closesAt())->toEqual(new DateTimeImmutable('2026-09-30 10:30:00'));
 });
 
 it('fails closed when no verification record exists at all', function () {
@@ -126,7 +141,7 @@ it('does not swallow an unexpected error from the verification adapter', functio
         }
     };
 
-    $service = new AuctionService($auctions, $failingVerification, $events, new FrozenClock);
+    $service = new AuctionService($auctions, $failingVerification, new FixedAuctionDurationPolicy(30 * 60), $events, new FrozenClock);
 
     expect(fn () => $service->open('auction-7', 'queue-1', 'seller-1', 'session-7', usd(1000)))
         ->toThrow(RuntimeException::class, 'adapter unavailable');

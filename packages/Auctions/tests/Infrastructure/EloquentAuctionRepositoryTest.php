@@ -28,6 +28,7 @@ beforeEach(function () {
         $table->unsignedBigInteger('starting_price_minor_units');
         $table->string('starting_price_currency', 3);
         $table->timestamp('opened_at');
+        $table->timestamp('closes_at');
         $table->string('status');
         $table->string('winning_bid_id')->nullable();
         $table->unsignedBigInteger('winning_amount_minor_units')->nullable();
@@ -45,7 +46,7 @@ it('round-trips an open auction through the repository', function () {
     $repository = new EloquentAuctionRepository;
     $openedAt = new DateTimeImmutable('2026-09-10 09:00:00');
 
-    $auction = Auction::open('auction-1', 'queue-1', '101', 'session-1', usd(1000), new FrozenClock($openedAt));
+    $auction = Auction::open('auction-1', 'queue-1', '101', 'session-1', usd(1000), minutesAfter($openedAt, 30), new FrozenClock($openedAt));
 
     $repository->save($auction);
     $found = $repository->findById('auction-1');
@@ -66,7 +67,7 @@ it('round-trips an open auction through the repository', function () {
 it('round-trips a won auction with its winning bid', function () {
     $repository = new EloquentAuctionRepository;
 
-    $auction = Auction::open('auction-2', 'queue-1', '101', 'session-2', usd(1000), new FrozenClock);
+    $auction = Auction::open('auction-2', 'queue-1', '101', 'session-2', usd(1000), aFutureClosesAt(), new FrozenClock);
     $auction->startClosing(new FrozenClock);
     $auction->selectWinningBid('bid-1', usd(1500), new FrozenClock);
     $repository->save($auction);
@@ -81,7 +82,7 @@ it('round-trips a won auction with its winning bid', function () {
 it('round-trips an expired auction with no winning bid', function () {
     $repository = new EloquentAuctionRepository;
 
-    $auction = Auction::open('auction-3', 'queue-1', '101', 'session-3', usd(1000), new FrozenClock);
+    $auction = Auction::open('auction-3', 'queue-1', '101', 'session-3', usd(1000), aFutureClosesAt(), new FrozenClock);
     $auction->startClosing(new FrozenClock);
     $auction->expireWithoutWinningBid(new FrozenClock);
     $repository->save($auction);
@@ -100,7 +101,7 @@ it('returns null when the auction does not exist', function () {
 it('persists a status transition made after reloading from the repository', function () {
     $repository = new EloquentAuctionRepository;
 
-    $auction = Auction::open('auction-4', 'queue-1', '101', 'session-4', usd(1000), new FrozenClock);
+    $auction = Auction::open('auction-4', 'queue-1', '101', 'session-4', usd(1000), aFutureClosesAt(), new FrozenClock);
     $repository->save($auction);
 
     $reloaded = $repository->findById('auction-4');
@@ -113,16 +114,16 @@ it('persists a status transition made after reloading from the repository', func
 it('rejects a second auction backed by the same presence session', function () {
     $repository = new EloquentAuctionRepository;
 
-    $repository->save(Auction::open('auction-5', 'queue-1', '101', 'session-5', usd(1000), new FrozenClock));
+    $repository->save(Auction::open('auction-5', 'queue-1', '101', 'session-5', usd(1000), aFutureClosesAt(), new FrozenClock));
 
-    $repository->save(Auction::open('auction-6', 'queue-1', '101', 'session-5', usd(1000), new FrozenClock));
+    $repository->save(Auction::open('auction-6', 'queue-1', '101', 'session-5', usd(1000), aFutureClosesAt(), new FrozenClock));
 })->throws(PresenceSessionAlreadyConsumed::class);
 
 it('allows two different presence sessions to each back an auction', function () {
     $repository = new EloquentAuctionRepository;
 
-    $repository->save(Auction::open('auction-7', 'queue-1', '101', 'session-7', usd(1000), new FrozenClock));
-    $repository->save(Auction::open('auction-8', 'queue-1', '101', 'session-8', usd(1000), new FrozenClock));
+    $repository->save(Auction::open('auction-7', 'queue-1', '101', 'session-7', usd(1000), aFutureClosesAt(), new FrozenClock));
+    $repository->save(Auction::open('auction-8', 'queue-1', '101', 'session-8', usd(1000), aFutureClosesAt(), new FrozenClock));
 
     expect($repository->findById('auction-7')->presenceSessionId)->toBe('session-7')
         ->and($repository->findById('auction-8')->presenceSessionId)->toBe('session-8');
@@ -132,7 +133,7 @@ it('round-trips a cancelled auction with proximityAtRiskSince set', function () 
     $repository = new EloquentAuctionRepository;
     $flaggedAt = new DateTimeImmutable('2026-09-16 10:00:00');
 
-    $auction = Auction::open('auction-9', 'queue-1', '101', 'session-9', usd(1000), new FrozenClock);
+    $auction = Auction::open('auction-9', 'queue-1', '101', 'session-9', usd(1000), aFutureClosesAt(), new FrozenClock);
     $auction->flagProximityAtRisk(new FrozenClock($flaggedAt));
     $repository->save($auction);
 
@@ -151,7 +152,7 @@ it('round-trips a cancelled auction with proximityAtRiskSince set', function () 
 it('has no proximityAtRiskSince by default when round-tripped', function () {
     $repository = new EloquentAuctionRepository;
 
-    $repository->save(Auction::open('auction-10', 'queue-1', '101', 'session-10', usd(1000), new FrozenClock));
+    $repository->save(Auction::open('auction-10', 'queue-1', '101', 'session-10', usd(1000), aFutureClosesAt(), new FrozenClock));
 
     expect($repository->findById('auction-10')->proximityAtRiskSince())->toBeNull();
 });
@@ -159,7 +160,7 @@ it('has no proximityAtRiskSince by default when round-tripped', function () {
 it('finds the same auction via findByIdForUpdate as findById', function () {
     $repository = new EloquentAuctionRepository;
 
-    $repository->save(Auction::open('auction-11', 'queue-1', '101', 'session-11', usd(1000), new FrozenClock));
+    $repository->save(Auction::open('auction-11', 'queue-1', '101', 'session-11', usd(1000), aFutureClosesAt(), new FrozenClock));
 
     $found = $repository->findByIdForUpdate('auction-11');
 
@@ -170,4 +171,31 @@ it('finds the same auction via findByIdForUpdate as findById', function () {
 
 it('returns null from findByIdForUpdate when the auction does not exist', function () {
     expect((new EloquentAuctionRepository)->findByIdForUpdate('missing'))->toBeNull();
+});
+
+it('round-trips closesAt', function () {
+    $repository = new EloquentAuctionRepository;
+    $openedAt = new DateTimeImmutable('2026-09-30 10:00:00');
+    $closesAt = new DateTimeImmutable('2026-09-30 10:30:00');
+
+    $repository->save(Auction::open('auction-12', 'queue-1', '101', 'session-12', usd(1000), $closesAt, new FrozenClock($openedAt)));
+
+    expect($repository->findById('auction-12')->closesAt())->toEqual($closesAt);
+});
+
+it('round-trips an extended closesAt', function () {
+    $repository = new EloquentAuctionRepository;
+    // A literal, whole-second closesAt — like opened_at, this column is
+    // not asserted to carry sub-second precision (unlike
+    // presence_confidence_scores.computed_at, which genuinely needs it
+    // to break same-second ties); aFutureClosesAt()'s real "now" would
+    // carry microseconds this column was never designed to round-trip.
+    $originalClosesAt = new DateTimeImmutable('2026-09-30 10:30:00');
+
+    $auction = Auction::open('auction-13', 'queue-1', '101', 'session-13', usd(1000), $originalClosesAt, new FrozenClock);
+    $extended = $originalClosesAt->modify('+2 minutes');
+    $auction->extendClosingDeadline($extended, new FrozenClock);
+    $repository->save($auction);
+
+    expect($repository->findById('auction-13')->closesAt())->toEqual($extended);
 });

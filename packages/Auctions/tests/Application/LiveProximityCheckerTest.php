@@ -38,7 +38,7 @@ it('does nothing when the ping is fresh and the auction was never at risk', func
     $events = new RecordingDomainEventPublisher;
     $now = new DateTimeImmutable('2026-09-16 10:00:00');
 
-    $auction = Auction::open('auction-1', 'queue-1', 'seller-1', 'session-1', usd(1000), new FrozenClock($now));
+    $auction = Auction::open('auction-1', 'queue-1', 'seller-1', 'session-1', usd(1000), minutesAfter($now, 60), new FrozenClock($now));
     $auction->releaseEvents();
     $presenceVerification->stub('seller-1', 'queue-1', aSnapshot(
         ConfidenceTier::EvidenceVerified,
@@ -61,7 +61,7 @@ it('flags an auction at risk on first stale detection', function () {
     $events = new RecordingDomainEventPublisher;
     $now = new DateTimeImmutable('2026-09-16 10:00:00');
 
-    $auction = Auction::open('auction-2', 'queue-1', 'seller-1', 'session-2', usd(1000), new FrozenClock($now));
+    $auction = Auction::open('auction-2', 'queue-1', 'seller-1', 'session-2', usd(1000), minutesAfter($now, 60), new FrozenClock($now));
     $auction->releaseEvents();
     $presenceVerification->stub('seller-1', 'queue-1', aSnapshot(
         ConfidenceTier::EvidenceVerified,
@@ -86,7 +86,7 @@ it('does not extend the at-risk window on a repeated stale check within the grac
     $events = new RecordingDomainEventPublisher;
     $flaggedAt = new DateTimeImmutable('2026-09-16 10:00:00');
 
-    $auction = Auction::open('auction-3', 'queue-1', 'seller-1', 'session-3', usd(1000), new FrozenClock($flaggedAt));
+    $auction = Auction::open('auction-3', 'queue-1', 'seller-1', 'session-3', usd(1000), minutesAfter($flaggedAt, 60), new FrozenClock($flaggedAt));
     $auction->releaseEvents();
     $presenceVerification->stub('seller-1', 'queue-1', aSnapshot(
         ConfidenceTier::EvidenceVerified,
@@ -112,7 +112,7 @@ it('cancels once the grace period elapses following a stale flag', function () {
     $events = new RecordingDomainEventPublisher;
     $flaggedAt = new DateTimeImmutable('2026-09-16 10:00:00');
 
-    $auction = Auction::open('auction-4', 'queue-1', 'seller-1', 'session-4', usd(1000), new FrozenClock($flaggedAt));
+    $auction = Auction::open('auction-4', 'queue-1', 'seller-1', 'session-4', usd(1000), minutesAfter($flaggedAt, 60), new FrozenClock($flaggedAt));
     $auction->releaseEvents();
     $presenceVerification->stub('seller-1', 'queue-1', aSnapshot(
         ConfidenceTier::EvidenceVerified,
@@ -137,7 +137,7 @@ it('restores proximity once a fresh ping arrives after being at risk', function 
     $events = new RecordingDomainEventPublisher;
     $flaggedAt = new DateTimeImmutable('2026-09-16 10:00:00');
 
-    $auction = Auction::open('auction-5', 'queue-1', 'seller-1', 'session-5', usd(1000), new FrozenClock($flaggedAt));
+    $auction = Auction::open('auction-5', 'queue-1', 'seller-1', 'session-5', usd(1000), minutesAfter($flaggedAt, 60), new FrozenClock($flaggedAt));
     $auction->releaseEvents();
     $presenceVerification->stub('seller-1', 'queue-1', aSnapshot(
         ConfidenceTier::EvidenceVerified,
@@ -169,7 +169,7 @@ it('cancels immediately when the session is no longer active, with no prior at-r
     $events = new RecordingDomainEventPublisher;
     $now = new DateTimeImmutable('2026-09-16 10:00:00');
 
-    $auction = Auction::open('auction-6', 'queue-1', 'seller-1', 'session-6', usd(1000), new FrozenClock($now));
+    $auction = Auction::open('auction-6', 'queue-1', 'seller-1', 'session-6', usd(1000), minutesAfter($now, 60), new FrozenClock($now));
     $auction->releaseEvents();
     $presenceVerification->stub('seller-1', 'queue-1', aSnapshot(
         ConfidenceTier::EvidenceVerified,
@@ -191,7 +191,7 @@ it('cancels immediately when no verification record exists at all', function () 
     $events = new RecordingDomainEventPublisher;
     $now = new DateTimeImmutable('2026-09-16 10:00:00');
 
-    $auction = Auction::open('auction-7', 'queue-1', 'seller-1', 'session-7', usd(1000), new FrozenClock($now));
+    $auction = Auction::open('auction-7', 'queue-1', 'seller-1', 'session-7', usd(1000), minutesAfter($now, 60), new FrozenClock($now));
     $auction->releaseEvents();
 
     makeChecker($auctions, $presenceVerification, $events, $now)->check($auction);
@@ -221,6 +221,7 @@ it('does not query verification at all for an auction already in a terminal stat
             'session-terminal',
             usd(1000),
             $now,
+            minutesAfter($now, 60),
             $terminalStatus,
             null,
             null,

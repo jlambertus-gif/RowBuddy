@@ -86,30 +86,42 @@ final class BidService
         $snapshot = $lockResult->snapshot;
 
         if ($snapshot === null) {
-            return new BidPlacementOutcome(null, BidRejectionReason::AuctionNotFound, $lockResult->proximityEvents);
+            return new BidPlacementOutcome(null, BidRejectionReason::AuctionNotFound, $lockResult->events);
         }
 
+        // Closing (ADR-013 §4) is evaluated by the gateway before this
+        // point — snapshot.isOpenForBidding is false whether the cause was
+        // a proximity cancellation or the deadline having passed, so a bid
+        // arriving at or after closesAt is rejected here, never accepted.
         if (! $snapshot->isOpenForBidding) {
-            return new BidPlacementOutcome(null, BidRejectionReason::AuctionNotOpenForBidding, $lockResult->proximityEvents);
+            return new BidPlacementOutcome(null, BidRejectionReason::AuctionNotOpenForBidding, $lockResult->events);
         }
 
         if (! $amount->currency->equals($snapshot->startingPrice->currency)) {
-            return new BidPlacementOutcome(null, BidRejectionReason::CurrencyMismatch, $lockResult->proximityEvents);
+            return new BidPlacementOutcome(null, BidRejectionReason::CurrencyMismatch, $lockResult->events);
         }
 
         if ($bidderId === $snapshot->sellerId) {
-            return new BidPlacementOutcome(null, BidRejectionReason::SellerCannotBidOnOwnAuction, $lockResult->proximityEvents);
+            return new BidPlacementOutcome(null, BidRejectionReason::SellerCannotBidOnOwnAuction, $lockResult->events);
         }
 
         $currentHighest = $this->bids->highestAmountFor($auctionId) ?? $snapshot->startingPrice;
 
         if (! $amount->isGreaterThan($currentHighest)) {
-            return new BidPlacementOutcome(null, BidRejectionReason::BidTooLow, $lockResult->proximityEvents);
+            return new BidPlacementOutcome(null, BidRejectionReason::BidTooLow, $lockResult->events);
         }
 
         $bid = Bid::place($bidId, $auctionId, $bidderId, $amount, $this->clock);
         $this->bids->record($bid);
 
-        return new BidPlacementOutcome($bid, null, [...$lockResult->proximityEvents, ...$bid->releaseEvents()]);
+        // Only reachable after a successful record() — there is no path
+        // from a rejected bid into the soft-close extension (ADR-013 §2).
+        $effectsResult = $this->auctionGateway->applyAcceptedBidEffects($auctionId, $bid->placedAt);
+
+        return new BidPlacementOutcome($bid, null, [
+            ...$lockResult->events,
+            ...$effectsResult->events,
+            ...$bid->releaseEvents(),
+        ]);
     }
 }

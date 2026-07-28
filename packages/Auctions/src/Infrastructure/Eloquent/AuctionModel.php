@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property int $starting_price_minor_units
  * @property string $starting_price_currency
  * @property Carbon $opened_at
+ * @property Carbon $closes_at
  * @property string $status
  * @property string|null $winning_bid_id
  * @property int|null $winning_amount_minor_units
@@ -41,6 +42,7 @@ final class AuctionModel extends Model
         'starting_price_minor_units',
         'starting_price_currency',
         'opened_at',
+        'closes_at',
         'status',
         'winning_bid_id',
         'winning_amount_minor_units',
@@ -51,6 +53,7 @@ final class AuctionModel extends Model
     /** @var array<string, string> */
     protected $casts = [
         'opened_at' => 'datetime',
+        'closes_at' => 'datetime',
         'proximity_at_risk_since' => 'datetime',
     ];
 }

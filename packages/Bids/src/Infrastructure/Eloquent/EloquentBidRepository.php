@@ -31,17 +31,24 @@ final class EloquentBidRepository implements BidRepository
 
     public function highestAmountFor(string $auctionId): ?Money
     {
+        return $this->findHighestBidFor($auctionId)?->amount;
+    }
+
+    public function findHighestBidFor(string $auctionId): ?Bid
+    {
         /** @var BidModel|null $model */
         $model = BidModel::query()
             ->where('auction_id', $auctionId)
             ->orderByDesc('amount_minor_units')
+            ->orderBy('placed_at')
+            ->orderBy('id')
             ->first();
 
         if ($model === null) {
             return null;
         }
 
-        return new Money($model->amount_minor_units, new Currency($model->amount_currency));
+        return $this->toDomain($model);
     }
 
     public function findById(string $id): ?Bid
@@ -53,6 +60,11 @@ final class EloquentBidRepository implements BidRepository
             return null;
         }
 
+        return $this->toDomain($model);
+    }
+
+    private function toDomain(BidModel $model): Bid
+    {
         return Bid::fromPersistence(
             id: $model->id,
             auctionId: $model->auction_id,

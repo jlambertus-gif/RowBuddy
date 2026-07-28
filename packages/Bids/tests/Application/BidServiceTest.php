@@ -193,3 +193,77 @@ it('accepts a second bid that exceeds the first', function () {
 
     expect($bid->amount->equals(usd(1200)))->toBeTrue();
 });
+
+it('applies accepted-bid effects only after a bid is accepted, with the bid\'s own placedAt', function () {
+    $bids = new InMemoryBidRepository;
+    $auctionGateway = new FakeAuctionGateway;
+    $auctionGateway->stub('auction-1', new AuctionLockResult(anOpenSnapshot(), []));
+    $transactions = new RecordingTransactionManager;
+    $events = new RecordingDomainEventPublisher($transactions);
+
+    $service = makeBidService($bids, $auctionGateway, $transactions, $events);
+    $bid = $service->place('bid-1', 'auction-1', 'bidder-1', usd(1100));
+
+    expect($auctionGateway->acceptedBidEffectsCalls)->toHaveCount(1)
+        ->and($auctionGateway->acceptedBidEffectsCalls[0][0])->toBe('auction-1')
+        ->and($auctionGateway->acceptedBidEffectsCalls[0][1])->toEqual($bid->placedAt);
+});
+
+it('never applies accepted-bid effects when the bid is rejected for any reason', function () {
+    $bids = new InMemoryBidRepository;
+    $auctionGateway = new FakeAuctionGateway;
+    $auctionGateway->stub('auction-1', new AuctionLockResult(anOpenSnapshot(), []));
+    $transactions = new RecordingTransactionManager;
+    $events = new RecordingDomainEventPublisher($transactions);
+
+    $service = makeBidService($bids, $auctionGateway, $transactions, $events);
+
+    // Too low — rejected before ever reaching record() or the effects call.
+    try {
+        $service->place('bid-1', 'auction-1', 'bidder-1', usd(500));
+    } catch (BidTooLow) {
+        // expected
+    }
+
+    expect($auctionGateway->acceptedBidEffectsCalls)->toBe([]);
+});
+
+it('late attempt triggers closing (surfaced by the gateway) and is rejected, but the closing event still publishes', function () {
+    $bids = new InMemoryBidRepository;
+    $auctionGateway = new FakeAuctionGateway;
+    $closingEvent = new FakeDomainEvent('auctions.auction_expired');
+    $auctionGateway->stub('auction-1', new AuctionLockResult(
+        new AuctionSnapshot('seller-1', usd(1000), false),
+        [$closingEvent],
+    ));
+    $transactions = new RecordingTransactionManager;
+    $events = new RecordingDomainEventPublisher($transactions);
+
+    $service = makeBidService($bids, $auctionGateway, $transactions, $events);
+
+    expect(fn () => $service->place('bid-1', 'auction-1', 'bidder-1', usd(1100)))
+        ->toThrow(AuctionNotOpenForBidding::class);
+
+    expect($bids->recorded)->toBe([])
+        ->and($auctionGateway->acceptedBidEffectsCalls)->toBe([])
+        ->and($events->published)->toBe([$closingEvent]);
+});
+
+it('publishes events in order: lock-check events, then accepted-bid-effects events, then BidPlaced', function () {
+    $bids = new InMemoryBidRepository;
+    $auctionGateway = new FakeAuctionGateway;
+    $atRiskEvent = new FakeDomainEvent('auctions.auction_proximity_at_risk');
+    $extensionEvent = new FakeDomainEvent('auctions.auction_closing_deadline_extended');
+    $auctionGateway->stub('auction-1', new AuctionLockResult(anOpenSnapshot(), [$atRiskEvent]));
+    $auctionGateway->stubAcceptedBidEffects('auction-1', new AuctionLockResult(anOpenSnapshot(), [$extensionEvent]));
+    $transactions = new RecordingTransactionManager;
+    $events = new RecordingDomainEventPublisher($transactions);
+
+    $service = makeBidService($bids, $auctionGateway, $transactions, $events);
+    $service->place('bid-1', 'auction-1', 'bidder-1', usd(1100));
+
+    expect($events->published)->toHaveCount(3)
+        ->and($events->published[0])->toBe($atRiskEvent)
+        ->and($events->published[1])->toBe($extensionEvent)
+        ->and($events->published[2])->toBeInstanceOf(BidPlaced::class);
+});

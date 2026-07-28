@@ -147,3 +147,77 @@ it('prevents a second bidder from validating against a stale highest-bid reading
         $connectionA->exec('DROP TABLE IF EXISTS bids_concurrency_test_auctions');
     }
 });
+
+it('ensures a concurrent bidder observes the newly extended deadline only after the lock is released', function () {
+    $connectionA = connectForBidsConcurrencyTest();
+
+    if ($connectionA === null) {
+        $this->markTestSkipped('No reachable PostgreSQL connection.');
+
+        return;
+    }
+
+    $connectionB = connectForBidsConcurrencyTest();
+
+    try {
+        $connectionA->exec('DROP TABLE IF EXISTS bids_concurrency_test_auctions_2');
+        $connectionA->exec(<<<'SQL'
+            CREATE TABLE bids_concurrency_test_auctions_2 (
+                id varchar(64) PRIMARY KEY,
+                closes_at timestamp NOT NULL
+            )
+            SQL);
+
+        $originalClosesAt = '2026-09-30 10:30:00';
+        $extendedClosesAt = '2026-09-30 10:32:00';
+        $connectionA->exec(
+            "INSERT INTO bids_concurrency_test_auctions_2 (id, closes_at) VALUES ('auction-2', '{$originalClosesAt}')"
+        );
+
+        // Connection A: locks, simulates an accepted bid landing in the
+        // soft-close window by extending closes_at, but does not commit
+        // yet — the extension exists only inside A's still-open transaction.
+        $connectionA->beginTransaction();
+        $connectionA->query("SELECT * FROM bids_concurrency_test_auctions_2 WHERE id = 'auction-2' FOR UPDATE");
+        $connectionA->exec(
+            "UPDATE bids_concurrency_test_auctions_2 SET closes_at = '{$extendedClosesAt}' WHERE id = 'auction-2'"
+        );
+
+        // Connection B, bounded by lock_timeout, cannot acquire the lock
+        // (and therefore cannot see the extension) while A holds it.
+        $connectionB->beginTransaction();
+        $connectionB->exec("SET LOCAL lock_timeout = '200ms'");
+        $blockedAsExpected = false;
+        try {
+            $connectionB->query("SELECT * FROM bids_concurrency_test_auctions_2 WHERE id = 'auction-2' FOR UPDATE");
+        } catch (PDOException $e) {
+            $blockedAsExpected = str_contains($e->getMessage(), 'lock')
+                || str_contains($e->getMessage(), '55P03');
+        }
+        expect($blockedAsExpected)->toBeTrue();
+        $connectionB->rollBack();
+
+        $connectionA->commit();
+
+        // Connection B, once unblocked, must observe the *extended*
+        // deadline A committed — never the original, and never something
+        // in between.
+        $connectionB->beginTransaction();
+        $connectionB->query("SELECT * FROM bids_concurrency_test_auctions_2 WHERE id = 'auction-2' FOR UPDATE");
+        $observedClosesAt = $connectionB->query(
+            "SELECT to_char(closes_at, 'YYYY-MM-DD HH24:MI:SS') FROM bids_concurrency_test_auctions_2 WHERE id = 'auction-2'"
+        )->fetchColumn();
+        $connectionB->rollBack();
+
+        expect($observedClosesAt)->toBe($extendedClosesAt)
+            ->and($observedClosesAt)->not->toBe($originalClosesAt);
+    } finally {
+        foreach ([$connectionA, $connectionB] as $connection) {
+            if ($connection instanceof PDO && $connection->inTransaction()) {
+                $connection->rollBack();
+            }
+        }
+
+        $connectionA->exec('DROP TABLE IF EXISTS bids_concurrency_test_auctions_2');
+    }
+});

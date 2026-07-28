@@ -9,8 +9,14 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RowBuddy\Auctions\Application\AuctionService;
+use RowBuddy\Auctions\Contracts\AuctionRepository;
 use RowBuddy\Auctions\Events\AuctionCancelled;
+use RowBuddy\Auctions\Events\AuctionClosingStarted;
+use RowBuddy\Auctions\Events\AuctionExpired;
 use RowBuddy\Auctions\Events\AuctionProximityAtRisk;
+use RowBuddy\Auctions\Events\AuctionWon;
+use RowBuddy\Auctions\ValueObjects\AuctionStatus;
+use RowBuddy\Bids\Application\BidService;
 use RowBuddy\Bids\Contracts\AuctionGateway;
 use RowBuddy\Queues\Infrastructure\Eloquent\QueueModel;
 use RowBuddy\SharedKernel\Contracts\ClockInterface;
@@ -82,7 +88,7 @@ it('returns null when the auction does not exist', function () {
     $result = app(AuctionGateway::class)->lockAndCheckForBidding((string) Str::uuid());
 
     expect($result->snapshot)->toBeNull()
-        ->and($result->proximityEvents)->toBe([]);
+        ->and($result->events)->toBe([]);
 });
 
 it('reports a fresh, open auction with no proximity events', function () {
@@ -97,7 +103,7 @@ it('reports a fresh, open auction with no proximity events', function () {
         ->and($result->snapshot->sellerId)->toBe($sellerId)
         ->and($result->snapshot->startingPrice->equals(new Money(1000, new Currency('USD'))))->toBeTrue()
         ->and($result->snapshot->isOpenForBidding)->toBeTrue()
-        ->and($result->proximityEvents)->toBe([]);
+        ->and($result->events)->toBe([]);
 });
 
 it('flags the auction at risk once the ping is stale, while it remains open for bidding', function () {
@@ -113,8 +119,8 @@ it('flags the auction at risk once the ping is stale, while it remains open for 
     $result = app(AuctionGateway::class)->lockAndCheckForBidding($auctionId);
 
     expect($result->snapshot->isOpenForBidding)->toBeTrue()
-        ->and($result->proximityEvents)->toHaveCount(1)
-        ->and($result->proximityEvents[0])->toBeInstanceOf(AuctionProximityAtRisk::class);
+        ->and($result->events)->toHaveCount(1)
+        ->and($result->events[0])->toBeInstanceOf(AuctionProximityAtRisk::class);
 });
 
 it('reports the auction as no longer open for bidding once the session has ended', function () {
@@ -128,6 +134,84 @@ it('reports the auction as no longer open for bidding once the session has ended
     $result = app(AuctionGateway::class)->lockAndCheckForBidding($auctionId);
 
     expect($result->snapshot->isOpenForBidding)->toBeFalse()
-        ->and($result->proximityEvents)->toHaveCount(1)
-        ->and($result->proximityEvents[0])->toBeInstanceOf(AuctionCancelled::class);
+        ->and($result->events)->toHaveCount(1)
+        ->and($result->events[0])->toBeInstanceOf(AuctionCancelled::class);
+});
+
+it('closes and selects the winning bid once the deadline has passed, via the real Bids-backed WinningBidLookup', function () {
+    Storage::fake('local');
+    $queueId = createPublishedQueueForGatewayTest();
+    $seller = User::factory()->create();
+    [, , , $auctionId] = anOpenAuctionForGatewayTest($this, $seller, $queueId);
+
+    $bidder = User::factory()->create();
+    $bid = app(BidService::class)->place((string) Str::uuid(), $auctionId, (string) $bidder->id, new Money(1500, new Currency('USD')));
+
+    // Past the 30-minute MVP default duration (ADR-013 §1) — the auction
+    // is now due to close. Computed relative to the auction's own
+    // closesAt, not wall-clock "now", so this cannot drift.
+    $closesAt = app(AuctionRepository::class)->findById($auctionId)->closesAt();
+    app()->instance(ClockInterface::class, new FrozenClock($closesAt->modify('+1 second')));
+
+    $result = app(AuctionGateway::class)->lockAndCheckForBidding($auctionId);
+
+    // Jumping the clock 31 minutes forward to pass the closing deadline
+    // also makes the seller's earlier GPS ping stale relative to the new
+    // "now" — LiveProximityChecker correctly flags that too, as its own,
+    // separate side effect, before closing evaluation runs.
+    expect($result->snapshot->isOpenForBidding)->toBeFalse()
+        ->and($result->events)->toHaveCount(3)
+        ->and($result->events[0])->toBeInstanceOf(AuctionProximityAtRisk::class)
+        ->and($result->events[1])->toBeInstanceOf(AuctionClosingStarted::class)
+        ->and($result->events[2])->toBeInstanceOf(AuctionWon::class);
+
+    $persisted = app(AuctionRepository::class)->findById($auctionId);
+    expect($persisted->status())->toBe(AuctionStatus::Won)
+        ->and($persisted->winningBidId())->toBe($bid->id);
+});
+
+it('closes and expires once the deadline has passed with no bids', function () {
+    Storage::fake('local');
+    $queueId = createPublishedQueueForGatewayTest();
+    $seller = User::factory()->create();
+    [, , , $auctionId] = anOpenAuctionForGatewayTest($this, $seller, $queueId);
+
+    $closesAt = app(AuctionRepository::class)->findById($auctionId)->closesAt();
+    app()->instance(ClockInterface::class, new FrozenClock($closesAt->modify('+1 second')));
+
+    $result = app(AuctionGateway::class)->lockAndCheckForBidding($auctionId);
+
+    // Same interaction as the winning-bid test above: the clock jump also
+    // makes the seller's GPS ping stale, so LiveProximityChecker's own
+    // event fires first, ahead of the closing/expiry transition.
+    expect($result->snapshot->isOpenForBidding)->toBeFalse()
+        ->and($result->events)->toHaveCount(3)
+        ->and($result->events[0])->toBeInstanceOf(AuctionProximityAtRisk::class)
+        ->and($result->events[1])->toBeInstanceOf(AuctionClosingStarted::class)
+        ->and($result->events[2])->toBeInstanceOf(AuctionExpired::class);
+
+    expect(app(AuctionRepository::class)->findById($auctionId)->status())->toBe(AuctionStatus::Expired);
+});
+
+it('extends the deadline end-to-end when a real bid lands inside the soft-close window', function () {
+    Storage::fake('local');
+    $queueId = createPublishedQueueForGatewayTest();
+    $seller = User::factory()->create();
+    [, , , $auctionId] = anOpenAuctionForGatewayTest($this, $seller, $queueId);
+
+    $originalClosesAt = app(AuctionRepository::class)->findById($auctionId)->closesAt();
+
+    // Inside the last 2 minutes of the 30-minute default duration
+    // (ADR-013 §2's soft-close window) — computed relative to the
+    // auction's own closesAt, not wall-clock "now", so this cannot drift
+    // across the window boundary due to test-execution timing.
+    app()->instance(ClockInterface::class, new FrozenClock($originalClosesAt->modify('-1 minute')));
+
+    $bidder = User::factory()->create();
+    app(BidService::class)->place((string) Str::uuid(), $auctionId, (string) $bidder->id, new Money(1500, new Currency('USD')));
+
+    $extendedClosesAt = app(AuctionRepository::class)->findById($auctionId)->closesAt();
+
+    expect($extendedClosesAt)->toEqual($originalClosesAt->modify('+2 minutes'))
+        ->and($extendedClosesAt)->not->toEqual($originalClosesAt);
 });

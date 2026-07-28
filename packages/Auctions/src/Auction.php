@@ -7,6 +7,7 @@ namespace RowBuddy\Auctions;
 use DateTimeImmutable;
 use RowBuddy\Auctions\Application\LiveProximityChecker;
 use RowBuddy\Auctions\Events\AuctionCancelled;
+use RowBuddy\Auctions\Events\AuctionClosingDeadlineExtended;
 use RowBuddy\Auctions\Events\AuctionClosingStarted;
 use RowBuddy\Auctions\Events\AuctionExpired;
 use RowBuddy\Auctions\Events\AuctionOpened;
@@ -14,6 +15,7 @@ use RowBuddy\Auctions\Events\AuctionProximityAtRisk;
 use RowBuddy\Auctions\Events\AuctionProximityRestored;
 use RowBuddy\Auctions\Events\AuctionWon;
 use RowBuddy\Auctions\Exceptions\IllegalStateTransition;
+use RowBuddy\Auctions\Exceptions\InvalidClosingDeadline;
 use RowBuddy\Auctions\ValueObjects\AuctionStatus;
 use RowBuddy\SharedKernel\Contracts\ClockInterface;
 use RowBuddy\SharedKernel\Contracts\DomainEvent;
@@ -50,27 +52,44 @@ final class Auction
         public readonly string $presenceSessionId,
         public readonly Money $startingPrice,
         public readonly DateTimeImmutable $openedAt,
+        private DateTimeImmutable $closesAt,
         private AuctionStatus $status,
         private ?string $winningBidId = null,
         private ?Money $winningAmount = null,
         private ?DateTimeImmutable $proximityAtRiskSince = null,
     ) {}
 
+    /**
+     * `closesAt` arrives here as an already-computed, explicit value —
+     * this aggregate never knows or derives a default duration (ADR-013
+     * §1). It only enforces the one invariant it actually owns: the
+     * deadline must be after the moment the auction opened.
+     *
+     * @throws InvalidClosingDeadline
+     */
     public static function open(
         string $id,
         string $queueId,
         string $sellerId,
         string $presenceSessionId,
         Money $startingPrice,
+        DateTimeImmutable $closesAt,
         ClockInterface $clock,
     ): self {
+        $openedAt = $clock->now();
+
+        if ($closesAt <= $openedAt) {
+            throw InvalidClosingDeadline::forAuction($id);
+        }
+
         $auction = new self(
             id: $id,
             queueId: $queueId,
             sellerId: $sellerId,
             presenceSessionId: $presenceSessionId,
             startingPrice: $startingPrice,
-            openedAt: $clock->now(),
+            openedAt: $openedAt,
+            closesAt: $closesAt,
             status: AuctionStatus::Open,
         );
 
@@ -98,6 +117,7 @@ final class Auction
         string $presenceSessionId,
         Money $startingPrice,
         DateTimeImmutable $openedAt,
+        DateTimeImmutable $closesAt,
         AuctionStatus $status,
         ?string $winningBidId,
         ?Money $winningAmount,
@@ -110,6 +130,7 @@ final class Auction
             presenceSessionId: $presenceSessionId,
             startingPrice: $startingPrice,
             openedAt: $openedAt,
+            closesAt: $closesAt,
             status: $status,
             winningBidId: $winningBidId,
             winningAmount: $winningAmount,
@@ -130,6 +151,28 @@ final class Auction
     public function winningAmount(): ?Money
     {
         return $this->winningAmount;
+    }
+
+    public function closesAt(): DateTimeImmutable
+    {
+        return $this->closesAt;
+    }
+
+    /**
+     * Applies an already-decided new deadline (ADR-013 §2) — the caller
+     * (a SoftCloseExtender collaborator, using AntiSnipingPolicy) decides
+     * *whether* and *by how much* to extend; this aggregate only accepts
+     * that outcome as a fact, the same way selectWinningBid() accepts an
+     * already-decided winning bid.
+     *
+     * @throws IllegalStateTransition
+     */
+    public function extendClosingDeadline(DateTimeImmutable $newClosesAt, ClockInterface $clock): void
+    {
+        $this->guardStatus(AuctionStatus::Open, 'extend the closing deadline');
+
+        $this->closesAt = $newClosesAt;
+        $this->recordedEvents[] = new AuctionClosingDeadlineExtended($clock, $this->id, $newClosesAt);
     }
 
     /**

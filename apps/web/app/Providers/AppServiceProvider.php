@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Infrastructure\EloquentAuctionGateway;
 use App\Infrastructure\EloquentQueueGeofenceLookup;
+use App\Infrastructure\EloquentWinningBidLookup;
 use App\Infrastructure\LaravelTransactionManager;
 use App\Infrastructure\LocalPrivateEvidenceStorage;
 use App\Infrastructure\QueuePresenceSellerVerification;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use RowBuddy\Auctions\Contracts\SellerPresenceVerification;
+use RowBuddy\Auctions\Contracts\WinningBidLookup;
 use RowBuddy\Bids\Contracts\AuctionGateway;
 use RowBuddy\Bids\Contracts\TransactionManager;
 use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
@@ -61,6 +63,11 @@ class AppServiceProvider extends ServiceProvider
         // Wraps DB::transaction() — composition-root territory, not
         // something packages/Bids' own standalone tests ever boot.
         $this->app->bind(TransactionManager::class, LaravelTransactionManager::class);
+
+        // Bridges Auctions -> Bids (ADR-013 §5; see
+        // EloquentWinningBidLookup's own docblock) — the reverse direction
+        // from AuctionGateway above, same composition-root reasoning.
+        $this->app->bind(WinningBidLookup::class, EloquentWinningBidLookup::class);
     }
 
     /**
