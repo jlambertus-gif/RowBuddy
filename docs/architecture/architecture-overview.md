@@ -17,25 +17,29 @@
   below (case management, partitioning/archival, admin tooling remain
   unbuilt).
 - **Auctions**: in progress (Phase 3, `packages/Auctions`) — the `Auction`
-  aggregate's Open/Closing/Won/Expired/Cancelled state machine and
-  immutable accepted-bid invariant (Sprint 1); the `AuctionRepository`
-  persistence layer, including `findByIdForUpdate()`'s row-lock support
-  for Bids (Sprint 2, extended Sprint 5); the ADR-009
-  `SellerPresenceVerification` read contract and its `apps/web` adapter,
-  plus the ADR-010 Evidence Verified gate in `AuctionService::open()`
-  (Sprint 3); the ADR-011 `LiveProximityChecker` implementing the
-  two-tier proximity policy (Sprint 4), now actively invoked by Bids' bid
-  placement (Sprint 5) — its first real caller. No HTTP, no
-  closing/winner-selection trigger, no anti-sniping yet.
-- **Bids**: in progress (Phase 3, `packages/Bids`, Sprint 5) — an
-  immutable, append-only `Bid` aggregate; `BidService::place()`
-  orchestrating concurrency-safe placement inside one transaction
-  (auction-row lock → `LiveProximityChecker` → highest-bid lookup →
-  validation → insertion, ADR-012); `BidPlacementOutcome` keeping expected
-  rejections from rolling back a legitimate proximity transition;
-  after-commit event publication. No dependency on Auctions' internals —
-  only through `AuctionGateway`, implemented in `apps/web`. No HTTP, no
-  closing/winner-selection integration yet.
+  aggregate's Open/Closing/Won/Expired/Cancelled state machine, an
+  explicit required `closesAt`, and the immutable accepted-bid invariant
+  (Sprint 1, extended Sprint 6); the `AuctionRepository` persistence
+  layer, including `findByIdForUpdate()`'s row-lock support for Bids
+  (Sprint 2, extended Sprint 5); the ADR-009 `SellerPresenceVerification`
+  read contract and its `apps/web` adapter, plus the ADR-010 Evidence
+  Verified gate in `AuctionService::open()` (Sprint 3); the ADR-011
+  `LiveProximityChecker` implementing the two-tier proximity policy
+  (Sprint 4), actively invoked by Bids' bid placement (Sprint 5); the
+  ADR-013 `AuctionClosingEvaluator`/`SoftCloseExtender`/`WinningBidLookup`
+  implementing closing, winner selection, expiry, and anti-sniping under
+  the same lock (Sprint 6). The full backend/domain exit criteria from
+  `docs/roadmap.md` are met as of Sprint 6. No HTTP, no frontend, no
+  Reverb — see `docs/releases/phase-3-completion-review.md`.
+- **Bids**: in progress (Phase 3, `packages/Bids`) — an immutable,
+  append-only `Bid` aggregate; `BidService::place()` orchestrating
+  concurrency-safe placement inside one transaction (auction-row lock →
+  `LiveProximityChecker` → closing evaluation → highest-bid lookup →
+  validation → insertion → soft-close effects, ADR-012/ADR-013);
+  `BidPlacementOutcome` keeping expected rejections from rolling back a
+  legitimate proximity or closing transition; after-commit event
+  publication. No dependency on Auctions' internals — only through
+  `AuctionGateway`, implemented in `apps/web`. No HTTP, no frontend.
 - All other modules below: not started.
 
 ## Style

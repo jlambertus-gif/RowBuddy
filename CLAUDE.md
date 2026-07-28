@@ -145,14 +145,18 @@ For each task:
 
 Phase 0 (Foundations), Phase 1 (Catalog), and Phase 2 (Presence & Trust)
 are complete and formally accepted — tagged `v0.1.0-foundation`,
-`v0.2.0-catalog`, and `v0.3.0-presence`. Phase 3 (Auctions & Bids) is now
-in progress, authorized 2026-09-02 after ADR-009 and ADR-010 resolved the
-Auctions–Presence contract and the minimum confidence tier; Sprints 1–5
+`v0.2.0-catalog`, and `v0.3.0-presence`. Phase 3 (Auctions & Bids) is in
+progress, authorized 2026-09-02 after ADR-009 and ADR-010 resolved the
+Auctions–Presence contract and the minimum confidence tier; Sprints 1–6
 (`Auction` aggregate scaffold, persistence, the ADR-009/ADR-010
 verification contract and Evidence Verified gate, the ADR-011
-live-proximity enforcement policy, and the ADR-012 `packages/Bids`
-concurrency-safe bid placement) are complete. See `docs/roadmap.md` for
-the phase plan and sprint progress, and
-`docs/releases/phase-1-completion-report.md` /
+live-proximity enforcement policy, the ADR-012 `packages/Bids`
+concurrency-safe bid placement, and the ADR-013 closing/winner-selection/
+anti-sniping policy) are complete — the backend/domain exit criteria are
+met, but Phase 3 is **not yet formally closed**: no HTTP, no frontend, no
+Reverb, and no manual browser acceptance test exist yet, unlike Phases 1
+and 2's closure bar. See `docs/releases/phase-3-completion-review.md` for
+the full review and remaining work, `docs/roadmap.md` for the phase plan
+and sprint progress, and `docs/releases/phase-1-completion-report.md` /
 `docs/releases/phase-2-completion-report.md` for the completion reports of
 the closed phases.

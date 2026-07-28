@@ -144,6 +144,18 @@ Before implementation began, two architectural decisions were resolved:
   transaction, so a legitimate proximity transition stays committed
   regardless of whether the triggering bid is accepted. Events are
   collected and published only after commit; no outbox introduced.
+- **ADR-013 — Auction Closing, Winner Selection, and Anti-Sniping Policy**:
+  `closesAt` is an explicit, required value the aggregate validates
+  against `openedAt` but never derives itself — sourced via a swappable
+  `AuctionDurationPolicy` (30-minute provisional MVP default). Closing is
+  evaluated lazily under the same auction-row lock bid placement already
+  established, via `AuctionClosingEvaluator` and a new Auctions-owned
+  `WinningBidLookup` port (deterministic ordering: amount DESC,
+  placed_at ASC, id ASC). Anti-sniping (2-minute window, 2-minute
+  extension, calculated from the current `closesAt`, never from the bid's
+  own timestamp) is applied by `SoftCloseExtender`, reachable only after
+  a bid has already been accepted and recorded — never from a rejected
+  attempt. No cap on total extensions; no scheduler.
 
 Sprint progress in `packages/Auctions` and `packages/Bids`:
 
@@ -192,10 +204,26 @@ Sprint progress in `packages/Auctions` and `packages/Bids`:
   no anti-sniping, no closing/winner-selection trigger yet. 19 Bids
   tests, 47 Auctions tests (was 45), 31 shared-kernel tests (was 29), 77
   apps/web tests (was 72); PHPStan and Pint clean throughout.
+- **Sprint 6** (done): implemented ADR-013 — `closesAt` persisted on
+  `Auction`, `AuctionDurationPolicy`/`AntiSnipingPolicy`,
+  `AuctionClosingEvaluator` (closing → winner selection or expiry, both
+  transitions persisted together), `SoftCloseExtender`, and the
+  Auctions-owned `WinningBidLookup` bridging to Bids' deterministically
+  ordered highest-bid query. `AuctionGateway` gained
+  `applyAcceptedBidEffects()`; `AuctionLockResult::proximityEvents`
+  renamed to `events` since it now carries closing/extension events too.
+  A real-Postgres test proves a concurrent bidder observes the committed,
+  extended deadline only after the lock is released. Still no HTTP, no
+  frontend, no Reverb. 66 Auctions tests (was 47), 24 Bids tests (was
+  19), 80 apps/web tests (was 77); PHPStan and Pint clean throughout.
 
 Exit criteria: an auction can run end-to-end (open → closing → winning bid
 selected) under simulated concurrent bidding with correct, tested
-row-locking behavior. No payments yet.
+row-locking behavior — **met** as of Sprint 6, at the backend/domain
+level. No payments yet. See `docs/releases/phase-3-completion-review.md`
+for the full sprint-by-sprint review and what remains before this phase
+can be formally tagged and closed (notably: no HTTP, no frontend, no
+manual browser acceptance test yet — unlike Phases 1 and 2's closure bar).
 
 ## Phase 4 — Payments
 
