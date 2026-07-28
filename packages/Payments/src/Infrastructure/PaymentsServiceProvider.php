@@ -11,6 +11,7 @@ use RowBuddy\Payments\Application\FixedPlatformFeePolicy;
 use RowBuddy\Payments\Application\FixedTransactionValueLimitPolicy;
 use RowBuddy\Payments\Contracts\ConnectAccountGateway;
 use RowBuddy\Payments\Contracts\DomainEventPublisher;
+use RowBuddy\Payments\Contracts\PaymentAuthorizationGateway;
 use RowBuddy\Payments\Contracts\PaymentIntentRepository;
 use RowBuddy\Payments\Contracts\PlatformFeePolicy;
 use RowBuddy\Payments\Contracts\SellerPayoutAccountRepository;
@@ -19,6 +20,7 @@ use RowBuddy\Payments\Infrastructure\Eloquent\EloquentPaymentIntentRepository;
 use RowBuddy\Payments\Infrastructure\Eloquent\EloquentSellerPayoutAccountRepository;
 use RowBuddy\Payments\Infrastructure\Events\LaravelDomainEventPublisher;
 use RowBuddy\Payments\Infrastructure\Stripe\StripeConnectAccountGateway;
+use RowBuddy\Payments\Infrastructure\Stripe\StripePaymentAuthorizationGateway;
 use RowBuddy\SharedKernel\ValueObjects\Currency;
 use RowBuddy\SharedKernel\ValueObjects\Money;
 use Stripe\StripeClient;
@@ -34,11 +36,18 @@ final class PaymentsServiceProvider extends ServiceProvider
             return new LaravelDomainEventPublisher($app->make(Dispatcher::class));
         });
 
-        $this->app->bind(ConnectAccountGateway::class, function ($app) {
+        $this->app->singleton(StripeClient::class, function ($app) {
             $config = $app->make(Repository::class);
-            $client = new StripeClient((string) $config->get('services.stripe.secret'));
 
-            return new StripeConnectAccountGateway($client);
+            return new StripeClient((string) $config->get('services.stripe.secret'));
+        });
+
+        $this->app->bind(ConnectAccountGateway::class, function ($app) {
+            return new StripeConnectAccountGateway($app->make(StripeClient::class));
+        });
+
+        $this->app->bind(PaymentAuthorizationGateway::class, function ($app) {
+            return new StripePaymentAuthorizationGateway($app->make(StripeClient::class));
         });
 
         // Provisional MVP configuration values, not permanent domain
