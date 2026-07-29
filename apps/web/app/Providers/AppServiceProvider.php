@@ -19,6 +19,7 @@ use RowBuddy\Auctions\Contracts\SellerPresenceVerification;
 use RowBuddy\Auctions\Contracts\WinningBidLookup;
 use RowBuddy\Bids\Contracts\AuctionGateway;
 use RowBuddy\Bids\Contracts\TransactionManager;
+use RowBuddy\Payments\Contracts\TransactionManager as PaymentsTransactionManager;
 use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
 use RowBuddy\QueuePresence\Contracts\QueueGeofenceLookup;
 use RowBuddy\SharedKernel\Contracts\AuditableAction;
@@ -63,6 +64,10 @@ class AppServiceProvider extends ServiceProvider
         // Wraps DB::transaction() — composition-root territory, not
         // something packages/Bids' own standalone tests ever boot.
         $this->app->bind(TransactionManager::class, LaravelTransactionManager::class);
+
+        // Payments' own copy of the same contract (ADR-019 §6) — the same
+        // LaravelTransactionManager class satisfies both.
+        $this->app->bind(PaymentsTransactionManager::class, LaravelTransactionManager::class);
 
         // Bridges Auctions -> Bids (ADR-013 §5; see
         // EloquentWinningBidLookup's own docblock) — the reverse direction

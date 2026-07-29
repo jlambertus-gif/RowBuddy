@@ -5,13 +5,19 @@ declare(strict_types=1);
 namespace RowBuddy\Payments\ValueObjects;
 
 /**
- * Deliberately limited to what Phase 4 actually authorizes (ADR-015 §4/§5)
- * — Captured, Held, ReleasedToSeller, and RefundedToBuyer do not exist
- * here yet. They belong to Phase 5's capture trigger and are documented
- * only in ADR-004/ADR-015, not modeled in code, until that contract exists.
+ * `Captured`, `CaptureFailed`, and `Cancelled` were added in Phase 5 per
+ * ADR-019 §2 — `Held`, `ReleasedToSeller`, and `RefundedToBuyer` still do
+ * not exist: seller payout execution stays out of scope (ADR-019 §5).
+ * `CaptureFailed` (confirmation happened, but the real Stripe capture
+ * call itself failed) is deliberately distinct from `Cancelled` (the
+ * authorization was voided without ever attempting a capture — a
+ * transfer window expired unconfirmed, or a default was recorded).
  */
 enum PaymentIntentStatus: string
 {
     case Authorized = 'authorized';
     case Failed = 'failed';
+    case Captured = 'captured';
+    case CaptureFailed = 'capture_failed';
+    case Cancelled = 'cancelled';
 }

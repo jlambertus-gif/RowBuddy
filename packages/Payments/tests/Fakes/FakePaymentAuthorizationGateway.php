@@ -6,6 +6,7 @@ namespace RowBuddy\Payments\Tests\Fakes;
 
 use RowBuddy\Payments\Contracts\PaymentAuthorizationGateway;
 use RowBuddy\Payments\ValueObjects\AuthorizationAttempt;
+use RowBuddy\Payments\ValueObjects\CaptureAttempt;
 use RowBuddy\SharedKernel\ValueObjects\Money;
 
 final class FakePaymentAuthorizationGateway implements PaymentAuthorizationGateway
@@ -13,11 +14,20 @@ final class FakePaymentAuthorizationGateway implements PaymentAuthorizationGatew
     /** @var list<array{idempotencyKey: string, amount: Money, stripePaymentMethodId: string, description: string}> */
     public array $calls = [];
 
+    /** @var list<string> */
+    public array $captureCalls = [];
+
+    /** @var list<array{stripePaymentIntentId: string, reason: string}> */
+    public array $cancelCalls = [];
+
     public AuthorizationAttempt $nextAttempt;
+
+    public CaptureAttempt $nextCaptureAttempt;
 
     public function __construct()
     {
         $this->nextAttempt = AuthorizationAttempt::succeeded('pi_fake');
+        $this->nextCaptureAttempt = CaptureAttempt::succeeded();
     }
 
     public function authorize(
@@ -34,5 +44,20 @@ final class FakePaymentAuthorizationGateway implements PaymentAuthorizationGatew
         ];
 
         return $this->nextAttempt;
+    }
+
+    public function capture(string $stripePaymentIntentId): CaptureAttempt
+    {
+        $this->captureCalls[] = $stripePaymentIntentId;
+
+        return $this->nextCaptureAttempt;
+    }
+
+    public function cancel(string $stripePaymentIntentId, string $reason): void
+    {
+        $this->cancelCalls[] = [
+            'stripePaymentIntentId' => $stripePaymentIntentId,
+            'reason' => $reason,
+        ];
     }
 }

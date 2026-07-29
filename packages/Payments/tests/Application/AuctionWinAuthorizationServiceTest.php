@@ -44,6 +44,7 @@ it('authorizes the buyer total (bid plus fee) and persists an Authorized Payment
     expect($paymentIntent->status())->toBe(PaymentIntentStatus::Authorized)
         ->and($paymentIntent->amount->equals(usd(11000)))->toBeTrue()
         ->and($paymentIntent->feeAmount->equals(usd(1000)))->toBeTrue()
+        ->and($paymentIntent->stripePaymentIntentId)->toBe('pi_stripe_123')
         ->and($paymentIntents->findById('payment-1'))->not->toBeNull();
 
     expect($gateway->calls)->toHaveCount(1)

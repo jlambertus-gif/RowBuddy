@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RowBuddy\Payments\Application;
 
+use LogicException;
 use RowBuddy\Payments\Contracts\DomainEventPublisher;
 use RowBuddy\Payments\Contracts\PaymentAuthorizationGateway;
 use RowBuddy\Payments\Contracts\PaymentIntentRepository;
@@ -94,6 +95,9 @@ final class AuctionWinAuthorizationService
                 $totalAmount,
                 $feeAmount,
                 $transactionValueLimit,
+                $attempt->stripePaymentIntentId ?? throw new LogicException(
+                    'A succeeded AuthorizationAttempt must carry a Stripe payment intent id.'
+                ),
                 $this->clock,
             )
             : PaymentIntent::declineAuthorization(
@@ -109,7 +113,7 @@ final class AuctionWinAuthorizationService
                 $this->clock,
             );
 
-        $this->paymentIntents->record($paymentIntent);
+        $this->paymentIntents->save($paymentIntent);
 
         foreach ($paymentIntent->releaseEvents() as $event) {
             $this->events->publish($event);

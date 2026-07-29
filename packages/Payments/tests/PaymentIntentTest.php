@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 
+use RowBuddy\Payments\Events\AuthorizationCancelled;
 use RowBuddy\Payments\Events\PaymentAuthorizationFailed;
 use RowBuddy\Payments\Events\PaymentAuthorized;
+use RowBuddy\Payments\Events\PaymentCaptured;
+use RowBuddy\Payments\Events\PaymentCaptureFailed;
+use RowBuddy\Payments\Exceptions\IllegalStateTransition;
 use RowBuddy\Payments\Exceptions\TransactionValueLimitExceeded;
 use RowBuddy\Payments\Exceptions\UnsupportedCurrency;
 use RowBuddy\Payments\PaymentIntent;
@@ -22,6 +26,7 @@ it('authorizes a payment and raises a PaymentAuthorized event', function () {
         usd(10000),
         usd(1000),
         usd(50000),
+        'pi_stripe_123',
         new FrozenClock($decidedAt),
     );
 
@@ -32,6 +37,7 @@ it('authorizes a payment and raises a PaymentAuthorized event', function () {
         ->and($paymentIntent->buyerId)->toBe('buyer-1')
         ->and($paymentIntent->amount->equals(usd(10000)))->toBeTrue()
         ->and($paymentIntent->feeAmount->equals(usd(1000)))->toBeTrue()
+        ->and($paymentIntent->stripePaymentIntentId)->toBe('pi_stripe_123')
         ->and($paymentIntent->status())->toBe(PaymentIntentStatus::Authorized)
         ->and($paymentIntent->decidedAt)->toEqual($decidedAt);
 
@@ -58,6 +64,7 @@ it('rejects authorization when the amount currency does not match the transactio
         eur(10000),
         eur(1000),
         usd(50000),
+        'pi_stripe_123',
         new FrozenClock,
     ))->toThrow(UnsupportedCurrency::class);
 });
@@ -72,6 +79,7 @@ it('rejects authorization when the amount exceeds the transaction value limit', 
         usd(50001),
         usd(5000),
         usd(50000),
+        'pi_stripe_123',
         new FrozenClock,
     ))->toThrow(TransactionValueLimitExceeded::class);
 });
@@ -86,6 +94,7 @@ it('allows authorization when the amount exactly equals the transaction value li
         usd(50000),
         usd(5000),
         usd(50000),
+        'pi_stripe_123',
         new FrozenClock,
     );
 
@@ -109,6 +118,7 @@ it('records a declined authorization and raises a PaymentAuthorizationFailed eve
     );
 
     expect($paymentIntent->status())->toBe(PaymentIntentStatus::Failed)
+        ->and($paymentIntent->stripePaymentIntentId)->toBeNull()
         ->and($paymentIntent->decidedAt)->toEqual($decidedAt);
 
     $events = $paymentIntent->releaseEvents();
@@ -154,6 +164,91 @@ it('rejects a declined-authorization record when the amount exceeds the limit', 
     ))->toThrow(TransactionValueLimitExceeded::class);
 });
 
+it('captures an authorized payment and raises a PaymentCaptured event', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(10000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->releaseEvents();
+
+    $paymentIntent->capture(new FrozenClock);
+
+    expect($paymentIntent->status())->toBe(PaymentIntentStatus::Captured);
+
+    $events = $paymentIntent->releaseEvents();
+    expect($events)->toHaveCount(1)
+        ->and($events[0])->toBeInstanceOf(PaymentCaptured::class)
+        ->and($events[0]->payload())->toBe([
+            'payment_intent_id' => 'payment-1',
+            'auction_id' => 'auction-1',
+        ]);
+});
+
+it('rejects capturing a payment intent that is not Authorized', function () {
+    $paymentIntent = PaymentIntent::declineAuthorization(
+        'payment-2', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(10000), usd(1000), usd(50000), 'card_declined', new FrozenClock,
+    );
+
+    expect(fn () => $paymentIntent->capture(new FrozenClock))->toThrow(IllegalStateTransition::class);
+});
+
+it('records a failed capture and raises a PaymentCaptureFailed event', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(10000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->releaseEvents();
+
+    $paymentIntent->failCapture('authorization_expired', new FrozenClock);
+
+    expect($paymentIntent->status())->toBe(PaymentIntentStatus::CaptureFailed);
+
+    $events = $paymentIntent->releaseEvents();
+    expect($events)->toHaveCount(1)
+        ->and($events[0])->toBeInstanceOf(PaymentCaptureFailed::class)
+        ->and($events[0]->payload())->toBe([
+            'payment_intent_id' => 'payment-1',
+            'auction_id' => 'auction-1',
+            'reason' => 'authorization_expired',
+        ]);
+});
+
+it('rejects failing capture on a payment intent that is not Authorized', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(10000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->capture(new FrozenClock);
+
+    expect(fn () => $paymentIntent->failCapture('reason', new FrozenClock))->toThrow(IllegalStateTransition::class);
+});
+
+it('cancels an authorization without a capture attempt and raises an AuthorizationCancelled event', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(10000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->releaseEvents();
+
+    $paymentIntent->cancelAuthorization('transfer_window_expired', new FrozenClock);
+
+    expect($paymentIntent->status())->toBe(PaymentIntentStatus::Cancelled);
+
+    $events = $paymentIntent->releaseEvents();
+    expect($events)->toHaveCount(1)
+        ->and($events[0])->toBeInstanceOf(AuthorizationCancelled::class)
+        ->and($events[0]->payload())->toBe([
+            'payment_intent_id' => 'payment-1',
+            'auction_id' => 'auction-1',
+            'reason' => 'transfer_window_expired',
+        ]);
+});
+
+it('rejects cancelling a payment intent that is not Authorized', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(10000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->cancelAuthorization('reason', new FrozenClock);
+
+    expect(fn () => $paymentIntent->cancelAuthorization('reason', new FrozenClock))->toThrow(IllegalStateTransition::class);
+});
+
 it('releasing events clears them so they are not dispatched twice', function () {
     $paymentIntent = PaymentIntent::authorize(
         'payment-1',
@@ -164,6 +259,7 @@ it('releasing events clears them so they are not dispatched twice', function () 
         usd(10000),
         usd(1000),
         usd(50000),
+        'pi_stripe_123',
         new FrozenClock,
     );
 
@@ -183,11 +279,13 @@ it('reconstitutes from persistence without raising any events', function () {
         'buyer-1',
         usd(10000),
         usd(1000),
+        'pi_stripe_123',
         PaymentIntentStatus::Authorized,
         $decidedAt,
     );
 
     expect($paymentIntent->amount->equals(usd(10000)))->toBeTrue()
+        ->and($paymentIntent->stripePaymentIntentId)->toBe('pi_stripe_123')
         ->and($paymentIntent->status())->toBe(PaymentIntentStatus::Authorized)
         ->and($paymentIntent->decidedAt)->toEqual($decidedAt)
         ->and($paymentIntent->releaseEvents())->toBe([]);

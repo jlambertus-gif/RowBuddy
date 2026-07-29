@@ -6,13 +6,12 @@ namespace RowBuddy\Payments\Infrastructure\Eloquent;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use RowBuddy\Payments\PaymentIntent;
 
 /**
  * The `payment_intents` table row. Deliberately dumb (no business rules):
- * the authorization/decline invariants live only on the {@see
- * \RowBuddy\Payments\PaymentIntent} aggregate, not here. Never updated
- * once created in Phase 4 — both `authorize()` and `declineAuthorization()`
- * produce a fully-decided row; nothing in this phase mutates it afterward.
+ * the authorization/capture/cancellation invariants live only on the
+ * {@see PaymentIntent} aggregate, not here.
  *
  * @property string $id
  * @property string $auction_id
@@ -22,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int $amount_minor_units
  * @property string $amount_currency
  * @property int $fee_amount_minor_units
+ * @property string|null $stripe_payment_intent_id
  * @property string $status
  * @property Carbon $decided_at
  */
@@ -42,6 +42,7 @@ final class PaymentIntentModel extends Model
         'amount_minor_units',
         'amount_currency',
         'fee_amount_minor_units',
+        'stripe_payment_intent_id',
         'status',
         'decided_at',
     ];

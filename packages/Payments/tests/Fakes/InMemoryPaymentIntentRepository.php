@@ -12,7 +12,7 @@ final class InMemoryPaymentIntentRepository implements PaymentIntentRepository
     /** @var array<string, PaymentIntent> */
     public array $recorded = [];
 
-    public function record(PaymentIntent $paymentIntent): void
+    public function save(PaymentIntent $paymentIntent): void
     {
         $this->recorded[$paymentIntent->id] = $paymentIntent;
     }
@@ -31,5 +31,10 @@ final class InMemoryPaymentIntentRepository implements PaymentIntentRepository
         }
 
         return null;
+    }
+
+    public function findByIdForUpdate(string $id): ?PaymentIntent
+    {
+        return $this->findById($id);
     }
 }

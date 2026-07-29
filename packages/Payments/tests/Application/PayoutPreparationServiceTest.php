@@ -32,8 +32,8 @@ it('reports nothing ready when no payment or payout account exists yet', functio
 
 it('reports ready with the expected settlement when everything is in place', function () {
     $paymentIntents = new InMemoryPaymentIntentRepository;
-    $paymentIntents->record(PaymentIntent::authorize(
-        'payment-1', 'auction-1', 'bid-1', '101', '102', usd(11000), usd(1000), usd(50000), new FrozenClock,
+    $paymentIntents->save(PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', '101', '102', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
     ));
     $payoutAccounts = new InMemorySellerPayoutAccountRepository;
     $payoutAccounts->record(SellerPayoutAccount::link('101', 'acct_123', new FrozenClock));
@@ -58,7 +58,7 @@ it('reports ready with the expected settlement when everything is in place', fun
 
 it('reports payment not authorized when the PaymentIntent was declined', function () {
     $paymentIntents = new InMemoryPaymentIntentRepository;
-    $paymentIntents->record(PaymentIntent::declineAuthorization(
+    $paymentIntents->save(PaymentIntent::declineAuthorization(
         'payment-1', 'auction-1', 'bid-1', '101', '102', usd(11000), usd(1000), usd(50000), 'card_declined', new FrozenClock,
     ));
 
@@ -98,8 +98,8 @@ it('reports not eligible when the linked account has not finished onboarding', f
 
 it('still computes the expected settlement even when the seller has no linked payout account yet', function () {
     $paymentIntents = new InMemoryPaymentIntentRepository;
-    $paymentIntents->record(PaymentIntent::authorize(
-        'payment-1', 'auction-1', 'bid-1', '101', '102', usd(11000), usd(1000), usd(50000), new FrozenClock,
+    $paymentIntents->save(PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', '101', '102', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
     ));
 
     $service = new PayoutPreparationService(

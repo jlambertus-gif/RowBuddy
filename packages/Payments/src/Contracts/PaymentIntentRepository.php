@@ -8,17 +8,15 @@ use RowBuddy\Payments\PaymentIntent;
 
 /**
  * Domain-facing persistence port. Deliberately expresses no ORM/storage
- * concept, and deliberately exposes no update path — in Phase 4, a
- * PaymentIntent is fully decided (Authorized or Failed, per ADR-015)
- * at the moment it is created and never mutated afterward, the same
- * append-only shape Bids' own bid-repository contract uses for the same
- * reason (a Bid is immutable once recorded). This aggregate has no
- * dependency, direct or otherwise, on the Bids package — the comparison
- * above is stylistic, not a code reference.
+ * concept. Unlike Phase 4, `PaymentIntent` is no longer immutable-after-
+ * creation — `save()` handles both the initial insert (authorize()/
+ * declineAuthorization()) and every later transition (ADR-019 §1), the
+ * same mutable-aggregate shape `AuctionRepository` uses, not
+ * `BidRepository`'s append-only one.
  */
 interface PaymentIntentRepository
 {
-    public function record(PaymentIntent $paymentIntent): void;
+    public function save(PaymentIntent $paymentIntent): void;
 
     public function findById(string $id): ?PaymentIntent;
 
@@ -29,4 +27,12 @@ interface PaymentIntentRepository
      * status.
      */
     public function findByAuctionId(string $auctionId): ?PaymentIntent;
+
+    /**
+     * Locks the payment intent row for the duration of the caller's
+     * transaction (`SELECT ... FOR UPDATE`) — the serialization anchor
+     * capture/cancellation rely on (ADR-019 §6). Callers must already be
+     * inside a transaction; this method does not open one itself.
+     */
+    public function findByIdForUpdate(string $id): ?PaymentIntent;
 }

@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace RowBuddy\Payments;
 
 use DateTimeImmutable;
+use RowBuddy\Payments\Events\AuthorizationCancelled;
 use RowBuddy\Payments\Events\PaymentAuthorizationFailed;
 use RowBuddy\Payments\Events\PaymentAuthorized;
+use RowBuddy\Payments\Events\PaymentCaptured;
+use RowBuddy\Payments\Events\PaymentCaptureFailed;
+use RowBuddy\Payments\Exceptions\IllegalStateTransition;
 use RowBuddy\Payments\Exceptions\TransactionValueLimitExceeded;
 use RowBuddy\Payments\Exceptions\UnsupportedCurrency;
 use RowBuddy\Payments\ValueObjects\PaymentIntentStatus;
@@ -16,11 +20,10 @@ use RowBuddy\SharedKernel\ValueObjects\Money;
 
 /**
  * Aggregate root for the financial lifecycle of a single won auction
- * (Phase 4). Deliberately models authorization only — `Captured`, `Held`,
- * `ReleasedToSeller`, and `RefundedToBuyer` do not exist here, in any
- * form, per ADR-015: capture depends on a bounded context (Transfers)
- * and a contract that don't exist yet, unlike a same-phase caller
- * arriving in a later sprint.
+ * (Phase 4, extended Phase 5 per ADR-019). Models authorization plus
+ * capture/cancellation only — `Held`, `ReleasedToSeller`, and
+ * `RefundedToBuyer` still do not exist here, in any form: seller payout
+ * execution stays out of scope (ADR-019 §5).
  *
  * Tracks its own lifecycle keyed by `auctionId` and `winningBidId` rather
  * than any reference to `Auction`'s own status (ADR-014) — `Auction`
@@ -30,6 +33,11 @@ use RowBuddy\SharedKernel\ValueObjects\Money;
  * `AuctionWon` by a future application service), the same way
  * `Auction::selectWinningBid()` takes an already-decided winning bid as a
  * primitive rather than computing it itself.
+ *
+ * Unlike Phase 4, this aggregate is no longer immutable-after-creation:
+ * `capture()`/`failCapture()`/`cancelAuthorization()` are real, in-place
+ * transitions on an already-persisted record (ADR-019 §1) — `Auction`'s
+ * mutable-aggregate shape, not `Bid`'s append-only one.
  */
 final class PaymentIntent
 {
@@ -44,7 +52,8 @@ final class PaymentIntent
         public readonly string $buyerId,
         public readonly Money $amount,
         public readonly Money $feeAmount,
-        private readonly PaymentIntentStatus $status,
+        public readonly ?string $stripePaymentIntentId,
+        private PaymentIntentStatus $status,
         public readonly DateTimeImmutable $decidedAt,
     ) {}
 
@@ -56,6 +65,10 @@ final class PaymentIntent
      * derives its own `closesAt`. It only enforces the two invariants it
      * actually owns: `amount` must be denominated in the same currency
      * the limit is expressed in, and must not exceed it.
+     *
+     * `stripePaymentIntentId` is the real Stripe object this authorization
+     * created — required so a later `capture()`/`cancelAuthorization()`
+     * knows which Stripe PaymentIntent to act on.
      *
      * @throws UnsupportedCurrency
      * @throws TransactionValueLimitExceeded
@@ -69,6 +82,7 @@ final class PaymentIntent
         Money $amount,
         Money $feeAmount,
         Money $transactionValueLimit,
+        string $stripePaymentIntentId,
         ClockInterface $clock,
     ): self {
         self::guardAmountAgainstLimit($id, $amount, $transactionValueLimit);
@@ -81,6 +95,7 @@ final class PaymentIntent
             buyerId: $buyerId,
             amount: $amount,
             feeAmount: $feeAmount,
+            stripePaymentIntentId: $stripePaymentIntentId,
             status: PaymentIntentStatus::Authorized,
             decidedAt: $clock->now(),
         );
@@ -101,7 +116,8 @@ final class PaymentIntent
      * Records a declined/failed authorization attempt as its own,
      * auditable outcome — a failed financial action is never silently
      * discarded (CLAUDE.md), unlike a rejected `Bid`, which never becomes
-     * a persisted record at all.
+     * a persisted record at all. No Stripe PaymentIntent id exists for a
+     * declined attempt.
      *
      * @throws UnsupportedCurrency
      * @throws TransactionValueLimitExceeded
@@ -128,6 +144,7 @@ final class PaymentIntent
             buyerId: $buyerId,
             amount: $amount,
             feeAmount: $feeAmount,
+            stripePaymentIntentId: null,
             status: PaymentIntentStatus::Failed,
             decidedAt: $clock->now(),
         );
@@ -158,6 +175,7 @@ final class PaymentIntent
         string $buyerId,
         Money $amount,
         Money $feeAmount,
+        ?string $stripePaymentIntentId,
         PaymentIntentStatus $status,
         DateTimeImmutable $decidedAt,
     ): self {
@@ -169,6 +187,7 @@ final class PaymentIntent
             buyerId: $buyerId,
             amount: $amount,
             feeAmount: $feeAmount,
+            stripePaymentIntentId: $stripePaymentIntentId,
             status: $status,
             decidedAt: $decidedAt,
         );
@@ -177,6 +196,52 @@ final class PaymentIntent
     public function status(): PaymentIntentStatus
     {
         return $this->status;
+    }
+
+    /**
+     * Records a successful capture (ADR-019 §2/§3) — the transfer this
+     * payment backs was confirmed, and the real Stripe capture call
+     * succeeded.
+     *
+     * @throws IllegalStateTransition
+     */
+    public function capture(ClockInterface $clock): void
+    {
+        $this->guardStatus(PaymentIntentStatus::Authorized, 'capture');
+
+        $this->status = PaymentIntentStatus::Captured;
+        $this->recordedEvents[] = new PaymentCaptured($clock, $this->id, $this->auctionId);
+    }
+
+    /**
+     * The transfer was confirmed, but the real Stripe capture call itself
+     * failed (ADR-019 §2) — an expected, anticipatable business outcome,
+     * distinct from `cancelAuthorization()` below.
+     *
+     * @throws IllegalStateTransition
+     */
+    public function failCapture(string $reason, ClockInterface $clock): void
+    {
+        $this->guardStatus(PaymentIntentStatus::Authorized, 'fail capture');
+
+        $this->status = PaymentIntentStatus::CaptureFailed;
+        $this->recordedEvents[] = new PaymentCaptureFailed($clock, $this->id, $this->auctionId, $reason);
+    }
+
+    /**
+     * Voids the authorization without ever attempting a capture (ADR-018
+     * §2/§4, ADR-019 §2) — the transfer window expired unconfirmed, or a
+     * buyer/seller default was recorded, or re-authorization failed
+     * before any capture was attempted.
+     *
+     * @throws IllegalStateTransition
+     */
+    public function cancelAuthorization(string $reason, ClockInterface $clock): void
+    {
+        $this->guardStatus(PaymentIntentStatus::Authorized, 'cancel the authorization');
+
+        $this->status = PaymentIntentStatus::Cancelled;
+        $this->recordedEvents[] = new AuthorizationCancelled($clock, $this->id, $this->auctionId, $reason);
     }
 
     /**
@@ -202,6 +267,16 @@ final class PaymentIntent
 
         if ($amount->isGreaterThan($limit)) {
             throw TransactionValueLimitExceeded::forPaymentIntent($id, $amount, $limit);
+        }
+    }
+
+    /**
+     * @throws IllegalStateTransition
+     */
+    private function guardStatus(PaymentIntentStatus $expected, string $attemptedTransition): void
+    {
+        if ($this->status !== $expected) {
+            throw IllegalStateTransition::forPaymentIntent($this->id, $attemptedTransition, $this->status);
         }
     }
 }
