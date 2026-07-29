@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0d2943c1ec3db146aed066d076ac9cb2",
+    "content-hash": "da14c5bd67d33b9be2a2a2558f013d39",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -5199,6 +5199,56 @@
                 "proprietary"
             ],
             "description": "Bids bounded context: immutable, append-only bid placement against an Auction, with concurrency-safe validation (Phase 3).",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "rowbuddy/disputes",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../../packages/Disputes",
+                "reference": "9213d4ecab75a6b42f078c83fc4ad58145e7136f"
+            },
+            "require": {
+                "illuminate/database": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2",
+                "rowbuddy/shared-kernel": "@dev"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.18",
+                "pestphp/pest": "^3.0",
+                "phpstan/phpstan": "^1.12"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "RowBuddy\\Disputes\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "RowBuddy\\Disputes\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "lint": [
+                    "pint --test"
+                ],
+                "stan": [
+                    "phpstan analyse"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Disputes bounded context: buyer-filed dispute case lifecycle, evidence aggregation, and admin-driven resolution outcomes for a confirmed transfer (Phase 6).",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -12225,6 +12275,7 @@
     "stability-flags": {
         "rowbuddy/auctions": 20,
         "rowbuddy/bids": 20,
+        "rowbuddy/disputes": 20,
         "rowbuddy/payments": 20,
         "rowbuddy/queue-presence": 20,
         "rowbuddy/queues": 20,

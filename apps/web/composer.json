@@ -54,6 +54,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../../packages/Disputes",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -67,6 +74,7 @@
         "predis/predis": "^3.5",
         "rowbuddy/auctions": "@dev",
         "rowbuddy/bids": "@dev",
+        "rowbuddy/disputes": "@dev",
         "rowbuddy/payments": "@dev",
         "rowbuddy/queue-presence": "@dev",
         "rowbuddy/queues": "@dev",
