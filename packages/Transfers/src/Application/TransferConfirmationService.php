@@ -12,8 +12,10 @@ use RowBuddy\Transfers\Contracts\TransactionManager;
 use RowBuddy\Transfers\Contracts\TransferGeofenceLookup;
 use RowBuddy\Transfers\Contracts\TransferRepository;
 use RowBuddy\Transfers\Exceptions\ConfirmationOutsideGeofence;
+use RowBuddy\Transfers\Exceptions\IllegalStateTransition;
 use RowBuddy\Transfers\Exceptions\InvalidQrToken;
 use RowBuddy\Transfers\Transfer;
+use RowBuddy\Transfers\ValueObjects\TransferStatus;
 
 /**
  * Orchestrates seller/buyer handoff confirmation (ADR-017 §4, ADR-020
@@ -29,6 +31,16 @@ use RowBuddy\Transfers\Transfer;
  * inline here, which would couple an outbound side effect to this
  * service's own aggregate mutation rather than to the committed event.
  *
+ * Also the lazy call site for `TransferExpiryEvaluator` (ADR-018 §3) —
+ * any confirmation attempt touching an already-locked `Transfer` first
+ * gets the same evaluation the scheduled sweep performs, catching the
+ * common case (someone actually shows up before their deadline, or just
+ * after it) without waiting for a sweep tick. If evaluation expires the
+ * transfer, that expiry (and its `TransferExpired` event) still commits
+ * — the confirmation attempt itself is rejected only *after* the
+ * transaction returns, so a stale attempt can never roll back a
+ * legitimate, independently-true expiry.
+ *
  * The geofence cross-check (ADR-020 §2) and, for the seller, the QR
  * token match (ADR-017 §5) both gate whether the aggregate's own
  * `confirmBySeller()`/`confirmByBuyer()` is ever called — a rejected
@@ -39,6 +51,7 @@ final class TransferConfirmationService
     public function __construct(
         private readonly TransferRepository $transfers,
         private readonly TransferGeofenceLookup $geofenceLookup,
+        private readonly TransferExpiryEvaluator $expiryEvaluator,
         private readonly TransactionManager $transactions,
         private readonly DomainEventPublisher $events,
         private readonly ClockInterface $clock,
@@ -46,6 +59,7 @@ final class TransferConfirmationService
 
     /**
      * @throws NotFoundException
+     * @throws IllegalStateTransition
      * @throws ConfirmationOutsideGeofence
      * @throws InvalidQrToken
      */
@@ -59,6 +73,7 @@ final class TransferConfirmationService
 
     /**
      * @throws NotFoundException
+     * @throws IllegalStateTransition
      * @throws ConfirmationOutsideGeofence
      */
     public function confirmByBuyer(string $transferId, GeoPoint $geo): void
@@ -70,31 +85,45 @@ final class TransferConfirmationService
 
     /**
      * @throws NotFoundException
+     * @throws IllegalStateTransition
      * @throws ConfirmationOutsideGeofence
      */
     private function confirmWithinTransaction(string $transferId, GeoPoint $geo, callable $mutate): void
     {
-        $events = $this->transactions->run(function () use ($transferId, $geo, $mutate) {
+        [$events, $rejection] = $this->transactions->run(function () use ($transferId, $geo, $mutate) {
             $transfer = $this->transfers->findByIdForUpdate($transferId);
 
             if ($transfer === null) {
                 throw new NotFoundException("Transfer [{$transferId}] not found.");
             }
 
-            $geofence = $this->geofenceLookup->geofenceForAuction($transfer->auctionId);
+            $this->expiryEvaluator->evaluate($transfer);
 
-            if (! $geofence->contains($geo)) {
-                throw ConfirmationOutsideGeofence::forTransfer($transferId);
+            $rejection = null;
+
+            if ($transfer->status() !== TransferStatus::Issued) {
+                $rejection = IllegalStateTransition::forTransfer($transferId, 'confirm', $transfer->status());
+            } else {
+                $geofence = $this->geofenceLookup->geofenceForAuction($transfer->auctionId);
+
+                if (! $geofence->contains($geo)) {
+                    throw ConfirmationOutsideGeofence::forTransfer($transferId);
+                }
+
+                $mutate($transfer);
             }
 
-            $mutate($transfer);
             $this->transfers->save($transfer);
 
-            return $transfer->releaseEvents();
+            return [$transfer->releaseEvents(), $rejection];
         });
 
         foreach ($events as $event) {
             $this->events->publish($event);
+        }
+
+        if ($rejection !== null) {
+            throw $rejection;
         }
     }
 

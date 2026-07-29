@@ -41,4 +41,14 @@ interface TransferRepository
      * does not open one itself.
      */
     public function findByIdForUpdate(string $id): ?Transfer;
+
+    /**
+     * An unlocked enumeration of every still-`Issued` transfer's id, for
+     * the scheduled sweep (ADR-018 §3) to iterate — each id is then
+     * individually locked via {@see findByIdForUpdate()} inside its own
+     * transaction, never all at once under a single lock.
+     *
+     * @return list<string>
+     */
+    public function findIssuedTransferIds(): array;
 }

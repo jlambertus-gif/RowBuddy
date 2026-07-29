@@ -6,10 +6,13 @@ use RowBuddy\SharedKernel\Exceptions\NotFoundException;
 use RowBuddy\SharedKernel\Support\FrozenClock;
 use RowBuddy\SharedKernel\ValueObjects\GeoPoint;
 use RowBuddy\Transfers\Application\TransferConfirmationService;
+use RowBuddy\Transfers\Application\TransferExpiryEvaluator;
 use RowBuddy\Transfers\Events\TransferBuyerConfirmed;
 use RowBuddy\Transfers\Events\TransferConfirmed;
+use RowBuddy\Transfers\Events\TransferExpired;
 use RowBuddy\Transfers\Events\TransferSellerConfirmed;
 use RowBuddy\Transfers\Exceptions\ConfirmationOutsideGeofence;
+use RowBuddy\Transfers\Exceptions\IllegalStateTransition;
 use RowBuddy\Transfers\Exceptions\InvalidQrToken;
 use RowBuddy\Transfers\Tests\Fakes\FakeTransferGeofenceLookup;
 use RowBuddy\Transfers\Tests\Fakes\InMemoryTransferRepository;
@@ -30,7 +33,7 @@ it('records a seller-only confirmation', function () {
     $transfers->save($transfer);
     $geofence = new FakeTransferGeofenceLookup;
     $events = new RecordingDomainEventPublisher;
-    $service = new TransferConfirmationService($transfers, $geofence, new RecordingTransactionManager, $events, new FrozenClock);
+    $service = new TransferConfirmationService($transfers, $geofence, new TransferExpiryEvaluator(new FrozenClock), new RecordingTransactionManager, $events, new FrozenClock);
 
     $service->confirmBySeller('transfer-1', 'plaintext-token', $geofence->geofence->center);
 
@@ -48,7 +51,7 @@ it('records a buyer-only confirmation', function () {
     $transfers->save($transfer);
     $geofence = new FakeTransferGeofenceLookup;
     $events = new RecordingDomainEventPublisher;
-    $service = new TransferConfirmationService($transfers, $geofence, new RecordingTransactionManager, $events, new FrozenClock);
+    $service = new TransferConfirmationService($transfers, $geofence, new TransferExpiryEvaluator(new FrozenClock), new RecordingTransactionManager, $events, new FrozenClock);
 
     $service->confirmByBuyer('transfer-1', $geofence->geofence->center);
 
@@ -66,7 +69,7 @@ it('reaches Confirmed and publishes TransferConfirmed once both parties confirm,
     $transfers->save($transfer);
     $geofence = new FakeTransferGeofenceLookup;
     $events = new RecordingDomainEventPublisher;
-    $service = new TransferConfirmationService($transfers, $geofence, new RecordingTransactionManager, $events, new FrozenClock);
+    $service = new TransferConfirmationService($transfers, $geofence, new TransferExpiryEvaluator(new FrozenClock), new RecordingTransactionManager, $events, new FrozenClock);
 
     $service->confirmBySeller('transfer-1', 'plaintext-token', $geofence->geofence->center);
     $service->confirmByBuyer('transfer-1', $geofence->geofence->center);
@@ -85,7 +88,7 @@ it('reaches Confirmed and publishes TransferConfirmed once both parties confirm,
     $transfers->save($transfer);
     $geofence = new FakeTransferGeofenceLookup;
     $events = new RecordingDomainEventPublisher;
-    $service = new TransferConfirmationService($transfers, $geofence, new RecordingTransactionManager, $events, new FrozenClock);
+    $service = new TransferConfirmationService($transfers, $geofence, new TransferExpiryEvaluator(new FrozenClock), new RecordingTransactionManager, $events, new FrozenClock);
 
     $service->confirmByBuyer('transfer-1', $geofence->geofence->center);
     $service->confirmBySeller('transfer-1', 'plaintext-token', $geofence->geofence->center);
@@ -103,7 +106,7 @@ it('rejects a seller confirmation with the wrong QR token and records nothing', 
     $transfers->save($transfer);
     $geofence = new FakeTransferGeofenceLookup;
     $events = new RecordingDomainEventPublisher;
-    $service = new TransferConfirmationService($transfers, $geofence, new RecordingTransactionManager, $events, new FrozenClock);
+    $service = new TransferConfirmationService($transfers, $geofence, new TransferExpiryEvaluator(new FrozenClock), new RecordingTransactionManager, $events, new FrozenClock);
 
     expect(fn () => $service->confirmBySeller('transfer-1', 'wrong-token', $geofence->geofence->center))
         ->toThrow(InvalidQrToken::class);
@@ -118,7 +121,7 @@ it('rejects a seller confirmation outside the geofence and records nothing', fun
     $transfer->releaseEvents();
     $transfers->save($transfer);
     $geofence = new FakeTransferGeofenceLookup;
-    $service = new TransferConfirmationService($transfers, $geofence, new RecordingTransactionManager, new RecordingDomainEventPublisher, new FrozenClock);
+    $service = new TransferConfirmationService($transfers, $geofence, new TransferExpiryEvaluator(new FrozenClock), new RecordingTransactionManager, new RecordingDomainEventPublisher, new FrozenClock);
 
     $farAway = new GeoPoint(40.7128, -74.0060);
 
@@ -134,7 +137,7 @@ it('rejects a buyer confirmation outside the geofence and records nothing', func
     $transfer->releaseEvents();
     $transfers->save($transfer);
     $geofence = new FakeTransferGeofenceLookup;
-    $service = new TransferConfirmationService($transfers, $geofence, new RecordingTransactionManager, new RecordingDomainEventPublisher, new FrozenClock);
+    $service = new TransferConfirmationService($transfers, $geofence, new TransferExpiryEvaluator(new FrozenClock), new RecordingTransactionManager, new RecordingDomainEventPublisher, new FrozenClock);
 
     $farAway = new GeoPoint(40.7128, -74.0060);
 
@@ -148,6 +151,7 @@ it('throws NotFoundException when confirming a transfer that does not exist', fu
     $service = new TransferConfirmationService(
         new InMemoryTransferRepository,
         new FakeTransferGeofenceLookup,
+        new TransferExpiryEvaluator(new FrozenClock),
         new RecordingTransactionManager,
         new RecordingDomainEventPublisher,
         new FrozenClock,
@@ -155,4 +159,43 @@ it('throws NotFoundException when confirming a transfer that does not exist', fu
 
     expect(fn () => $service->confirmByBuyer('missing', new GeoPoint(32.7157, -117.1611)))
         ->toThrow(NotFoundException::class);
+});
+
+it('expires an already-due transfer lazily on a confirmation attempt, committing the expiry and rejecting the attempt', function () {
+    $transfers = new InMemoryTransferRepository;
+    $transfer = Transfer::issue('transfer-1', 'auction-1', 'bid-1', '101', '102', hash('sha256', 'plaintext-token'), new DateTimeImmutable('2026-10-28 10:00:00'), new FrozenClock(new DateTimeImmutable('2026-10-27 10:00:00')));
+    $transfer->releaseEvents();
+    $transfers->save($transfer);
+    $geofence = new FakeTransferGeofenceLookup;
+    $events = new RecordingDomainEventPublisher;
+    $pastDeadline = new FrozenClock(new DateTimeImmutable('2026-10-28 10:00:01'));
+    $service = new TransferConfirmationService($transfers, $geofence, new TransferExpiryEvaluator($pastDeadline), new RecordingTransactionManager, $events, $pastDeadline);
+
+    expect(fn () => $service->confirmBySeller('transfer-1', 'plaintext-token', $geofence->geofence->center))
+        ->toThrow(IllegalStateTransition::class);
+
+    $found = $transfers->findById('transfer-1');
+    expect($found->status())->toBe(TransferStatus::Expired)
+        ->and($found->sellerConfirmedAt())->toBeNull()
+        ->and($events->published)->toHaveCount(1)
+        ->and($events->published[0])->toBeInstanceOf(TransferExpired::class);
+});
+
+it('does not expire a transfer whose deadline has not yet passed and confirms it normally', function () {
+    $transfers = new InMemoryTransferRepository;
+    $transfer = Transfer::issue('transfer-1', 'auction-1', 'bid-1', '101', '102', hash('sha256', 'plaintext-token'), new DateTimeImmutable('2026-10-28 10:00:00'), new FrozenClock(new DateTimeImmutable('2026-10-27 10:00:00')));
+    $transfer->releaseEvents();
+    $transfers->save($transfer);
+    $geofence = new FakeTransferGeofenceLookup;
+    $events = new RecordingDomainEventPublisher;
+    $beforeDeadline = new FrozenClock(new DateTimeImmutable('2026-10-28 09:59:59'));
+    $service = new TransferConfirmationService($transfers, $geofence, new TransferExpiryEvaluator($beforeDeadline), new RecordingTransactionManager, $events, $beforeDeadline);
+
+    $service->confirmBySeller('transfer-1', 'plaintext-token', $geofence->geofence->center);
+
+    $found = $transfers->findById('transfer-1');
+    expect($found->status())->toBe(TransferStatus::Issued)
+        ->and($found->sellerConfirmedAt())->not->toBeNull()
+        ->and($events->published)->toHaveCount(1)
+        ->and($events->published[0])->toBeInstanceOf(TransferSellerConfirmed::class);
 });

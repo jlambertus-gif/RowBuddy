@@ -98,6 +98,14 @@ final class EloquentTransferRepository implements TransferRepository
         return $this->toDomain($model);
     }
 
+    public function findIssuedTransferIds(): array
+    {
+        return TransferModel::query()
+            ->where('status', TransferStatus::Issued->value)
+            ->pluck('id')
+            ->all();
+    }
+
     private function toDomain(TransferModel $model): Transfer
     {
         return Transfer::fromPersistence(

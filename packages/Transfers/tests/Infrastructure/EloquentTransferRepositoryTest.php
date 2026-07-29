@@ -136,6 +136,24 @@ it('locks and finds a transfer via findByIdForUpdate', function () {
     expect($found)->not->toBeNull()->and($found->id)->toBe('transfer-1');
 });
 
+it('finds the ids of every Issued transfer and excludes other statuses', function () {
+    $repository = new EloquentTransferRepository;
+
+    $issued = Transfer::issue('transfer-issued', 'auction-1', 'bid-1', '101', '102', 'hash', new DateTimeImmutable('+24 hours'), new FrozenClock);
+    $repository->save($issued);
+
+    $expired = Transfer::issue('transfer-expired', 'auction-2', 'bid-2', '103', '104', 'hash', new DateTimeImmutable('-1 hour'), new FrozenClock(new DateTimeImmutable('-2 hours')));
+    $expired->expire(new FrozenClock);
+    $repository->save($expired);
+
+    $confirmed = Transfer::issue('transfer-confirmed', 'auction-3', 'bid-3', '105', '106', 'hash', new DateTimeImmutable('+24 hours'), new FrozenClock);
+    $confirmed->confirmBySeller(geoPoint(), new FrozenClock);
+    $confirmed->confirmByBuyer(geoPoint(), new FrozenClock);
+    $repository->save($confirmed);
+
+    expect($repository->findIssuedTransferIds())->toBe(['transfer-issued']);
+});
+
 it('records evidence and returns it in submission order when finding the transfer', function () {
     $repository = new EloquentTransferRepository;
     $transfer = Transfer::issue('transfer-1', 'auction-1', 'bid-1', '101', '102', 'hash', new DateTimeImmutable('+24 hours'), new FrozenClock);

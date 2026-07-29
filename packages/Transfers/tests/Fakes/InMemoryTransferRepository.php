@@ -8,6 +8,7 @@ use RowBuddy\Transfers\Contracts\TransferRepository;
 use RowBuddy\Transfers\Exceptions\TransferAlreadyIssuedForAuction;
 use RowBuddy\Transfers\Transfer;
 use RowBuddy\Transfers\ValueObjects\TransferEvidenceRecord;
+use RowBuddy\Transfers\ValueObjects\TransferStatus;
 
 final class InMemoryTransferRepository implements TransferRepository
 {
@@ -50,5 +51,13 @@ final class InMemoryTransferRepository implements TransferRepository
     public function findByIdForUpdate(string $id): ?Transfer
     {
         return $this->findById($id);
+    }
+
+    public function findIssuedTransferIds(): array
+    {
+        return array_values(array_map(
+            static fn (Transfer $transfer): string => $transfer->id,
+            array_filter($this->saved, static fn (Transfer $transfer): bool => $transfer->status() === TransferStatus::Issued),
+        ));
     }
 }
