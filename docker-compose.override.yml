@@ -15,6 +15,7 @@ services:
             - ./packages/Bids:/var/www/packages/Bids
             - ./packages/Payments:/var/www/packages/Payments
             - ./packages/Transfers:/var/www/packages/Transfers
+            - ./packages/Disputes:/var/www/packages/Disputes
 
     horizon:
         volumes:
@@ -26,6 +27,7 @@ services:
             - ./packages/Bids:/var/www/packages/Bids
             - ./packages/Payments:/var/www/packages/Payments
             - ./packages/Transfers:/var/www/packages/Transfers
+            - ./packages/Disputes:/var/www/packages/Disputes
 
     reverb:
         volumes:
@@ -37,6 +39,7 @@ services:
             - ./packages/Bids:/var/www/packages/Bids
             - ./packages/Payments:/var/www/packages/Payments
             - ./packages/Transfers:/var/www/packages/Transfers
+            - ./packages/Disputes:/var/www/packages/Disputes
 
     postgres:
         ports:

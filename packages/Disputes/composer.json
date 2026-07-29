@@ -1,0 +1,49 @@
+{
+    "name": "rowbuddy/disputes",
+    "description": "Disputes bounded context: buyer-filed dispute case lifecycle, evidence aggregation, and admin-driven resolution outcomes for a confirmed transfer (Phase 6).",
+    "type": "library",
+    "license": "proprietary",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../shared-kernel",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/database": "^12.0",
+        "illuminate/support": "^12.0",
+        "rowbuddy/shared-kernel": "@dev"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.0",
+        "laravel/pint": "^1.18",
+        "phpstan/phpstan": "^1.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "RowBuddy\\Disputes\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "RowBuddy\\Disputes\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "lint": "pint --test",
+        "stan": "phpstan analyse"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
