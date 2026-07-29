@@ -47,6 +47,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../../packages/Transfers",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -63,7 +70,8 @@
         "rowbuddy/payments": "@dev",
         "rowbuddy/queue-presence": "@dev",
         "rowbuddy/queues": "@dev",
-        "rowbuddy/shared-kernel": "@dev"
+        "rowbuddy/shared-kernel": "@dev",
+        "rowbuddy/transfers": "@dev"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "36c4fc9cf1b9f488c70f98bb6d1d2adc",
+    "content-hash": "0d2943c1ec3db146aed066d076ac9cb2",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -5403,6 +5403,56 @@
                 "proprietary"
             ],
             "description": "Cross-cutting contracts, value objects, and shared infrastructure used by every RowBuddy module. No domain/business rules belong here.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "rowbuddy/transfers",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../../packages/Transfers",
+                "reference": "ec551ebc3eff94a43c3cc830fe52cb8389381859"
+            },
+            "require": {
+                "illuminate/database": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2",
+                "rowbuddy/shared-kernel": "@dev"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.18",
+                "pestphp/pest": "^3.0",
+                "phpstan/phpstan": "^1.12"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "RowBuddy\\Transfers\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "RowBuddy\\Transfers\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "lint": [
+                    "pint --test"
+                ],
+                "stan": [
+                    "phpstan analyse"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Transfers bounded context: seller-to-buyer handoff confirmation, QR issuance/validation, and the payment-capture trigger for a won auction (Phase 5).",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -12178,7 +12228,8 @@
         "rowbuddy/payments": 20,
         "rowbuddy/queue-presence": 20,
         "rowbuddy/queues": 20,
-        "rowbuddy/shared-kernel": 20
+        "rowbuddy/shared-kernel": 20,
+        "rowbuddy/transfers": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,
