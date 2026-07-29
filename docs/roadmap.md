@@ -279,9 +279,74 @@ kind of scope narrowing Phase 3's closure documented for HTTP/frontend.
 
 ## Phase 5 — Transfers
 
-Status: not started.
+Status: **done**. Tagged `v0.6.0-transfers`. Domain/backend scope formally
+accepted 2026-07-29.
 
-QR issuance/validation, handoff confirmation with geolocation cross-check.
+**Closure scope note**: four ADRs (017–020) resolved every open
+architectural question before Sprint 1 — the `Transfer` aggregate's
+two-sided confirmation model and QR issuance/validation direction
+(ADR-017); the transfer window, hybrid lazy-plus-scheduled expiry
+evaluation, and provisional no-fault cancellation policy (ADR-018,
+revised once to add an "Alternatives considered" analysis before a
+scheduler was introduced); the Transfers-to-Payments capture contract and
+`PaymentIntent` lifecycle extension (ADR-019); and the confirmation-time
+geofence cross-check plus a first-class, extensible evidence model
+(ADR-020, revised once so evidence is a real aggregate concept from
+Sprint 1, not an app-layer-only afterthought). A mid-phase architectural
+correction moved the Stripe capture trigger off `TransferConfirmationService`
+and into a dedicated `TransferCaptureTriggerService`, after a requested
+verification found it was reading `Transfer`'s post-mutation status
+directly rather than reacting to the committed `TransferConfirmed` event.
+See `docs/releases/phase-5-completion-report.md` for the full report.
+
+QR issuance/validation, handoff confirmation with geolocation cross-check,
+delivered across 6 sprints plus that one correction in
+`packages/Transfers`:
+
+- `Transfer` aggregate: `Issued → Confirmed/Expired/Cancelled`, all
+  terminal; two-sided confirmation (only the second party's confirmation
+  reaches `Confirmed`); first-class, repeatable photo evidence
+  (`attachEvidence()`), orthogonal to the confirmation state machine and
+  present from Sprint 1 in anticipation of Phase 6.
+- `TransferRepository` persistence, with a unique constraint on
+  `auction_id` (one transfer per auction) and a dedicated append-only
+  `transfer_evidence` table.
+- `PaymentIntent`'s lifecycle extended (Payments) from append-only to
+  mutable, gaining `Captured`/`CaptureFailed`/`Cancelled` and the exact
+  locked capture/cancel sequence ADR-019 §6 defines.
+- `TransferInitiationService` (the real `PaymentAuthorized` consumer),
+  `TransferConfirmationService` (validation/mutation/persistence/
+  publication only), `TransferCaptureTriggerService` and
+  `TransferCancelTriggerService` (the real `TransferConfirmed`/
+  `TransferExpired`/`TransferCancelled` consumers) — every cross-module
+  reaction verified to be driven by a committed domain event, never by a
+  caller reading an aggregate's own status.
+- `TransferExpiryEvaluator`, invoked both lazily (at confirmation time)
+  and via this codebase's first Horizon-scheduled job
+  (`EvaluateTransferExpiry`) — justified in ADR-018 against three simpler
+  alternatives before being introduced. Two real-PostgreSQL concurrency
+  tests prove the row lock serializes a scheduled sweep tick against a
+  concurrent confirmation attempt, and against another overlapping sweep
+  tick.
+- `StripeCancellationReconciliationService`: a secondary, defensive
+  reconciliation of `payment_intent.canceled` webhooks, reusing the same
+  `cancelAuthorization()` transition the scheduler already uses.
+- `TransferEvidenceStorage`/`ImageMetadataStripper` (Transfers' own
+  copies of QueuePresence's Phase 2 evidence-handling ports) and
+  `TransferEvidenceSubmissionService`, the first real caller of
+  `attachEvidence()`.
+- 505 automated tests total (58 new in `packages/Transfers`, 77 in
+  `packages/Payments`, was 55 at Phase 4 close), Larastan and Pint clean.
+
+Exit criteria: a won, payment-authorized auction can have its position
+handed off — QR issued, both parties confirm with an independent geofence
+check, capture triggers on the second confirmation, and an unconfirmed
+transfer expires and cancels the authorization with no charge — **met**,
+at the backend/domain level. No payout execution, no buyer payment-method
+acquisition, no proactive re-authorization, and no real event-listener
+wiring exist yet — deferred for documented reasons, the same kind of
+scope narrowing Phases 3 and 4's closures already established. See
+`docs/releases/phase-5-completion-report.md` for the full report.
 
 ## Phase 6 — Disputes & Refunds
 

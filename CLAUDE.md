@@ -144,10 +144,11 @@ For each task:
 ## Repository status
 
 Phase 0 (Foundations), Phase 1 (Catalog), Phase 2 (Presence & Trust),
-Phase 3 (Auctions & Bids), and Phase 4 (Payments) are complete and
-formally accepted — tagged `v0.1.0-foundation`, `v0.2.0-catalog`,
-`v0.3.0-presence`, `v0.4.0-auctions`, and `v0.5.0-payments`. Phase 3's
-and Phase 4's acceptance both cover the domain/backend scope only.
+Phase 3 (Auctions & Bids), Phase 4 (Payments), and Phase 5 (Transfers)
+are complete and formally accepted — tagged `v0.1.0-foundation`,
+`v0.2.0-catalog`, `v0.3.0-presence`, `v0.4.0-auctions`, `v0.5.0-payments`,
+and `v0.6.0-transfers`. Phase 3's, Phase 4's, and Phase 5's acceptance
+all cover the domain/backend scope only.
 
 Phase 4 delivered, in `packages/Payments`: Stripe Connect Express seller
 onboarding (Sprint 3); buyer payment authorization on auction win via the
@@ -160,23 +161,46 @@ lifecycle entirely independent of `Auction`'s own status (no new
 `AuctionStatus` states); ADR-015 stops Phase 4 at authorization/webhooks/
 payout-preparation, deferring capture and payout execution to Phase 5
 (Transfers) with no placeholder trigger introduced for it; ADR-016 scopes
-Sprint 4's assumed payment-method input and charge model. Re-
-authorization before expiry is deferred to Phase 5 for the same reason as
-capture: both depend on Transfers' not-yet-designed handoff timing. See
+Sprint 4's assumed payment-method input and charge model. See
 `docs/releases/phase-4-completion-report.md` for the full report.
+
+Phase 5 delivered, in `packages/Transfers`: the `Transfer` aggregate
+(`Issued → Confirmed/Expired/Cancelled`), two-sided seller/buyer
+confirmation gated by a point-in-time geofence check and, for the seller,
+QR validation (ADR-017); a hybrid lazy-plus-scheduled expiry evaluator —
+this codebase's first Horizon-scheduled job — cancelling an unconfirmed
+transfer's authorization with no charge, symmetrically and without
+assigning fault (ADR-018); the Transfers-to-Payments capture contract,
+extending `PaymentIntent` (Payments) from append-only to mutable with new
+`Captured`/`CaptureFailed`/`Cancelled` states, plus a defensive Stripe
+webhook reconciliation path (ADR-019); and a first-class, extensible
+photo-evidence model attachable regardless of confirmation status, in
+anticipation of Phase 6 (ADR-020). A mid-phase correction moved the
+Stripe capture trigger off `TransferConfirmationService` into a dedicated
+`TransferCaptureTriggerService` after a requested verification found it
+was reading `Transfer`'s status directly rather than reacting to the
+committed `TransferConfirmed` event — every cross-module reaction in this
+phase is now driven by a committed domain event. Seller payout execution,
+buyer payment-method acquisition, proactive re-authorization before
+Stripe's own expiry, and real Laravel event-listener wiring for any
+cross-module reaction are all explicitly deferred. See
+`docs/releases/phase-5-completion-report.md` for the full report.
 
 By deliberate decision, HTTP, frontend, Reverb, and a manual browser
 acceptance test were deferred to a later delivery-layer phase rather than
 required for Phase 3's closure — a departure from Phases 1 and 2's
-closure bar — and Phase 4 follows the same posture, with one exception:
-Sprint 5 introduced a real HTTP endpoint (`POST /webhooks/stripe`) since
-receiving Stripe webhooks genuinely requires one. See
-`docs/releases/phase-3-completion-report.md` and
-`docs/releases/phase-4-completion-report.md` for the full reports and
-rationale. Phase 5 (Transfers) implementation must not begin until
+closure bar — and Phases 4 and 5 follow the same posture, with one
+exception: Phase 4 Sprint 5 introduced a real HTTP endpoint
+(`POST /webhooks/stripe`) since receiving Stripe webhooks genuinely
+requires one; Phase 5 required no new HTTP surface at all. See
+`docs/releases/phase-3-completion-report.md`,
+`docs/releases/phase-4-completion-report.md`, and
+`docs/releases/phase-5-completion-report.md` for the full reports and
+rationale. Phase 6 (Disputes) implementation must not begin until
 explicitly authorized. See `docs/roadmap.md` for the phase plan and
 sprint progress, and `docs/releases/phase-1-completion-report.md` /
 `docs/releases/phase-2-completion-report.md` /
 `docs/releases/phase-3-completion-report.md` /
-`docs/releases/phase-4-completion-report.md` for the completion reports of
+`docs/releases/phase-4-completion-report.md` /
+`docs/releases/phase-5-completion-report.md` for the completion reports of
 the closed phases.

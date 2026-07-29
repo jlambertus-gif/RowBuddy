@@ -62,11 +62,38 @@
   snapshot plus an expected-settlement estimate — no payout ever executed
   (Sprint 6). Payments tracks its own lifecycle keyed by `auctionId`/
   `winningBidId` (ADR-014) — `Auction` gained no new states. Capture,
-  transfer confirmation, payout execution, and re-authorization before
-  expiry are deferred to Phase 5 (Transfers), which does not exist yet.
+  transfer confirmation, and payout execution were deferred to Phase 5
+  (Transfers) at this phase's own close; Phase 5 has since extended
+  `PaymentIntent`'s lifecycle to add capture/cancellation (see below).
   One real HTTP endpoint exists (`POST /webhooks/stripe`, Sprint 5) —
   otherwise no HTTP, no frontend. See
   `docs/releases/phase-4-completion-report.md`.
+- **Transfers**: implemented, domain/backend scope only (Phase 5,
+  `packages/Transfers`) — the `Transfer` aggregate modeling the handoff
+  from seller to buyer (`Issued → Confirmed/Expired/Cancelled`, all
+  terminal; ADR-017), with two-sided confirmation (only the second
+  party's confirmation reaches `Confirmed`) and first-class, repeatable
+  photo evidence (`attachEvidence()`, orthogonal to the confirmation state
+  machine, ADR-020 §4); `TransferInitiationService`, the real
+  `PaymentAuthorized` consumer, issuing a buyer-held QR whose plaintext is
+  never persisted (ADR-017 §5); `TransferConfirmationService`, limited to
+  validation, mutation, persistence, and event publication after a
+  mid-phase correction moved its original inline capture trigger into a
+  dedicated `TransferCaptureTriggerService` — every cross-module reaction
+  in this package (capture, cancellation) is driven by a committed domain
+  event, never by reading an aggregate's own status; `TransferExpiryEvaluator`,
+  invoked both lazily and via this codebase's first Horizon-scheduled job
+  (ADR-018, justified against three simpler alternatives); a defensive
+  `StripeCancellationReconciliationService` reconciling Stripe webhooks
+  against the same transitions the scheduler uses (ADR-019 §7);
+  `TransferEvidenceStorage`/`ImageMetadataStripper`, Transfers' own copies
+  of QueuePresence's Phase 2 evidence-handling ports (ADR-020 §4). Also
+  extends `PaymentIntent` (Payments) from append-only to mutable, adding
+  `Captured`/`CaptureFailed`/`Cancelled` (ADR-019). Seller payout
+  execution, buyer payment-method acquisition, proactive
+  re-authorization, and real Laravel event-listener wiring are all
+  explicitly deferred. No HTTP, no frontend. See
+  `docs/releases/phase-5-completion-report.md`.
 - All other modules below: not started.
 
 ## Style
