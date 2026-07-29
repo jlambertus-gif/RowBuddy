@@ -29,6 +29,6 @@ final class StripeWebhookSignatureVerifier implements WebhookSignatureVerifier
             throw InvalidWebhookSignature::because($exception->getMessage());
         }
 
-        return new VerifiedWebhookEvent($event->id, $event->type);
+        return new VerifiedWebhookEvent($event->id, $event->type, $event->data->object->id ?? '');
     }
 }

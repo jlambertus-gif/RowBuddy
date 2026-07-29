@@ -15,6 +15,9 @@ final class InMemoryTransferRepository implements TransferRepository
     /** @var array<string, Transfer> */
     public array $saved = [];
 
+    /** @var array<string, list<TransferEvidenceRecord>> */
+    public array $recordedEvidence = [];
+
     public function save(Transfer $transfer): void
     {
         foreach ($this->saved as $existing) {
@@ -28,8 +31,7 @@ final class InMemoryTransferRepository implements TransferRepository
 
     public function recordEvidence(string $transferId, TransferEvidenceRecord $record): void
     {
-        // Not exercised by any Sprint 4 test — evidence attachment isn't
-        // part of the confirmation flow itself (ADR-020 §4).
+        $this->recordedEvidence[$transferId][] = $record;
     }
 
     public function findById(string $id): ?Transfer

@@ -5,13 +5,13 @@ declare(strict_types=1);
 use RowBuddy\Payments\Exceptions\InvalidWebhookSignature;
 use RowBuddy\Payments\Infrastructure\Stripe\StripeWebhookSignatureVerifier;
 
-it('verifies a correctly signed payload and returns the event id and type', function () {
+it('verifies a correctly signed payload and returns the event id, type, and object id', function () {
     $secret = 'whsec_test_secret';
     $payload = json_encode([
         'id' => 'evt_123',
         'object' => 'event',
         'type' => 'payment_intent.succeeded',
-        'data' => ['object' => []],
+        'data' => ['object' => ['id' => 'pi_123']],
     ]);
     $header = signedStripeWebhookHeader($payload, $secret);
     $verifier = new StripeWebhookSignatureVerifier($secret);
@@ -19,7 +19,8 @@ it('verifies a correctly signed payload and returns the event id and type', func
     $verified = $verifier->verify($payload, $header);
 
     expect($verified->stripeEventId)->toBe('evt_123')
-        ->and($verified->eventType)->toBe('payment_intent.succeeded');
+        ->and($verified->eventType)->toBe('payment_intent.succeeded')
+        ->and($verified->objectId)->toBe('pi_123');
 });
 
 it('rejects a payload signed with the wrong secret', function () {

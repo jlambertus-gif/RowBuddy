@@ -4,6 +4,13 @@ declare(strict_types=1);
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use RowBuddy\Payments\Contracts\PaymentIntentRepository;
+use RowBuddy\Payments\PaymentIntent;
+use RowBuddy\Payments\ValueObjects\PaymentIntentStatus;
+use RowBuddy\SharedKernel\Support\FrozenClock;
+use RowBuddy\SharedKernel\ValueObjects\Currency;
+use RowBuddy\SharedKernel\ValueObjects\Money;
 
 uses(RefreshDatabase::class);
 
@@ -66,4 +73,39 @@ it('is idempotent: redelivering the same event id only records it once', functio
     $second->assertOk();
 
     expect(DB::table('webhook_events')->where('stripe_event_id', 'evt_test_3')->count())->toBe(1);
+});
+
+it('reconciles a payment_intent.canceled webhook by cancelling the matching Authorized PaymentIntent', function () {
+    $paymentIntents = app(PaymentIntentRepository::class);
+    $paymentIntent = PaymentIntent::authorize(
+        (string) Str::uuid(),
+        (string) Str::uuid(),
+        (string) Str::uuid(),
+        '1',
+        '2',
+        new Money(11000, new Currency('USD')),
+        new Money(1000, new Currency('USD')),
+        new Money(100000, new Currency('USD')),
+        'pi_reconcile_test',
+        new FrozenClock,
+    );
+    $paymentIntent->releaseEvents();
+    $paymentIntents->save($paymentIntent);
+
+    $payload = json_encode([
+        'id' => 'evt_test_4',
+        'object' => 'event',
+        'type' => 'payment_intent.canceled',
+        'data' => ['object' => ['id' => 'pi_reconcile_test']],
+    ]);
+    $header = signedStripeWebhookHeader($payload, 'whsec_test_secret');
+
+    $response = $this->call('POST', '/webhooks/stripe', [], [], [], [
+        'HTTP_STRIPE_SIGNATURE' => $header,
+        'CONTENT_TYPE' => 'application/json',
+    ], $payload);
+
+    $response->assertOk();
+
+    expect($paymentIntents->findById($paymentIntent->id)->status())->toBe(PaymentIntentStatus::Cancelled);
 });

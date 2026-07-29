@@ -35,4 +35,13 @@ interface PaymentIntentRepository
      * inside a transaction; this method does not open one itself.
      */
     public function findByIdForUpdate(string $id): ?PaymentIntent;
+
+    /**
+     * The PaymentIntent carrying this Stripe payment intent id, if one
+     * exists — an unlocked lookup used only to resolve which local
+     * `PaymentIntent` a Stripe webhook's `data.object.id` refers to
+     * (ADR-019 §7), before re-fetching it under lock via
+     * {@see findByIdForUpdate()}.
+     */
+    public function findByStripePaymentIntentId(string $stripePaymentIntentId): ?PaymentIntent;
 }

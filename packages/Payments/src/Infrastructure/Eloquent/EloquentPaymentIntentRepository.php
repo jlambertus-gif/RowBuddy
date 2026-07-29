@@ -73,6 +73,18 @@ final class EloquentPaymentIntentRepository implements PaymentIntentRepository
         return $this->toDomain($model);
     }
 
+    public function findByStripePaymentIntentId(string $stripePaymentIntentId): ?PaymentIntent
+    {
+        /** @var PaymentIntentModel|null $model */
+        $model = PaymentIntentModel::query()->where('stripe_payment_intent_id', $stripePaymentIntentId)->first();
+
+        if ($model === null) {
+            return null;
+        }
+
+        return $this->toDomain($model);
+    }
+
     private function toDomain(PaymentIntentModel $model): PaymentIntent
     {
         return PaymentIntent::fromPersistence(

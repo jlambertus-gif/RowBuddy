@@ -9,10 +9,12 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\ServiceProvider;
 use RowBuddy\Transfers\Application\FixedTransferWindowPolicy;
 use RowBuddy\Transfers\Contracts\DomainEventPublisher;
+use RowBuddy\Transfers\Contracts\ImageMetadataStripper;
 use RowBuddy\Transfers\Contracts\TransferRepository;
 use RowBuddy\Transfers\Contracts\TransferWindowPolicy;
 use RowBuddy\Transfers\Infrastructure\Eloquent\EloquentTransferRepository;
 use RowBuddy\Transfers\Infrastructure\Events\LaravelDomainEventPublisher;
+use RowBuddy\Transfers\Infrastructure\Images\GdImageMetadataStripper;
 
 final class TransfersServiceProvider extends ServiceProvider
 {
@@ -23,6 +25,11 @@ final class TransfersServiceProvider extends ServiceProvider
         $this->app->bind(DomainEventPublisher::class, function ($app) {
             return new LaravelDomainEventPublisher($app->make(Dispatcher::class));
         });
+
+        // Pure PHP (GD extension only), no framework dependency — bound
+        // here rather than at the composition root, mirroring
+        // QueuePresence's own identical binding.
+        $this->app->bind(ImageMetadataStripper::class, GdImageMetadataStripper::class);
 
         // Provisional MVP configuration value, not a permanent domain
         // invariant (ADR-018 §1) — isolated in exactly this one binding,

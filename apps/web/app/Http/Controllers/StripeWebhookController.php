@@ -28,7 +28,7 @@ final class StripeWebhookController extends Controller
             return response()->json(['error' => 'invalid_signature'], 400);
         }
 
-        $processor->process($event->stripeEventId, $event->eventType);
+        $processor->process($event->stripeEventId, $event->eventType, $event->objectId);
 
         return response()->json(['received' => true]);
     }

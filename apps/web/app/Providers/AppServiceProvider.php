@@ -11,6 +11,7 @@ use App\Infrastructure\EloquentTransferGeofenceLookup;
 use App\Infrastructure\EloquentWinningBidLookup;
 use App\Infrastructure\LaravelTransactionManager;
 use App\Infrastructure\LocalPrivateEvidenceStorage;
+use App\Infrastructure\LocalPrivateTransferEvidenceStorage;
 use App\Infrastructure\QueuePresenceSellerVerification;
 use App\Listeners\RecordAuditEvent;
 use App\Models\User;
@@ -29,6 +30,7 @@ use RowBuddy\SharedKernel\Contracts\ClockInterface;
 use RowBuddy\SharedKernel\Support\SystemClock;
 use RowBuddy\Transfers\Contracts\PaymentCaptureGateway;
 use RowBuddy\Transfers\Contracts\TransactionManager as TransfersTransactionManager;
+use RowBuddy\Transfers\Contracts\TransferEvidenceStorage;
 use RowBuddy\Transfers\Contracts\TransferGeofenceLookup;
 
 class AppServiceProvider extends ServiceProvider
@@ -94,6 +96,11 @@ class AppServiceProvider extends ServiceProvider
         // EloquentPaymentCaptureGateway's own docblock) — the
         // Transfers-to-Payments capture contract.
         $this->app->bind(PaymentCaptureGateway::class, EloquentPaymentCaptureGateway::class);
+
+        // Needs a booted Laravel container (Storage facade, signed-route
+        // URL generation) that packages/Transfers' own standalone tests
+        // never boot — see LocalPrivateTransferEvidenceStorage's docblock.
+        $this->app->bind(TransferEvidenceStorage::class, LocalPrivateTransferEvidenceStorage::class);
     }
 
     /**

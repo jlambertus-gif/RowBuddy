@@ -12,17 +12,20 @@ use RowBuddy\SharedKernel\Contracts\ClockInterface;
 
 /**
  * Idempotently records that a verified Stripe webhook event has been
- * received (ADR-015 §1). Deliberately does not react to specific event
- * types with business logic — e.g. reconciling a PaymentIntent against
- * `payment_intent.payment_failed` — that is out of scope for this sprint
- * and left for whenever a concrete need for it exists, the same posture
- * this project already takes toward other explicitly-deferred mechanisms
- * (no scheduler, no cap on soft-close extensions).
+ * received (ADR-015 §1). Beyond recording, reacts to exactly one event
+ * type — `payment_intent.canceled` — reconciled via
+ * {@see StripeCancellationReconciliationService} (ADR-019 §7), a
+ * secondary, defensive role: ADR-018's scheduled sweep remains the
+ * primary mechanism for handling approaching expiry. Every other event
+ * type is still recorded but not otherwise reacted to, left for whenever
+ * a concrete need for it exists, the same posture this project already
+ * takes toward other explicitly-deferred mechanisms.
  */
 final class StripeWebhookProcessor
 {
     public function __construct(
         private readonly WebhookEventRepository $webhookEvents,
+        private readonly StripeCancellationReconciliationService $cancellationReconciler,
         private readonly DomainEventPublisher $events,
         private readonly ClockInterface $clock,
     ) {}
@@ -33,7 +36,7 @@ final class StripeWebhookProcessor
      *              e.g. Stripe redelivering after a slow or missed
      *              response)
      */
-    public function process(string $stripeEventId, string $eventType): bool
+    public function process(string $stripeEventId, string $eventType, string $objectId): bool
     {
         $event = ProcessedWebhookEvent::record($stripeEventId, $eventType, $this->clock);
 
@@ -45,6 +48,10 @@ final class StripeWebhookProcessor
 
         foreach ($event->releaseEvents() as $domainEvent) {
             $this->events->publish($domainEvent);
+        }
+
+        if ($eventType === 'payment_intent.canceled') {
+            $this->cancellationReconciler->reconcileCancellation($objectId);
         }
 
         return true;

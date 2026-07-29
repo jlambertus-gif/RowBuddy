@@ -37,4 +37,15 @@ final class InMemoryPaymentIntentRepository implements PaymentIntentRepository
     {
         return $this->findById($id);
     }
+
+    public function findByStripePaymentIntentId(string $stripePaymentIntentId): ?PaymentIntent
+    {
+        foreach ($this->recorded as $paymentIntent) {
+            if ($paymentIntent->stripePaymentIntentId === $stripePaymentIntentId) {
+                return $paymentIntent;
+            }
+        }
+
+        return null;
+    }
 }
