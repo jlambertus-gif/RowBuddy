@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Infrastructure\EloquentAuctionGateway;
+use App\Infrastructure\EloquentPaymentCaptureGateway;
 use App\Infrastructure\EloquentQueueGeofenceLookup;
+use App\Infrastructure\EloquentTransferGeofenceLookup;
 use App\Infrastructure\EloquentWinningBidLookup;
 use App\Infrastructure\LaravelTransactionManager;
 use App\Infrastructure\LocalPrivateEvidenceStorage;
@@ -25,6 +27,9 @@ use RowBuddy\QueuePresence\Contracts\QueueGeofenceLookup;
 use RowBuddy\SharedKernel\Contracts\AuditableAction;
 use RowBuddy\SharedKernel\Contracts\ClockInterface;
 use RowBuddy\SharedKernel\Support\SystemClock;
+use RowBuddy\Transfers\Contracts\PaymentCaptureGateway;
+use RowBuddy\Transfers\Contracts\TransactionManager as TransfersTransactionManager;
+use RowBuddy\Transfers\Contracts\TransferGeofenceLookup;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -73,6 +78,22 @@ class AppServiceProvider extends ServiceProvider
         // EloquentWinningBidLookup's own docblock) — the reverse direction
         // from AuctionGateway above, same composition-root reasoning.
         $this->app->bind(WinningBidLookup::class, EloquentWinningBidLookup::class);
+
+        // Transfers' own copy of the transaction-manager contract
+        // (ADR-020) — the same LaravelTransactionManager class satisfies
+        // all three modules' copies of this contract.
+        $this->app->bind(TransfersTransactionManager::class, LaravelTransactionManager::class);
+
+        // Bridges Transfers -> Auctions + Queues (ADR-020 §1; see
+        // EloquentTransferGeofenceLookup's own docblock): a cross-module
+        // concern, so it's bound at the composition root, not inside any
+        // one module's own provider.
+        $this->app->bind(TransferGeofenceLookup::class, EloquentTransferGeofenceLookup::class);
+
+        // Bridges Transfers -> Payments (ADR-019 §4; see
+        // EloquentPaymentCaptureGateway's own docblock) — the
+        // Transfers-to-Payments capture contract.
+        $this->app->bind(PaymentCaptureGateway::class, EloquentPaymentCaptureGateway::class);
     }
 
     /**
