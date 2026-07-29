@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Infrastructure\EloquentAuctionGateway;
 use App\Infrastructure\EloquentPaymentCaptureGateway;
 use App\Infrastructure\EloquentQueueGeofenceLookup;
+use App\Infrastructure\EloquentTransferCaseLookup;
 use App\Infrastructure\EloquentTransferGeofenceLookup;
 use App\Infrastructure\EloquentWinningBidLookup;
 use App\Infrastructure\LaravelTransactionManager;
@@ -22,6 +23,7 @@ use RowBuddy\Auctions\Contracts\SellerPresenceVerification;
 use RowBuddy\Auctions\Contracts\WinningBidLookup;
 use RowBuddy\Bids\Contracts\AuctionGateway;
 use RowBuddy\Bids\Contracts\TransactionManager;
+use RowBuddy\Disputes\Contracts\TransferCaseLookup;
 use RowBuddy\Payments\Contracts\TransactionManager as PaymentsTransactionManager;
 use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
 use RowBuddy\QueuePresence\Contracts\QueueGeofenceLookup;
@@ -101,6 +103,12 @@ class AppServiceProvider extends ServiceProvider
         // URL generation) that packages/Transfers' own standalone tests
         // never boot — see LocalPrivateTransferEvidenceStorage's docblock.
         $this->app->bind(TransferEvidenceStorage::class, LocalPrivateTransferEvidenceStorage::class);
+
+        // Bridges Disputes -> Transfers (Phase 6 architecture review
+        // §4/§13; see EloquentTransferCaseLookup's own docblock): a
+        // cross-module concern, so it's bound at the composition root,
+        // not inside either module's own provider.
+        $this->app->bind(TransferCaseLookup::class, EloquentTransferCaseLookup::class);
     }
 
     /**
