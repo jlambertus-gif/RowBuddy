@@ -17,6 +17,27 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../Payments",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../Transfers",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../Disputes",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -26,7 +47,10 @@
         "illuminate/queue": "^12.0",
         "illuminate/support": "^12.0",
         "rowbuddy/auctions": "@dev",
-        "rowbuddy/shared-kernel": "@dev"
+        "rowbuddy/disputes": "@dev",
+        "rowbuddy/payments": "@dev",
+        "rowbuddy/shared-kernel": "@dev",
+        "rowbuddy/transfers": "@dev"
     },
     "require-dev": {
         "pestphp/pest": "^3.0",

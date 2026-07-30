@@ -5260,7 +5260,7 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/Notifications",
-                "reference": "8e6352bcce4415316e39262986f2818589901f3e"
+                "reference": "227c126f7db38ace7fa799417900dced2e1b72e2"
             },
             "require": {
                 "illuminate/database": "^12.0",
@@ -5269,7 +5269,10 @@
                 "illuminate/support": "^12.0",
                 "php": "^8.2",
                 "rowbuddy/auctions": "@dev",
-                "rowbuddy/shared-kernel": "@dev"
+                "rowbuddy/disputes": "@dev",
+                "rowbuddy/payments": "@dev",
+                "rowbuddy/shared-kernel": "@dev",
+                "rowbuddy/transfers": "@dev"
             },
             "require-dev": {
                 "laravel/pint": "^1.18",

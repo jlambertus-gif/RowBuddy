@@ -4,17 +4,14 @@ declare(strict_types=1);
 
 namespace RowBuddy\Notifications\Listeners;
 
-use Illuminate\Contracts\Mail\Mailer;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use RowBuddy\Auctions\Events\AuctionWon;
-use RowBuddy\Notifications\Contracts\NotificationDeliveryLedger;
-use RowBuddy\Notifications\Contracts\RecipientContactLookup;
-use RowBuddy\Notifications\Contracts\RecipientLocalePreferenceLookup;
 use RowBuddy\Notifications\Contracts\WinningBidderLookup;
 use RowBuddy\Notifications\Exceptions\NotificationRecipientUnresolved;
 use RowBuddy\Notifications\Mail\AuctionWonMail;
+use RowBuddy\Notifications\Support\NotificationDeliveryPipeline;
 use RowBuddy\Notifications\ValueObjects\NotificationType;
 use RowBuddy\SharedKernel\ValueObjects\Currency;
 use RowBuddy\SharedKernel\ValueObjects\Money;
@@ -29,11 +26,10 @@ use RowBuddy\SharedKernel\ValueObjects\Money;
  * `$tries`/backoff are explicit and finite (ADR-025 §11) — once
  * exhausted, the job fails into Laravel's own `failed_jobs`, with no
  * bespoke failure tracking of any kind. Delivery is idempotent (ADR-025
- * §7): the ledger is checked before sending and recorded only after a
- * real send succeeds, keyed by the auction's own id (an `AuctionWon`
- * fires at most once per auction, so `auctionId` is already the stable
- * logical identity this event's occurrence needs — no separate event-id
- * field exists anywhere in this codebase's domain events).
+ * §7), via {@see NotificationDeliveryPipeline}, keyed by the auction's
+ * own id (an `AuctionWon` fires at most once per auction, so `auctionId`
+ * — this event's own `auditSubjectId()` — is already the stable logical
+ * identity this event's occurrence needs).
  */
 final class SendAuctionWonNotification implements ShouldQueue
 {
@@ -44,10 +40,7 @@ final class SendAuctionWonNotification implements ShouldQueue
 
     public function __construct(
         private readonly WinningBidderLookup $winningBidders,
-        private readonly RecipientContactLookup $contacts,
-        private readonly RecipientLocalePreferenceLookup $localePreferences,
-        private readonly NotificationDeliveryLedger $ledger,
-        private readonly Mailer $mailer,
+        private readonly NotificationDeliveryPipeline $pipeline,
     ) {}
 
     /**
@@ -75,29 +68,16 @@ final class SendAuctionWonNotification implements ShouldQueue
             );
         }
 
-        if ($this->ledger->alreadyDelivered($auctionId, $recipientId, NotificationType::AuctionWon)) {
-            return;
-        }
-
-        $email = $this->contacts->findEmailById($recipientId);
-
-        if ($email === null) {
-            throw new NotificationRecipientUnresolved(
-                "AuctionWon for auction [{$auctionId}]: no email on file for recipient [{$recipientId}]."
-            );
-        }
-
-        $language = $this->localePreferences->findByRecipientId($recipientId)?->language ?? 'en';
-
         $winningAmount = new Money(
             (int) $payload['winning_amount_minor_units'],
             new Currency((string) $payload['winning_amount_currency']),
         );
 
-        $mailable = (new AuctionWonMail($auctionId, $winningAmount, $language))->locale($language);
-
-        $this->mailer->to($email)->send($mailable);
-
-        $this->ledger->recordDelivered($auctionId, $recipientId, NotificationType::AuctionWon);
+        $this->pipeline->deliver(
+            $auctionId,
+            $recipientId,
+            NotificationType::AuctionWon,
+            fn (string $language) => new AuctionWonMail($auctionId, $winningAmount, $language),
+        );
     }
 }

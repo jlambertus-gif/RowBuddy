@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Infrastructure\EloquentAuctionGateway;
+use App\Infrastructure\EloquentDisputeParticipantLookup;
+use App\Infrastructure\EloquentNotificationTransferParticipantLookup;
 use App\Infrastructure\EloquentPaymentCaptureGateway;
 use App\Infrastructure\EloquentPaymentRefundGateway;
 use App\Infrastructure\EloquentQueueGeofenceLookup;
@@ -31,8 +33,10 @@ use RowBuddy\Bids\Contracts\TransactionManager;
 use RowBuddy\Disputes\Contracts\PaymentRefundGateway;
 use RowBuddy\Disputes\Contracts\TransactionManager as DisputesTransactionManager;
 use RowBuddy\Disputes\Contracts\TransferCaseLookup;
+use RowBuddy\Notifications\Contracts\DisputeParticipantLookup;
 use RowBuddy\Notifications\Contracts\RecipientContactLookup;
 use RowBuddy\Notifications\Contracts\RecipientLocalePreferenceLookup;
+use RowBuddy\Notifications\Contracts\TransferParticipantLookup as NotificationsTransferParticipantLookup;
 use RowBuddy\Notifications\Contracts\WinningBidderLookup;
 use RowBuddy\Payments\Contracts\TransactionManager as PaymentsTransactionManager;
 use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
@@ -153,6 +157,18 @@ class AppServiceProvider extends ServiceProvider
         // resolving the AuctionWon notification's real recipient needs
         // this one extra hop.
         $this->app->bind(WinningBidderLookup::class, EloquentWinningBidderLookup::class);
+
+        // Bridges Notifications -> Transfers (see
+        // EloquentNotificationTransferParticipantLookup's own docblock):
+        // Notifications' own independent copy of the same port shape
+        // Ratings uses, for TransferConfirmed/Expired/Cancelled, which
+        // carry no buyer/seller ids directly.
+        $this->app->bind(NotificationsTransferParticipantLookup::class, EloquentNotificationTransferParticipantLookup::class);
+
+        // Bridges Notifications -> Disputes (see
+        // EloquentDisputeParticipantLookup's own docblock): DisputeResolved
+        // carries no buyer/seller ids directly.
+        $this->app->bind(DisputeParticipantLookup::class, EloquentDisputeParticipantLookup::class);
     }
 
     /**
