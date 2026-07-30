@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * PHPStan-only declaration of Laravel's global `__()` translation helper
+ * (defined at runtime by `Illuminate\Foundation\helpers.php`, part of
+ * `illuminate/foundation`/`laravel/framework`). This package deliberately
+ * does not depend on `illuminate/foundation` — the helper is only ever
+ * called from Infrastructure-layer code (Mail classes) that runs inside
+ * the composed `apps/web` application, which already provides it; this
+ * stub exists solely so static analysis can resolve the symbol.
+ *
+ * @param  string|null  $key
+ * @param  array  $replace
+ * @param  string|null  $locale
+ * @return ($key is null ? null : string)
+ */
+function __($key = null, $replace = [], $locale = null) {}

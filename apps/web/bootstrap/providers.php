@@ -12,4 +12,5 @@ return [
     RowBuddy\Transfers\Infrastructure\TransfersServiceProvider::class,
     RowBuddy\Disputes\Infrastructure\DisputesServiceProvider::class,
     RowBuddy\Ratings\Infrastructure\RatingsServiceProvider::class,
+    RowBuddy\Notifications\Infrastructure\NotificationsServiceProvider::class,
 ];

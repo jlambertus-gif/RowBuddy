@@ -8,9 +8,12 @@ use App\Infrastructure\EloquentAuctionGateway;
 use App\Infrastructure\EloquentPaymentCaptureGateway;
 use App\Infrastructure\EloquentPaymentRefundGateway;
 use App\Infrastructure\EloquentQueueGeofenceLookup;
+use App\Infrastructure\EloquentRecipientContactLookup;
+use App\Infrastructure\EloquentRecipientLocalePreferenceLookup;
 use App\Infrastructure\EloquentTransferCaseLookup;
 use App\Infrastructure\EloquentTransferGeofenceLookup;
 use App\Infrastructure\EloquentTransferParticipantLookup;
+use App\Infrastructure\EloquentWinningBidderLookup;
 use App\Infrastructure\EloquentWinningBidLookup;
 use App\Infrastructure\LaravelTransactionManager;
 use App\Infrastructure\LocalPrivateEvidenceStorage;
@@ -28,6 +31,9 @@ use RowBuddy\Bids\Contracts\TransactionManager;
 use RowBuddy\Disputes\Contracts\PaymentRefundGateway;
 use RowBuddy\Disputes\Contracts\TransactionManager as DisputesTransactionManager;
 use RowBuddy\Disputes\Contracts\TransferCaseLookup;
+use RowBuddy\Notifications\Contracts\RecipientContactLookup;
+use RowBuddy\Notifications\Contracts\RecipientLocalePreferenceLookup;
+use RowBuddy\Notifications\Contracts\WinningBidderLookup;
 use RowBuddy\Payments\Contracts\TransactionManager as PaymentsTransactionManager;
 use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
 use RowBuddy\QueuePresence\Contracts\QueueGeofenceLookup;
@@ -130,6 +136,23 @@ class AppServiceProvider extends ServiceProvider
         // cross-module concern, so it's bound at the composition root,
         // not inside either module's own provider.
         $this->app->bind(TransferParticipantLookup::class, EloquentTransferParticipantLookup::class);
+
+        // Bridges Notifications -> Identity's `users` table (Phase 7
+        // Notifications sprint plan; see
+        // EloquentRecipientLocalePreferenceLookup's/
+        // EloquentRecipientContactLookup's own docblocks): a cross-module
+        // concern, so bound at the composition root, not inside
+        // Notifications' own provider. packages/Notifications never reads
+        // the User model directly.
+        $this->app->bind(RecipientLocalePreferenceLookup::class, EloquentRecipientLocalePreferenceLookup::class);
+        $this->app->bind(RecipientContactLookup::class, EloquentRecipientContactLookup::class);
+
+        // Bridges Notifications -> Bids (see
+        // EloquentWinningBidderLookup's own docblock): `AuctionWon`
+        // carries `winningBidId`, not the winning bidder's own id, so
+        // resolving the AuctionWon notification's real recipient needs
+        // this one extra hop.
+        $this->app->bind(WinningBidderLookup::class, EloquentWinningBidderLookup::class);
     }
 
     /**

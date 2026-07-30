@@ -68,6 +68,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../../packages/Notifications",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -82,6 +89,7 @@
         "rowbuddy/auctions": "@dev",
         "rowbuddy/bids": "@dev",
         "rowbuddy/disputes": "@dev",
+        "rowbuddy/notifications": "@dev",
         "rowbuddy/payments": "@dev",
         "rowbuddy/queue-presence": "@dev",
         "rowbuddy/queues": "@dev",

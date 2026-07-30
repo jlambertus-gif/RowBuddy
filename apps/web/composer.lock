@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0b2e977a07c6f52877fda860dd6eb56a",
+    "content-hash": "0f87b9e11035c68dbc2b73f72a88fded",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -5249,6 +5249,59 @@
                 "proprietary"
             ],
             "description": "Disputes bounded context: buyer-filed dispute case lifecycle, evidence aggregation, and admin-driven resolution outcomes for a confirmed transfer (Phase 6).",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "rowbuddy/notifications",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../../packages/Notifications",
+                "reference": "8e6352bcce4415316e39262986f2818589901f3e"
+            },
+            "require": {
+                "illuminate/database": "^12.0",
+                "illuminate/mail": "^12.0",
+                "illuminate/queue": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2",
+                "rowbuddy/auctions": "@dev",
+                "rowbuddy/shared-kernel": "@dev"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.18",
+                "pestphp/pest": "^3.0",
+                "phpstan/phpstan": "^1.12"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "RowBuddy\\Notifications\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "RowBuddy\\Notifications\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "lint": [
+                    "pint --test"
+                ],
+                "stan": [
+                    "phpstan analyse"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Notifications bounded context: transactional, locale-aware, email-only delivery for a small approved set of domain events (Phase 7, ADR-025).",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -12326,6 +12379,7 @@
         "rowbuddy/auctions": 20,
         "rowbuddy/bids": 20,
         "rowbuddy/disputes": 20,
+        "rowbuddy/notifications": 20,
         "rowbuddy/payments": 20,
         "rowbuddy/queue-presence": 20,
         "rowbuddy/queues": 20,

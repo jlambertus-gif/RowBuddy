@@ -1,0 +1,59 @@
+{
+    "name": "rowbuddy/notifications",
+    "description": "Notifications bounded context: transactional, locale-aware, email-only delivery for a small approved set of domain events (Phase 7, ADR-025).",
+    "type": "library",
+    "license": "proprietary",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../shared-kernel",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../Auctions",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/database": "^12.0",
+        "illuminate/mail": "^12.0",
+        "illuminate/queue": "^12.0",
+        "illuminate/support": "^12.0",
+        "rowbuddy/auctions": "@dev",
+        "rowbuddy/shared-kernel": "@dev"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.0",
+        "laravel/pint": "^1.18",
+        "phpstan/phpstan": "^1.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "RowBuddy\\Notifications\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "RowBuddy\\Notifications\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "lint": "pint --test",
+        "stan": "phpstan analyse"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
