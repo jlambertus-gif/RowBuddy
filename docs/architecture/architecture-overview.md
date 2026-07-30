@@ -119,6 +119,44 @@
   resolution, and dispute-specific evidence submission are all
   explicitly deferred (ADR-023). No HTTP, no frontend. See
   `docs/releases/phase-6-completion-report.md`.
+- **Ratings**: implemented, domain/backend scope only (Phase 7,
+  `packages/Ratings`) — the `Rating` aggregate: symmetric, immutable,
+  no state machine, unlike `Dispute`'s `Opened → Resolved` lifecycle,
+  since a rating carries no financial claim and needs no resolution
+  (ADR-024 §1); domain-enforced 1–5 integer score (`RatingScore`) and an
+  optional, bounded (1,000-char), untouched comment normalizing blank
+  input to `null` (ADR-024 §6); `RatingSubmissionService`
+  (`Confirmed`-only eligibility, buyer/seller-only authorization,
+  server-side `rateeId` derivation) via Ratings' own
+  `TransferParticipantLookup` read port — independent of Disputes'
+  identically-purposed `TransferCaseLookup`, and independent of
+  Notifications' own separate copy of a port with the same name
+  (ADR-024 §2/§4/§7); `RatingRevealDeadlinePolicy`/
+  `RatingRevealEvaluator` — double-blind reveal computed lazily at read
+  time (immediate once a counterpart exists, deadline-based otherwise,
+  anchored to each rating's own `submittedAt`), no persisted "revealed"
+  flag, no scheduler (ADR-024 §5). No HTTP, no frontend. See
+  `docs/releases/phase-7-completion-report.md`.
+- **Notifications**: implemented, the first phase-7 module requiring
+  real end-to-end delivery to close (Phase 7, `packages/Notifications`)
+  — exactly eight approved (event, recipient) pairs (`AuctionWon`,
+  `PaymentAuthorizationFailed`, `TransferIssued`/`Confirmed`/`Expired`/
+  `Cancelled`, `DisputeOpened`/`Resolved`), each wired via this
+  codebase's first real Laravel `Event::listen()`-driven, queued
+  cross-module reaction (ADR-025 §6/Consequences); `NotificationDeliveryLedger`,
+  a logical-identity idempotency mechanism keyed by `(domain_event_id,
+  recipient_id, notification_type)` — this codebase's first idempotency
+  mechanism built for a notification rather than a payment (ADR-025
+  §7); `NotificationDeliveryPipeline`, the shared ledger-check →
+  contact-resolve → locale-resolve → render → send → record sequence
+  every listener uses; every email template is self-contained and
+  field-restricted (no gateway failure detail, no cancellation reason,
+  no admin resolution notes — ADR-025 §9), rendered exclusively from the
+  recipient's own stored locale preference (minimal, nullable,
+  generic `users` columns added for exactly this purpose — ADR-025
+  §10); bounded retry relying on Laravel's own `failed_jobs`, no
+  bespoke failure tracking or alerting (ADR-025 §11). No HTTP, no
+  frontend. See `docs/releases/phase-7-completion-report.md`.
 - All other modules below: not started.
 
 ## Style

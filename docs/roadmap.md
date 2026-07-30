@@ -420,9 +420,71 @@ full report.
 
 ## Phase 7 — Ratings & Notifications
 
-Status: not started.
+Status: **done**. Tagged `v0.8.0-ratings-notifications`. Ratings closes
+domain/backend scope only; Notifications closes end-to-end through a
+real email channel — formally accepted 2026-07-30.
 
-Cross-channel notification templates (locale-aware), ratings.
+**Closure scope note**: all eleven open Phase 7 product decisions were
+frozen individually, one at a time, before any ADR was drafted —
+mirroring Phase 6's process across both bounded contexts. This produced
+two ADRs (024–025, both accepted): Ratings' symmetric eligibility,
+`Confirmed`-only gate, one-per-participant enforcement, full
+independence from Disputes, double-blind reveal anchored to each
+rating's own `submittedAt`, and content rules (ADR-024); Notifications'
+MVP scope, the approved eight-event set, idempotent delivery, the
+Ratings/Notifications exit-bar asymmetry, self-contained field-
+restricted content, recipient-own-locale rendering, and retry/failure
+reliance on Laravel's `failed_jobs` (ADR-025). ADR-024 §5's reveal-
+deadline anchor was corrected before implementation, without requiring
+any rework of the already-approved persistence sprint.
+
+Delivered across 4 sprints in `packages/Ratings` and 2 in
+`packages/Notifications`:
+
+- `Rating` aggregate: symmetric, immutable, no state machine —
+  a deliberately smaller shape than `Dispute`'s, since a rating carries
+  no financial claim and needs no resolution lifecycle. Domain-enforced
+  1–5 score (`RatingScore`); an optional, bounded (1,000-char),
+  untouched comment normalizing blank input to `null`.
+- `RatingRepository` persistence, with a unique constraint on
+  `(transfer_id, rater_id)` (one rating per participant per transfer).
+- `RatingSubmissionService` — `Confirmed`-only eligibility, buyer/
+  seller-only authorization, server-side `rateeId` derivation (a rater
+  can never name an arbitrary third party) — via Ratings' own
+  `TransferParticipantLookup` read port, independent of Disputes'
+  identically-purposed `TransferCaseLookup`.
+- `RatingRevealDeadlinePolicy`/`RatingRevealEvaluator` — double-blind
+  reveal computed lazily at read time (immediate once a counterpart
+  exists, deadline-based otherwise, anchored to each rating's own
+  `submittedAt`), with no persisted "revealed" flag and no scheduler.
+- `packages/Notifications`: a `NotificationDeliveryLedger` keyed by
+  `(domain_event_id, recipient_id, notification_type)` — this
+  codebase's first idempotency mechanism built for a notification
+  rather than a payment; `NotificationDeliveryPipeline`, the shared
+  ledger-check → contact-resolve → locale-resolve → render → send →
+  record sequence every one of the eight approved events uses.
+- **This codebase's first real Laravel `Event::listen()` wiring** — every
+  prior cross-module reaction (Phases 4–6) was a directly invoked
+  application service; all eight approved events (`AuctionWon`,
+  `PaymentAuthorizationFailed`, `TransferIssued`/`Confirmed`/`Expired`/
+  `Cancelled`, `DisputeOpened`/`Resolved`) are now real, queued,
+  bounded-retry listeners.
+- Locale-aware rendering resolved exclusively from the recipient's own
+  stored `language`/`country_code`/`currency`/`timezone` (minimal,
+  nullable, generic columns added to `users` for exactly this purpose),
+  never from the actor, request, transaction, or event payload.
+- 656 automated tests total (41 new in `packages/Ratings`, 35 new in
+  `packages/Notifications`, `apps/web` grew from 91 to 101), Larastan
+  and Pint clean.
+
+Exit criteria: a buyer and seller can each rate the other exactly once
+after a confirmed handoff, with double-blind reveal — **met**, at the
+domain/backend level, no HTTP/UI. All eight approved transactional
+emails deliver end-to-end, idempotently, in the recipient's own
+language, with bounded retry and no content beyond each template's
+explicit allowlist — **met**, the only Phase 7 requirement demanding a
+real, operating delivery channel. See
+`docs/releases/phase-7-completion-report.md` for the full report.
 
 ## Phase 8 — Administration & Fraud/Risk v1
 

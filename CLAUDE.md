@@ -144,12 +144,16 @@ For each task:
 ## Repository status
 
 Phase 0 (Foundations), Phase 1 (Catalog), Phase 2 (Presence & Trust),
-Phase 3 (Auctions & Bids), Phase 4 (Payments), Phase 5 (Transfers), and
-Phase 6 (Disputes) are complete and formally accepted — tagged
-`v0.1.0-foundation`, `v0.2.0-catalog`, `v0.3.0-presence`,
-`v0.4.0-auctions`, `v0.5.0-payments`, `v0.6.0-transfers`, and
-`v0.7.0-disputes`. Phase 3's, Phase 4's, Phase 5's, and Phase 6's
-acceptance all cover the domain/backend scope only.
+Phase 3 (Auctions & Bids), Phase 4 (Payments), Phase 5 (Transfers),
+Phase 6 (Disputes), and Phase 7 (Ratings & Notifications) are complete
+and formally accepted — tagged `v0.1.0-foundation`, `v0.2.0-catalog`,
+`v0.3.0-presence`, `v0.4.0-auctions`, `v0.5.0-payments`,
+`v0.6.0-transfers`, `v0.7.0-disputes`, and
+`v0.8.0-ratings-notifications`. Phase 3's, Phase 4's, Phase 5's, and
+Phase 6's acceptance all cover the domain/backend scope only; Phase 7's
+acceptance covers domain/backend scope for Ratings and full end-to-end
+scope (a real, operating delivery channel) for Notifications — see
+below.
 
 Phase 4 delivered, in `packages/Payments`: Stripe Connect Express seller
 onboarding (Sprint 3); buyer payment authorization on auction win via the
@@ -213,24 +217,60 @@ rules-based resolution, and dispute-specific evidence submission are all
 explicitly deferred (ADR-023). See
 `docs/releases/phase-6-completion-report.md` for the full report.
 
+Phase 7 delivered two independent bounded contexts, after eleven product
+decisions frozen individually before any ADR was drafted (mirroring
+Phase 6's own process). In `packages/Ratings`: the `Rating` aggregate —
+symmetric, immutable, no state machine, unlike `Dispute`'s lifecycle,
+since a rating carries no financial claim (ADR-024 §1); domain-enforced
+1–5 score and an optional, bounded (1,000-char), untouched comment
+(ADR-024 §6); `RatingSubmissionService` (`Confirmed`-only eligibility,
+buyer/seller-only authorization, server-side `rateeId` derivation) via
+Ratings' own `TransferParticipantLookup` read port, independent of
+Disputes' `TransferCaseLookup` and of Notifications' own separate copy
+of a port with the same name; and `RatingRevealEvaluator` — double-blind
+reveal computed lazily at read time, anchored to each rating's own
+`submittedAt`, no persisted flag, no scheduler (ADR-024 §5, corrected
+before implementation from an initial `Transfer.confirmedAt` anchor). In
+`packages/Notifications`: exactly eight approved (event, recipient)
+pairs, each wired via this codebase's first real Laravel
+`Event::listen()`-driven, queued cross-module reaction (ADR-025 §6);
+`NotificationDeliveryLedger`, this codebase's first idempotency
+mechanism built for a notification rather than a payment, keyed by
+`(domain_event_id, recipient_id, notification_type)` (ADR-025 §7);
+`NotificationDeliveryPipeline`, the shared delivery sequence every
+listener uses; every email template self-contained and
+field-restricted, rendered exclusively from the recipient's own stored
+locale preference (ADR-025 §9/§10); bounded retry relying on Laravel's
+own `failed_jobs`, no bespoke failure tracking (ADR-025 §11). Ratings
+closes domain/backend scope only; Notifications is the first phase in
+this codebase required to prove a real, operating delivery channel to
+close — two deliberately different exit bars, decided explicitly
+(ADR-024 §7/ADR-025 §8). See `docs/releases/phase-7-completion-report.md`
+for the full report.
+
 By deliberate decision, HTTP, frontend, Reverb, and a manual browser
 acceptance test were deferred to a later delivery-layer phase rather than
 required for Phase 3's closure — a departure from Phases 1 and 2's
-closure bar — and Phases 4, 5, and 6 follow the same posture, with one
-exception: Phase 4 Sprint 5 introduced a real HTTP endpoint
-(`POST /webhooks/stripe`) since receiving Stripe webhooks genuinely
-requires one; Phases 5 and 6 required no new HTTP surface at all. See
+closure bar — and Phases 4, 5, 6, and Ratings within Phase 7 follow the
+same posture, with two exceptions: Phase 4 Sprint 5 introduced a real
+HTTP endpoint (`POST /webhooks/stripe`) since receiving Stripe webhooks
+genuinely requires one, and Notifications within Phase 7 required a
+real, operating email delivery channel end-to-end, since a notification
+with no real delivery isn't a notification at all; Phases 5 and 6
+required no new HTTP surface at all. See
 `docs/releases/phase-3-completion-report.md`,
 `docs/releases/phase-4-completion-report.md`,
-`docs/releases/phase-5-completion-report.md`, and
-`docs/releases/phase-6-completion-report.md` for the full reports and
-rationale. Phase 7 (Ratings & Notifications) implementation must not
-begin until a separate architecture review and planning session is
-completed. See `docs/roadmap.md` for the phase plan and sprint progress,
-and `docs/releases/phase-1-completion-report.md` /
+`docs/releases/phase-5-completion-report.md`,
+`docs/releases/phase-6-completion-report.md`, and
+`docs/releases/phase-7-completion-report.md` for the full reports and
+rationale. Phase 8 (Administration & Fraud/Risk v1) implementation
+requires separate authorization before it begins. See
+`docs/roadmap.md` for the phase plan and sprint progress, and
+`docs/releases/phase-1-completion-report.md` /
 `docs/releases/phase-2-completion-report.md` /
 `docs/releases/phase-3-completion-report.md` /
 `docs/releases/phase-4-completion-report.md` /
 `docs/releases/phase-5-completion-report.md` /
-`docs/releases/phase-6-completion-report.md` for the completion reports of
-the closed phases.
+`docs/releases/phase-6-completion-report.md` /
+`docs/releases/phase-7-completion-report.md` for the completion reports
+of the closed phases.
