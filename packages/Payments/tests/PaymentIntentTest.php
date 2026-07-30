@@ -7,7 +7,9 @@ use RowBuddy\Payments\Events\PaymentAuthorizationFailed;
 use RowBuddy\Payments\Events\PaymentAuthorized;
 use RowBuddy\Payments\Events\PaymentCaptured;
 use RowBuddy\Payments\Events\PaymentCaptureFailed;
+use RowBuddy\Payments\Events\PaymentRefunded;
 use RowBuddy\Payments\Exceptions\IllegalStateTransition;
+use RowBuddy\Payments\Exceptions\InvalidRefundAmount;
 use RowBuddy\Payments\Exceptions\TransactionValueLimitExceeded;
 use RowBuddy\Payments\Exceptions\UnsupportedCurrency;
 use RowBuddy\Payments\PaymentIntent;
@@ -247,6 +249,120 @@ it('rejects cancelling a payment intent that is not Authorized', function () {
     $paymentIntent->cancelAuthorization('reason', new FrozenClock);
 
     expect(fn () => $paymentIntent->cancelAuthorization('reason', new FrozenClock))->toThrow(IllegalStateTransition::class);
+});
+
+it('refunds the full captured amount and raises a PaymentRefunded event', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->capture(new FrozenClock);
+    $paymentIntent->releaseEvents();
+
+    $paymentIntent->refund(usd(11000), 'buyer is correct', new FrozenClock);
+
+    expect($paymentIntent->status())->toBe(PaymentIntentStatus::Refunded)
+        ->and($paymentIntent->refundedAmount()->equals(usd(11000)))->toBeTrue()
+        ->and($paymentIntent->remainingCapturedAmount()->isZero())->toBeTrue();
+
+    $events = $paymentIntent->releaseEvents();
+    expect($events)->toHaveCount(1)
+        ->and($events[0])->toBeInstanceOf(PaymentRefunded::class)
+        ->and($events[0]->payload())->toBe([
+            'payment_intent_id' => 'payment-1',
+            'auction_id' => 'auction-1',
+            'amount_minor_units' => 11000,
+            'amount_currency' => 'USD',
+            'reason' => 'buyer is correct',
+        ]);
+});
+
+it('refunds a partial amount smaller than the full captured total, retaining the unreimbursed remainder', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->capture(new FrozenClock);
+
+    $paymentIntent->refund(usd(5000), 'partial fault on both sides', new FrozenClock);
+
+    expect($paymentIntent->status())->toBe(PaymentIntentStatus::Refunded)
+        ->and($paymentIntent->refundedAmount()->equals(usd(5000)))->toBeTrue()
+        ->and($paymentIntent->remainingCapturedAmount()->equals(usd(6000)))->toBeTrue();
+});
+
+it('reports the full captured amount as remaining when nothing has been refunded yet', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->capture(new FrozenClock);
+
+    expect($paymentIntent->refundedAmount())->toBeNull()
+        ->and($paymentIntent->remainingCapturedAmount()->equals(usd(11000)))->toBeTrue();
+});
+
+it('assertRefundable validates without mutating, so a caller can check before ever calling Stripe', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->capture(new FrozenClock);
+
+    $paymentIntent->assertRefundable(usd(11000));
+
+    expect($paymentIntent->status())->toBe(PaymentIntentStatus::Captured)
+        ->and($paymentIntent->refundedAmount())->toBeNull();
+});
+
+it('assertRefundable throws for the same invalid cases refund() itself rejects', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->capture(new FrozenClock);
+
+    expect(fn () => $paymentIntent->assertRefundable(usd(11001)))->toThrow(InvalidRefundAmount::class);
+});
+
+it('rejects refunding a payment intent that is not Captured', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+
+    expect(fn () => $paymentIntent->refund(usd(11000), 'reason', new FrozenClock))->toThrow(IllegalStateTransition::class);
+});
+
+it('rejects a zero refund amount', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->capture(new FrozenClock);
+
+    expect(fn () => $paymentIntent->refund(usd(0), 'reason', new FrozenClock))->toThrow(InvalidRefundAmount::class);
+});
+
+it('rejects a refund amount in a different currency than the captured total', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->capture(new FrozenClock);
+
+    expect(fn () => $paymentIntent->refund(eur(11000), 'reason', new FrozenClock))->toThrow(InvalidRefundAmount::class);
+});
+
+it('rejects a refund amount exceeding the captured total', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->capture(new FrozenClock);
+
+    expect(fn () => $paymentIntent->refund(usd(11001), 'reason', new FrozenClock))->toThrow(InvalidRefundAmount::class);
+});
+
+it('rejects refunding a payment intent that has already been refunded', function () {
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', 'seller-1', 'buyer-1', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->capture(new FrozenClock);
+    $paymentIntent->refund(usd(11000), 'first refund', new FrozenClock);
+
+    expect(fn () => $paymentIntent->refund(usd(1000), 'second refund', new FrozenClock))->toThrow(IllegalStateTransition::class);
 });
 
 it('releasing events clears them so they are not dispatched twice', function () {

@@ -30,6 +30,8 @@ beforeEach(function () {
         $table->unsignedBigInteger('fee_amount_minor_units');
         $table->string('stripe_payment_intent_id')->nullable();
         $table->string('status');
+        $table->bigInteger('refunded_amount_minor_units')->nullable();
+        $table->string('refunded_amount_currency', 3)->nullable();
         $table->timestamp('decided_at');
         $table->timestamps();
     });
@@ -112,6 +114,33 @@ it('persists a later capture transition on an already-saved payment intent', fun
 
 it('returns null when the payment intent does not exist', function () {
     expect((new EloquentPaymentIntentRepository)->findById('missing'))->toBeNull();
+});
+
+it('persists and reconstructs a partial refund amount, distinct from the unreimbursed remainder', function () {
+    $repository = new EloquentPaymentIntentRepository;
+    $paymentIntent = PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', '101', '102', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    );
+    $paymentIntent->capture(new FrozenClock);
+    $paymentIntent->refund(usd(5000), 'partial fault on both sides', new FrozenClock);
+    $repository->save($paymentIntent);
+
+    $found = $repository->findById('payment-1');
+
+    expect($found->status())->toBe(PaymentIntentStatus::Refunded)
+        ->and($found->refundedAmount()->equals(usd(5000)))->toBeTrue()
+        ->and($found->remainingCapturedAmount()->equals(usd(6000)))->toBeTrue();
+});
+
+it('reports no refunded amount for a payment intent that has never been refunded', function () {
+    $repository = new EloquentPaymentIntentRepository;
+    $repository->save(PaymentIntent::authorize(
+        'payment-1', 'auction-1', 'bid-1', '101', '102', usd(11000), usd(1000), usd(50000), 'pi_stripe_123', new FrozenClock,
+    ));
+
+    $found = $repository->findById('payment-1');
+
+    expect($found->refundedAmount())->toBeNull();
 });
 
 it('finds a payment intent by auction id', function () {

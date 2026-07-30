@@ -23,6 +23,8 @@ use RowBuddy\Payments\PaymentIntent;
  * @property int $fee_amount_minor_units
  * @property string|null $stripe_payment_intent_id
  * @property string $status
+ * @property int|null $refunded_amount_minor_units
+ * @property string|null $refunded_amount_currency
  * @property Carbon $decided_at
  */
 final class PaymentIntentModel extends Model
@@ -44,6 +46,8 @@ final class PaymentIntentModel extends Model
         'fee_amount_minor_units',
         'stripe_payment_intent_id',
         'status',
+        'refunded_amount_minor_units',
+        'refunded_amount_currency',
         'decided_at',
     ];
 

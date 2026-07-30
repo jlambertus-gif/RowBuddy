@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Infrastructure\EloquentAuctionGateway;
 use App\Infrastructure\EloquentPaymentCaptureGateway;
+use App\Infrastructure\EloquentPaymentRefundGateway;
 use App\Infrastructure\EloquentQueueGeofenceLookup;
 use App\Infrastructure\EloquentTransferCaseLookup;
 use App\Infrastructure\EloquentTransferGeofenceLookup;
@@ -23,6 +24,8 @@ use RowBuddy\Auctions\Contracts\SellerPresenceVerification;
 use RowBuddy\Auctions\Contracts\WinningBidLookup;
 use RowBuddy\Bids\Contracts\AuctionGateway;
 use RowBuddy\Bids\Contracts\TransactionManager;
+use RowBuddy\Disputes\Contracts\PaymentRefundGateway;
+use RowBuddy\Disputes\Contracts\TransactionManager as DisputesTransactionManager;
 use RowBuddy\Disputes\Contracts\TransferCaseLookup;
 use RowBuddy\Payments\Contracts\TransactionManager as PaymentsTransactionManager;
 use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
@@ -109,6 +112,16 @@ class AppServiceProvider extends ServiceProvider
         // cross-module concern, so it's bound at the composition root,
         // not inside either module's own provider.
         $this->app->bind(TransferCaseLookup::class, EloquentTransferCaseLookup::class);
+
+        // Disputes' own copy of the transaction-manager contract (Phase
+        // 6) — the same LaravelTransactionManager class satisfies all
+        // four modules' copies of this contract.
+        $this->app->bind(DisputesTransactionManager::class, LaravelTransactionManager::class);
+
+        // Bridges Disputes -> Payments (ADR-022; see
+        // EloquentPaymentRefundGateway's own docblock) — the
+        // Disputes-to-Payments refund contract.
+        $this->app->bind(PaymentRefundGateway::class, EloquentPaymentRefundGateway::class);
     }
 
     /**

@@ -20,6 +20,8 @@ final class EloquentPaymentIntentRepository implements PaymentIntentRepository
 {
     public function save(PaymentIntent $paymentIntent): void
     {
+        $refundedAmount = $paymentIntent->refundedAmount();
+
         PaymentIntentModel::query()->updateOrCreate(
             ['id' => $paymentIntent->id],
             [
@@ -32,6 +34,8 @@ final class EloquentPaymentIntentRepository implements PaymentIntentRepository
                 'fee_amount_minor_units' => $paymentIntent->feeAmount->minorUnits,
                 'stripe_payment_intent_id' => $paymentIntent->stripePaymentIntentId,
                 'status' => $paymentIntent->status()->value,
+                'refunded_amount_minor_units' => $refundedAmount?->minorUnits,
+                'refunded_amount_currency' => $refundedAmount !== null ? (string) $refundedAmount->currency : null,
                 'decided_at' => $paymentIntent->decidedAt,
             ],
         );
@@ -98,6 +102,21 @@ final class EloquentPaymentIntentRepository implements PaymentIntentRepository
             stripePaymentIntentId: $model->stripe_payment_intent_id,
             status: PaymentIntentStatus::from($model->status),
             decidedAt: $model->decided_at->toDateTimeImmutable(),
+            refundedAmount: $this->moneyFrom($model->refunded_amount_minor_units, $model->refunded_amount_currency),
         );
+    }
+
+    /**
+     * `bigInteger` columns can come back as `string` under some drivers
+     * — accept both, mirroring `EloquentTransferRepository::geoFrom()`'s
+     * identical cross-driver concern.
+     */
+    private function moneyFrom(int|string|null $minorUnits, ?string $currency): ?Money
+    {
+        if ($minorUnits === null || $currency === null) {
+            return null;
+        }
+
+        return new Money((int) $minorUnits, new Currency($currency));
     }
 }

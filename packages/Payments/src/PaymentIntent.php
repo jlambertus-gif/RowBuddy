@@ -10,7 +10,9 @@ use RowBuddy\Payments\Events\PaymentAuthorizationFailed;
 use RowBuddy\Payments\Events\PaymentAuthorized;
 use RowBuddy\Payments\Events\PaymentCaptured;
 use RowBuddy\Payments\Events\PaymentCaptureFailed;
+use RowBuddy\Payments\Events\PaymentRefunded;
 use RowBuddy\Payments\Exceptions\IllegalStateTransition;
+use RowBuddy\Payments\Exceptions\InvalidRefundAmount;
 use RowBuddy\Payments\Exceptions\TransactionValueLimitExceeded;
 use RowBuddy\Payments\Exceptions\UnsupportedCurrency;
 use RowBuddy\Payments\ValueObjects\PaymentIntentStatus;
@@ -20,10 +22,10 @@ use RowBuddy\SharedKernel\ValueObjects\Money;
 
 /**
  * Aggregate root for the financial lifecycle of a single won auction
- * (Phase 4, extended Phase 5 per ADR-019). Models authorization plus
- * capture/cancellation only — `Held`, `ReleasedToSeller`, and
- * `RefundedToBuyer` still do not exist here, in any form: seller payout
- * execution stays out of scope (ADR-019 §5).
+ * (Phase 4, extended Phase 5 per ADR-019, extended Phase 6 per ADR-022).
+ * Models authorization, capture/cancellation, and dispute-driven refund
+ * only — `Held` and `ReleasedToSeller` still do not exist here, in any
+ * form: seller payout execution stays out of scope (ADR-019 §5).
  *
  * Tracks its own lifecycle keyed by `auctionId` and `winningBidId` rather
  * than any reference to `Auction`'s own status (ADR-014) — `Auction`
@@ -55,6 +57,7 @@ final class PaymentIntent
         public readonly ?string $stripePaymentIntentId,
         private PaymentIntentStatus $status,
         public readonly DateTimeImmutable $decidedAt,
+        private ?Money $refundedAmount = null,
     ) {}
 
     /**
@@ -178,6 +181,7 @@ final class PaymentIntent
         ?string $stripePaymentIntentId,
         PaymentIntentStatus $status,
         DateTimeImmutable $decidedAt,
+        ?Money $refundedAmount = null,
     ): self {
         return new self(
             id: $id,
@@ -190,6 +194,7 @@ final class PaymentIntent
             stripePaymentIntentId: $stripePaymentIntentId,
             status: $status,
             decidedAt: $decidedAt,
+            refundedAmount: $refundedAmount,
         );
     }
 
@@ -245,6 +250,79 @@ final class PaymentIntent
     }
 
     /**
+     * A dispute resolved in the buyer's favor, fully or partially
+     * (ADR-022 §1) — `amount` must be positive, denominated in the same
+     * currency as the captured total, and must never exceed it; this is
+     * the only ceiling this aggregate enforces, since it never
+     * distinguishes the bid amount from the platform fee within `amount`
+     * (ADR-022 §5). Whether this call represents a "full refund" or a
+     * "split" is not this aggregate's concern — `packages/Disputes`
+     * records that distinction itself.
+     *
+     * The refunded amount is retained (`refundedAmount()`) so the
+     * distinction between what was refunded and what remains of the
+     * captured total is never lost, even though `Refunded` remains the
+     * single lifecycle status regardless of whether the refund was full
+     * or partial (ADR-022 §3).
+     *
+     * Callers must call this only after the real Stripe refund has
+     * already succeeded (see `PaymentCaptureService::refund()`'s own
+     * docblock for the exact ordering this aggregate depends on) — this
+     * method itself has no way to enforce that externally, but it
+     * re-validates the same invariants `assertRefundable()` checks, so a
+     * caller that skips the pre-check is still protected against an
+     * inconsistent transition.
+     *
+     * @throws IllegalStateTransition
+     * @throws InvalidRefundAmount
+     */
+    public function refund(Money $amount, string $reason, ClockInterface $clock): void
+    {
+        $this->assertRefundable($amount);
+
+        $this->status = PaymentIntentStatus::Refunded;
+        $this->refundedAmount = $amount;
+        $this->recordedEvents[] = new PaymentRefunded($clock, $this->id, $this->auctionId, $amount, $reason);
+    }
+
+    /**
+     * The read-only half of `refund()`'s invariants (status must be
+     * `Captured`; amount positive, same currency, never exceeding the
+     * captured total) — deliberately callable without mutating anything,
+     * so `PaymentCaptureService::refund()` can validate a request
+     * *before* ever calling Stripe. An invalid request must never reach
+     * the external API.
+     *
+     * @throws IllegalStateTransition
+     * @throws InvalidRefundAmount
+     */
+    public function assertRefundable(Money $amount): void
+    {
+        $this->guardStatus(PaymentIntentStatus::Captured, 'refund');
+        $this->guardRefundAmount($amount);
+    }
+
+    public function refundedAmount(): ?Money
+    {
+        return $this->refundedAmount;
+    }
+
+    /**
+     * How much of the captured total has not been refunded — the full
+     * captured amount if nothing has been refunded yet, `amount` minus
+     * `refundedAmount` otherwise. This is how the remaining captured
+     * balance is represented after a partial refund: as a computed
+     * value, not a separately persisted field, since it is always
+     * exactly derivable from `amount` and `refundedAmount`.
+     */
+    public function remainingCapturedAmount(): Money
+    {
+        return $this->refundedAmount === null
+            ? $this->amount
+            : $this->amount->subtract($this->refundedAmount);
+    }
+
+    /**
      * @return list<DomainEvent>
      */
     public function releaseEvents(): array
@@ -277,6 +355,24 @@ final class PaymentIntent
     {
         if ($this->status !== $expected) {
             throw IllegalStateTransition::forPaymentIntent($this->id, $attemptedTransition, $this->status);
+        }
+    }
+
+    /**
+     * @throws InvalidRefundAmount
+     */
+    private function guardRefundAmount(Money $amount): void
+    {
+        if ($amount->isZero()) {
+            throw InvalidRefundAmount::mustBePositive($this->id);
+        }
+
+        if (! $amount->currency->equals($this->amount->currency)) {
+            throw InvalidRefundAmount::currencyMismatch($this->id, $amount->currency, $this->amount->currency);
+        }
+
+        if ($amount->isGreaterThan($this->amount)) {
+            throw InvalidRefundAmount::exceedsCapturedTotal($this->id, $amount, $this->amount);
         }
     }
 }

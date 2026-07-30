@@ -20,6 +20,9 @@ final class FakePaymentAuthorizationGateway implements PaymentAuthorizationGatew
     /** @var list<array{stripePaymentIntentId: string, reason: string}> */
     public array $cancelCalls = [];
 
+    /** @var list<array{stripePaymentIntentId: string, amount: Money, idempotencyKey: string}> */
+    public array $refundCalls = [];
+
     public AuthorizationAttempt $nextAttempt;
 
     public CaptureAttempt $nextCaptureAttempt;
@@ -58,6 +61,15 @@ final class FakePaymentAuthorizationGateway implements PaymentAuthorizationGatew
         $this->cancelCalls[] = [
             'stripePaymentIntentId' => $stripePaymentIntentId,
             'reason' => $reason,
+        ];
+    }
+
+    public function refund(string $stripePaymentIntentId, Money $amount, string $idempotencyKey): void
+    {
+        $this->refundCalls[] = [
+            'stripePaymentIntentId' => $stripePaymentIntentId,
+            'amount' => $amount,
+            'idempotencyKey' => $idempotencyKey,
         ];
     }
 }

@@ -14,16 +14,22 @@ use Stripe\StripeClient;
 
 /**
  * The only class in this package allowed to know the Stripe SDK's shape
- * for authorization, capture, and cancellation. Creates a manual-capture
- * PaymentIntent on RowBuddy's own platform Stripe account (ADR-016 §2 —
- * separate charges and transfers, no `transfer_data`, no seller Connect
- * account referenced).
+ * for authorization, capture, cancellation, and refund. Creates a
+ * manual-capture PaymentIntent on RowBuddy's own platform Stripe account
+ * (ADR-016 §2 — separate charges and transfers, no `transfer_data`, no
+ * seller Connect account referenced).
  *
  * Mirrors ADR-012 §1a's "expected rejection vs. unexpected failure"
  * distinction throughout: only {@see CardException} is caught for
  * `authorize()`, and only {@see InvalidRequestException} for `capture()`
  * (e.g. the authorization already expired Stripe-side) — the one
- * genuinely expected business rejection each call can produce. Every
+ * genuinely expected business rejection each call can produce. `refund()`
+ * follows `cancel()`'s posture instead, deliberately not modeling a
+ * "RefundFailed" state (ADR-022: avoid introducing extra lifecycle
+ * states unless strictly necessary) — this is called only after
+ * `PaymentIntent::refund()` has already validated the amount under lock,
+ * so any Stripe-side failure indicates a genuine inconsistency worth
+ * propagating loudly rather than converting to a domain state. Every
  * other Stripe exception is left to propagate uncaught, exactly like an
  * unexpected infrastructure failure elsewhere in this codebase.
  */
@@ -77,5 +83,16 @@ final class StripePaymentAuthorizationGateway implements PaymentAuthorizationGat
         // it. It is preserved in AuthorizationCancelled's own payload for
         // audit purposes instead.
         $this->client->paymentIntents->cancel($stripePaymentIntentId);
+    }
+
+    public function refund(string $stripePaymentIntentId, Money $amount, string $idempotencyKey): void
+    {
+        $this->client->refunds->create(
+            [
+                'payment_intent' => $stripePaymentIntentId,
+                'amount' => $amount->minorUnits,
+            ],
+            ['idempotency_key' => $idempotencyKey],
+        );
     }
 }

@@ -6,6 +6,7 @@ use RowBuddy\Payments\Application\PaymentCaptureService;
 use RowBuddy\Payments\Events\AuthorizationCancelled;
 use RowBuddy\Payments\Events\PaymentCaptured;
 use RowBuddy\Payments\Events\PaymentCaptureFailed;
+use RowBuddy\Payments\Events\PaymentRefunded;
 use RowBuddy\Payments\PaymentIntent;
 use RowBuddy\Payments\Tests\Fakes\FakePaymentAuthorizationGateway;
 use RowBuddy\Payments\Tests\Fakes\InMemoryPaymentIntentRepository;
@@ -136,4 +137,82 @@ it('throws NotFoundException when cancelling an auction with no PaymentIntent', 
     );
 
     expect(fn () => $service->cancel('auction-missing', 'reason'))->toThrow(NotFoundException::class);
+});
+
+it('refunds a captured payment intent and publishes PaymentRefunded', function () {
+    $paymentIntents = new InMemoryPaymentIntentRepository;
+    $paymentIntent = PaymentIntent::fromPersistence(
+        'payment-1', 'auction-1', 'bid-1', '101', '102', usd(11000), usd(1000), 'pi_stripe_123',
+        PaymentIntentStatus::Authorized, new DateTimeImmutable('2026-10-29 10:00:00'),
+    );
+    $paymentIntent->capture(new FrozenClock);
+    $paymentIntent->releaseEvents();
+    $paymentIntents->save($paymentIntent);
+    $gateway = new FakePaymentAuthorizationGateway;
+    $events = new RecordingDomainEventPublisher;
+    $service = new PaymentCaptureService($paymentIntents, $gateway, new RecordingTransactionManager, $events, new FrozenClock);
+
+    $service->refund('auction-1', 'dispute-1', usd(11000), 'buyer is correct');
+
+    expect($paymentIntents->findById('payment-1')->status())->toBe(PaymentIntentStatus::Refunded)
+        ->and($paymentIntents->findById('payment-1')->refundedAmount()->equals(usd(11000)))->toBeTrue()
+        ->and($gateway->refundCalls)->toHaveCount(1)
+        ->and($gateway->refundCalls[0]['stripePaymentIntentId'])->toBe('pi_stripe_123')
+        ->and($gateway->refundCalls[0]['amount']->equals(usd(11000)))->toBeTrue()
+        ->and($gateway->refundCalls[0]['idempotencyKey'])->toBe('payments.dispute_refund.auction-1.dispute-1')
+        ->and($events->published)->toHaveCount(1)
+        ->and($events->published[0])->toBeInstanceOf(PaymentRefunded::class);
+});
+
+it('is idempotent: refunding a payment intent that is not Captured never calls Stripe', function () {
+    $paymentIntents = new InMemoryPaymentIntentRepository;
+    $paymentIntents->save(PaymentIntent::fromPersistence(
+        'payment-1', 'auction-1', 'bid-1', '101', '102', usd(11000), usd(1000), 'pi_stripe_123',
+        PaymentIntentStatus::Authorized, new DateTimeImmutable('2026-10-29 10:00:00'),
+    ));
+    $gateway = new FakePaymentAuthorizationGateway;
+    $events = new RecordingDomainEventPublisher;
+    $service = new PaymentCaptureService($paymentIntents, $gateway, new RecordingTransactionManager, $events, new FrozenClock);
+
+    $service->refund('auction-1', 'dispute-1', usd(11000), 'reason');
+
+    expect($gateway->refundCalls)->toBe([])
+        ->and($events->published)->toBe([]);
+});
+
+it('is idempotent: retrying the same refund after it already succeeded only calls Stripe once', function () {
+    $paymentIntents = new InMemoryPaymentIntentRepository;
+    $paymentIntent = PaymentIntent::fromPersistence(
+        'payment-1', 'auction-1', 'bid-1', '101', '102', usd(11000), usd(1000), 'pi_stripe_123',
+        PaymentIntentStatus::Authorized, new DateTimeImmutable('2026-10-29 10:00:00'),
+    );
+    $paymentIntent->capture(new FrozenClock);
+    $paymentIntent->releaseEvents();
+    $paymentIntents->save($paymentIntent);
+    $gateway = new FakePaymentAuthorizationGateway;
+    $events = new RecordingDomainEventPublisher;
+    $service = new PaymentCaptureService($paymentIntents, $gateway, new RecordingTransactionManager, $events, new FrozenClock);
+
+    // Simulates a retried DisputeResolved delivery, or a caller retrying
+    // after a prior local failure downstream of an already-accepted
+    // Stripe call — the same logical operation invoked twice.
+    $service->refund('auction-1', 'dispute-1', usd(11000), 'buyer is correct');
+    $service->refund('auction-1', 'dispute-1', usd(11000), 'buyer is correct');
+
+    expect($gateway->refundCalls)->toHaveCount(1)
+        ->and($events->published)->toHaveCount(1)
+        ->and($paymentIntents->findById('payment-1')->status())->toBe(PaymentIntentStatus::Refunded)
+        ->and($paymentIntents->findById('payment-1')->refundedAmount()->equals(usd(11000)))->toBeTrue();
+});
+
+it('throws NotFoundException when refunding an auction with no PaymentIntent', function () {
+    $service = new PaymentCaptureService(
+        new InMemoryPaymentIntentRepository,
+        new FakePaymentAuthorizationGateway,
+        new RecordingTransactionManager,
+        new RecordingDomainEventPublisher,
+        new FrozenClock,
+    );
+
+    expect(fn () => $service->refund('auction-missing', 'dispute-1', usd(1000), 'reason'))->toThrow(NotFoundException::class);
 });
