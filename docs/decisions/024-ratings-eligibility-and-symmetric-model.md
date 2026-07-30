@@ -5,8 +5,13 @@
 Accepted (2026-07-30). All Phase 7 product decisions affecting Ratings
 (Decisions 2, 3, 4, 5, 6, and 8 of the Phase 7 decision set) are frozen
 and recorded below. Accepted together with ADR-025 (Notifications)
-after joint final architectural review. Decision 6's deferred
-implementation detail — the exact maximum comment length — was selected
+after joint final architectural review. **Amended (2026-07-30, during
+Sprint 4 planning):** §5's reveal-deadline anchor corrected from
+`Transfer.confirmedAt` to the rating's own `submittedAt`, to match the
+design Sprint 3 had already built and to correctly support ratings
+submitted long after confirmation — no other decision changed. Decision
+6's deferred implementation detail — the exact maximum comment length —
+was selected
 during Sprint 1 and is recorded there: 1,000 characters.
 
 ## Context
@@ -100,11 +105,26 @@ A submitted rating is persisted immediately, but stays hidden from the
 counterparty and from any public display until either:
 
 - both parties on the transfer have submitted a rating, or
-- a reveal deadline has elapsed, governed by a swappable
+- that rating's own reveal deadline has elapsed, governed by a swappable
   `RatingRevealDeadlinePolicy` (mirroring `DisputeFilingDeadlinePolicy`'s/
   `DisputeResponseDeadlinePolicy`'s identical shape) — the MVP default
-  implementation uses a fixed duration from the transfer's `Confirmed`
-  timestamp.
+  implementation uses a fixed duration computed from **the rating's own
+  `submittedAt`**, not from any transfer-level timestamp.
+
+This anchor is deliberate, not incidental: unlike Disputes' filing
+window, Ratings has no deadline on *submission* itself — a rating may be
+submitted whenever the transfer is `Confirmed`, however long after that
+status was reached. Anchoring the reveal deadline to `Transfer.confirmedAt`
+instead would mean a rating submitted long after confirmation could
+already be past its own transfer-level deadline the moment it's
+submitted, revealing instantly with no blind window at all — defeating
+the purpose for exactly the late-arriving ratings this system must still
+support. Anchoring to each rating's own `submittedAt` guarantees every
+rater a full blind window from the moment they act, regardless of how
+much time passed since confirmation or whether the counterpart ever
+rates at all. `Transfer.confirmedAt` is therefore not required by
+Ratings and is deliberately absent from `TransferParticipantSnapshot`
+(§7/Consequences) — it plays no role in this decision.
 
 This exists to prevent retaliatory rating — a party who could see the
 other's rating before submitting their own could shade their own score to
@@ -210,12 +230,17 @@ asymmetry is deliberate and is not itself a defect to reconcile later.
   — a uniqueness constraint mirroring every prior phase's identical
   discipline, not merely an application-layer check.
 - `Rating` persistence must distinguish "submitted" from "revealed" as a
-  computable read-time fact (both parties submitted, or the deadline per
+  computable read-time fact (either the counterpart rating exists, or
+  *this* rating's own `submittedAt`-anchored deadline per
   `RatingRevealDeadlinePolicy` has elapsed) rather than a value fixed at
   write time — no background job maintains it.
 - `packages/Ratings` gains a `RatingRevealDeadlinePolicy` contract with a
   fixed-duration MVP default, mirroring `DisputeFilingDeadlinePolicy`/
-  `DisputeResponseDeadlinePolicy`'s swappable-policy shape exactly.
+  `DisputeResponseDeadlinePolicy`'s swappable-policy shape exactly. The
+  policy computes a duration only — the anchor timestamp is always the
+  rating's own `submittedAt`, never a transfer-level timestamp.
+- `TransferParticipantSnapshot` (§7) correctly has no `confirmedAt`
+  field — Ratings' reveal computation never needs one.
 - No Horizon-scheduled job is introduced in Phase 7 for reveal; any
   proactive reveal-deadline notification is explicitly deferred to a
   later phase, should one require it.
