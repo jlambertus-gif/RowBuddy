@@ -10,6 +10,7 @@ use App\Infrastructure\EloquentPaymentRefundGateway;
 use App\Infrastructure\EloquentQueueGeofenceLookup;
 use App\Infrastructure\EloquentTransferCaseLookup;
 use App\Infrastructure\EloquentTransferGeofenceLookup;
+use App\Infrastructure\EloquentTransferParticipantLookup;
 use App\Infrastructure\EloquentWinningBidLookup;
 use App\Infrastructure\LaravelTransactionManager;
 use App\Infrastructure\LocalPrivateEvidenceStorage;
@@ -30,6 +31,7 @@ use RowBuddy\Disputes\Contracts\TransferCaseLookup;
 use RowBuddy\Payments\Contracts\TransactionManager as PaymentsTransactionManager;
 use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
 use RowBuddy\QueuePresence\Contracts\QueueGeofenceLookup;
+use RowBuddy\Ratings\Contracts\TransferParticipantLookup;
 use RowBuddy\SharedKernel\Contracts\AuditableAction;
 use RowBuddy\SharedKernel\Contracts\ClockInterface;
 use RowBuddy\SharedKernel\Support\SystemClock;
@@ -122,6 +124,12 @@ class AppServiceProvider extends ServiceProvider
         // EloquentPaymentRefundGateway's own docblock) — the
         // Disputes-to-Payments refund contract.
         $this->app->bind(PaymentRefundGateway::class, EloquentPaymentRefundGateway::class);
+
+        // Bridges Ratings -> Transfers (ADR-024 §2/§7; see
+        // EloquentTransferParticipantLookup's own docblock): a
+        // cross-module concern, so it's bound at the composition root,
+        // not inside either module's own provider.
+        $this->app->bind(TransferParticipantLookup::class, EloquentTransferParticipantLookup::class);
     }
 
     /**
