@@ -94,6 +94,31 @@
   re-authorization, and real Laravel event-listener wiring are all
   explicitly deferred. No HTTP, no frontend. See
   `docs/releases/phase-5-completion-report.md`.
+- **Disputes**: implemented, domain/backend scope only (Phase 6,
+  `packages/Disputes`) — the `Dispute` aggregate (`Opened → Resolved`,
+  terminal; a deliberate collapse of the original `opened`/
+  `under_review` product sketch, since no approved decision gates
+  behavior between them), with `attachEvidence()` guarded closed once
+  resolved (unlike `Transfer`'s status-independent evidence) and
+  `resolve()` enforcing outcome/refund-amount consistency across all
+  four resolution outcomes (ADR-021); `TransferCaseLookup`, the
+  Disputes-owned read port into Transfers, extending the "consumer owns
+  the port" pattern a fourth hop with zero new Transfers-side API
+  (ADR-021 §2); `DisputeFilingService` (buyer-only, `Confirmed`-only,
+  deadline-gated) and `DisputeResolutionService`/
+  `DisputeRefundTriggerService` — the event-driven reactor split applied
+  correctly from the start, unlike Phase 5's own mid-phase correction
+  (ADR-021 §6). Also extends `PaymentIntent` (Payments) again: a single
+  `Refunded` status regardless of amount, a persisted and
+  reconstructible `refundedAmount`, and computed
+  `remainingCapturedAmount()` (ADR-022) — backed by deterministic Stripe
+  idempotency keys and an explicit validate→call-Stripe→mutate→persist
+  execution order, this codebase's first explicit answer to "what if the
+  external call succeeds but the local commit fails." Chargeback
+  precedence/reconciliation, evidence retention/deletion, automated
+  resolution, and dispute-specific evidence submission are all
+  explicitly deferred (ADR-023). No HTTP, no frontend. See
+  `docs/releases/phase-6-completion-report.md`.
 - All other modules below: not started.
 
 ## Style

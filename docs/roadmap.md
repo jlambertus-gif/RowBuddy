@@ -350,10 +350,73 @@ scope narrowing Phases 3 and 4's closures already established. See
 
 ## Phase 6 — Disputes & Refunds
 
-Status: not started.
+Status: **done**. Tagged `v0.7.0-disputes`. Domain/backend scope formally
+accepted 2026-07-30.
+
+**Closure scope note**: all ten open Phase 6 product decisions were
+frozen individually, one at a time, before any ADR was drafted — a more
+granular process than any prior phase used. This produced three ADRs
+(021–023, all accepted): filing eligibility, both deadline policies, the
+terminal no-reopening lifecycle, manual-only administration, evidence
+immutability, and the fraudulent-evidence observation (ADR-021); the
+Disputes-to-Payments refund contract, extending `PaymentIntent` with a
+single `Refunded` status regardless of amount and no fee-specific domain
+behavior (ADR-022); and an explicit, documented deferral of Stripe
+chargeback precedence and reconciliation pending legal review (ADR-023).
+A financial-safety revision cycle during Sprint 5 added deterministic
+Stripe idempotency keys, an explicit validate→call-Stripe→mutate→persist
+execution order, and end-to-end duplicate-delivery idempotency
+validation, before that sprint was accepted. See
+`docs/releases/phase-6-completion-report.md` for the full report.
 
 Case management, evidence aggregation (read-only across contexts), refund
-orchestration delegated to Payments.
+orchestration delegated to Payments — delivered across 6 sprints in
+`packages/Disputes`:
+
+- `Dispute` aggregate: two statuses only (`Opened`, `Resolved`, terminal)
+  — a deliberate collapse of the original `opened`/`under_review`
+  product sketch, since no frozen decision gates behavior between them.
+  `attachEvidence()` guarded closed once resolved (unlike `Transfer`'s
+  status-independent evidence — "no reopening" would be meaningless
+  otherwise); `resolve()` enforces outcome/refund-amount consistency for
+  all four resolution outcomes.
+- `DisputeRepository` persistence, with a unique constraint on
+  `transfer_id` (one dispute per transfer) and a dedicated append-only
+  `dispute_evidence` table.
+- `TransferCaseLookup`, the Disputes-owned read port into Transfers
+  (mirroring `TransferGeofenceLookup`'s "consumer owns the port" shape a
+  fourth hop), requiring zero new Transfers-side API.
+- `DisputeFilingService` (buyer-only, `Confirmed`-only, deadline-gated,
+  hard-rejects a second filing rather than idempotent-replaying) and
+  `DisputeResolutionService`/`DisputeRefundTriggerService` — the
+  corrected event-driven reactor split (validation/mutation/persistence/
+  publication only vs. the real `DisputeResolved` consumer) applied
+  correctly from the start, unlike Phase 5's own mid-phase correction.
+- `PaymentIntent`'s lifecycle extended again (Payments): a single
+  `Refunded` status regardless of whether the amount is full or partial,
+  a persisted and reconstructible `refundedAmount`, and a computed
+  `remainingCapturedAmount()` — the refunded/remainder distinction is
+  never lost despite `Refunded` staying the only lifecycle state.
+  `PaymentCaptureService` gained a third operation (`refund()`) rather
+  than a new service class.
+- Deterministic Stripe idempotency keys (derived from `auctionId` +
+  `disputeId`) and an explicit validate→call-Stripe→mutate→persist
+  execution order — this codebase's first explicit answer to "what if
+  the external call succeeds but the local commit fails," proven by an
+  end-to-end test invoking the real refund-trigger chain twice.
+- 570 automated tests total (45 new in `packages/Disputes`, 93 in
+  `packages/Payments`, was 77 at Phase 5 close), Larastan and Pint clean.
+
+Exit criteria: a buyer can file a dispute against a confirmed handoff, a
+seller can respond with counter-evidence, an administrator can resolve
+the case to one of four outcomes, and a refund or split outcome executes
+a real, idempotent Stripe refund — **met**, at the backend/domain level.
+No HTTP, no admin UI, no automated resolution, no chargeback
+reconciliation, no evidence retention, and no dispute-specific evidence
+submission mechanism exist yet — each deferred for a documented reason,
+the same kind of scope narrowing every prior phase's closure has already
+established. See `docs/releases/phase-6-completion-report.md` for the
+full report.
 
 ## Phase 7 — Ratings & Notifications
 

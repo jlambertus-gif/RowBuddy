@@ -144,11 +144,12 @@ For each task:
 ## Repository status
 
 Phase 0 (Foundations), Phase 1 (Catalog), Phase 2 (Presence & Trust),
-Phase 3 (Auctions & Bids), Phase 4 (Payments), and Phase 5 (Transfers)
-are complete and formally accepted — tagged `v0.1.0-foundation`,
-`v0.2.0-catalog`, `v0.3.0-presence`, `v0.4.0-auctions`, `v0.5.0-payments`,
-and `v0.6.0-transfers`. Phase 3's, Phase 4's, and Phase 5's acceptance
-all cover the domain/backend scope only.
+Phase 3 (Auctions & Bids), Phase 4 (Payments), Phase 5 (Transfers), and
+Phase 6 (Disputes) are complete and formally accepted — tagged
+`v0.1.0-foundation`, `v0.2.0-catalog`, `v0.3.0-presence`,
+`v0.4.0-auctions`, `v0.5.0-payments`, `v0.6.0-transfers`, and
+`v0.7.0-disputes`. Phase 3's, Phase 4's, Phase 5's, and Phase 6's
+acceptance all cover the domain/backend scope only.
 
 Phase 4 delivered, in `packages/Payments`: Stripe Connect Express seller
 onboarding (Sprint 3); buyer payment authorization on auction win via the
@@ -186,21 +187,50 @@ Stripe's own expiry, and real Laravel event-listener wiring for any
 cross-module reaction are all explicitly deferred. See
 `docs/releases/phase-5-completion-report.md` for the full report.
 
+Phase 6 delivered, in `packages/Disputes`: the `Dispute` aggregate
+(`Opened → Resolved`, terminal — a deliberate two-state collapse of the
+original `opened`/`under_review` product sketch, since no approved
+decision gates behavior between them), buyer-only filing against a
+`Confirmed`-only transfer within a swappable filing-deadline window, and
+manual-only admin resolution to one of four outcomes (release to seller,
+refund to buyer, split, cancellation) — Disputes executes an
+administrator's explicit choice, it never decides one itself (ADR-021).
+`TransferCaseLookup` extends the "consumer owns the port" pattern a
+fourth hop into Transfers with zero new Transfers-side API. The
+event-driven reactor split (`DisputeResolutionService` mutates/persists/
+publishes only; `DisputeRefundTriggerService` is the real `DisputeResolved`
+consumer) was applied correctly from the start, unlike Phase 5's own
+mid-phase correction. `PaymentIntent` (Payments) gained a further
+lifecycle extension: a single `Refunded` status regardless of whether the
+amount is full or partial, a persisted and reconstructible
+`refundedAmount`, and computed `remainingCapturedAmount()` — backed by
+deterministic Stripe idempotency keys and an explicit
+validate→call-Stripe→mutate→persist execution order (ADR-022), this
+codebase's first explicit answer to "what if the external call succeeds
+but the local commit fails." Real Stripe chargeback precedence/
+reconciliation, evidence retention/deletion, any automated or
+rules-based resolution, and dispute-specific evidence submission are all
+explicitly deferred (ADR-023). See
+`docs/releases/phase-6-completion-report.md` for the full report.
+
 By deliberate decision, HTTP, frontend, Reverb, and a manual browser
 acceptance test were deferred to a later delivery-layer phase rather than
 required for Phase 3's closure — a departure from Phases 1 and 2's
-closure bar — and Phases 4 and 5 follow the same posture, with one
+closure bar — and Phases 4, 5, and 6 follow the same posture, with one
 exception: Phase 4 Sprint 5 introduced a real HTTP endpoint
 (`POST /webhooks/stripe`) since receiving Stripe webhooks genuinely
-requires one; Phase 5 required no new HTTP surface at all. See
+requires one; Phases 5 and 6 required no new HTTP surface at all. See
 `docs/releases/phase-3-completion-report.md`,
-`docs/releases/phase-4-completion-report.md`, and
-`docs/releases/phase-5-completion-report.md` for the full reports and
-rationale. Phase 6 (Disputes) implementation must not begin until
-explicitly authorized. See `docs/roadmap.md` for the phase plan and
-sprint progress, and `docs/releases/phase-1-completion-report.md` /
+`docs/releases/phase-4-completion-report.md`,
+`docs/releases/phase-5-completion-report.md`, and
+`docs/releases/phase-6-completion-report.md` for the full reports and
+rationale. Phase 7 (Ratings & Notifications) implementation must not
+begin until a separate architecture review and planning session is
+completed. See `docs/roadmap.md` for the phase plan and sprint progress,
+and `docs/releases/phase-1-completion-report.md` /
 `docs/releases/phase-2-completion-report.md` /
 `docs/releases/phase-3-completion-report.md` /
 `docs/releases/phase-4-completion-report.md` /
-`docs/releases/phase-5-completion-report.md` for the completion reports of
+`docs/releases/phase-5-completion-report.md` /
+`docs/releases/phase-6-completion-report.md` for the completion reports of
 the closed phases.
