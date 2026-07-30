@@ -11,4 +11,5 @@ return [
     RowBuddy\Payments\Infrastructure\PaymentsServiceProvider::class,
     RowBuddy\Transfers\Infrastructure\TransfersServiceProvider::class,
     RowBuddy\Disputes\Infrastructure\DisputesServiceProvider::class,
+    RowBuddy\Ratings\Infrastructure\RatingsServiceProvider::class,
 ];

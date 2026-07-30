@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "da14c5bd67d33b9be2a2a2558f013d39",
+    "content-hash": "0b2e977a07c6f52877fda860dd6eb56a",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -5406,6 +5406,56 @@
                 "proprietary"
             ],
             "description": "Queues bounded context: queue definitions, the pending/approved/published/rejected authorship lifecycle (ADR-005), and jurisdiction/restricted-category gating.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "rowbuddy/ratings",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../../packages/Ratings",
+                "reference": "76889f0100d96465e19aa9b81281f35c8370778c"
+            },
+            "require": {
+                "illuminate/database": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2",
+                "rowbuddy/shared-kernel": "@dev"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.18",
+                "pestphp/pest": "^3.0",
+                "phpstan/phpstan": "^1.12"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "RowBuddy\\Ratings\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "RowBuddy\\Ratings\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "lint": [
+                    "pint --test"
+                ],
+                "stan": [
+                    "phpstan analyse"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Ratings bounded context: symmetric, double-blind, post-transfer handoff ratings between buyer and seller (Phase 7, ADR-024).",
             "transport-options": {
                 "symlink": true,
                 "relative": true
@@ -12279,6 +12329,7 @@
         "rowbuddy/payments": 20,
         "rowbuddy/queue-presence": 20,
         "rowbuddy/queues": 20,
+        "rowbuddy/ratings": 20,
         "rowbuddy/shared-kernel": 20,
         "rowbuddy/transfers": 20
     },

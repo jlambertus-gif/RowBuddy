@@ -61,6 +61,13 @@
             "options": {
                 "symlink": true
             }
+        },
+        {
+            "type": "path",
+            "url": "../../packages/Ratings",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
@@ -78,6 +85,7 @@
         "rowbuddy/payments": "@dev",
         "rowbuddy/queue-presence": "@dev",
         "rowbuddy/queues": "@dev",
+        "rowbuddy/ratings": "@dev",
         "rowbuddy/shared-kernel": "@dev",
         "rowbuddy/transfers": "@dev"
     },
