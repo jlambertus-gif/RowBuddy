@@ -8,8 +8,10 @@ use Illuminate\Contracts\Config\Repository;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\ServiceProvider;
 use RowBuddy\Disputes\Application\FixedDisputeFilingDeadlinePolicy;
+use RowBuddy\Disputes\Application\FixedDisputeResponseDeadlinePolicy;
 use RowBuddy\Disputes\Contracts\DisputeFilingDeadlinePolicy;
 use RowBuddy\Disputes\Contracts\DisputeRepository;
+use RowBuddy\Disputes\Contracts\DisputeResponseDeadlinePolicy;
 use RowBuddy\Disputes\Contracts\DomainEventPublisher;
 use RowBuddy\Disputes\Infrastructure\Eloquent\EloquentDisputeRepository;
 use RowBuddy\Disputes\Infrastructure\Events\LaravelDomainEventPublisher;
@@ -35,6 +37,16 @@ final class DisputesServiceProvider extends ServiceProvider
             $days = (int) $config->get('disputes.filing_window_days', 7);
 
             return new FixedDisputeFilingDeadlinePolicy($days * 86400);
+        });
+
+        // Same provisional-MVP-configuration posture as the filing
+        // deadline above (ADR-021 §4) — independent of, and shorter
+        // than, the filing window.
+        $this->app->bind(DisputeResponseDeadlinePolicy::class, function ($app) {
+            $config = $app->make(Repository::class);
+            $days = (int) $config->get('disputes.response_window_days', 5);
+
+            return new FixedDisputeResponseDeadlinePolicy($days * 86400);
         });
     }
 
