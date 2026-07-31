@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -65,6 +66,11 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
+            // ADR-027 Decision 5: structured JSON output so logs are
+            // queryable/aggregable without introducing a new logging
+            // dependency — Monolog's own JsonFormatter, already a
+            // transitive Laravel dependency.
+            'formatter' => JsonFormatter::class,
         ],
 
         'daily' => [

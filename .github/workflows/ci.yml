@@ -24,6 +24,82 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
 
+      - name: Composer audit (known-vulnerability scan)
+        run: composer audit
+
+      - name: Pint (style)
+        run: vendor/bin/pint --test
+
+      - name: PHPStan (static analysis)
+        run: vendor/bin/phpstan analyse
+
+      - name: Pest (tests)
+        run: vendor/bin/pest
+
+  # ADR-027 Decision 4: every bounded-context package now executes its
+  # own test suite in CI, not only indirectly through apps/web's wiring
+  # tests. Postgres uses the same postgis/postgis image and rowbuddy/
+  # rowbuddy/rowbuddy credentials as docker-compose.yml, so each
+  # package's own real-Postgres integration tests (Queues' PostGIS
+  # tests, Bids'/Auctions'/Transfers' row-lock concurrency tests) run
+  # for real here instead of skipping — those tests self-bootstrap their
+  # own throwaway rowbuddy_test database and gracefully skip only if no
+  # connection is reachable at all.
+  packages:
+    name: ${{ matrix.package }} (lint, static analysis, tests)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - Queues
+          - QueuePresence
+          - Auctions
+          - Bids
+          - Payments
+          - Transfers
+          - Disputes
+          - Ratings
+          - Notifications
+          - Administration
+    defaults:
+      run:
+        working-directory: packages/${{ matrix.package }}
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: rowbuddy
+          POSTGRES_USER: rowbuddy
+          POSTGRES_PASSWORD: rowbuddy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U rowbuddy"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USERNAME: rowbuddy
+      DB_PASSWORD: rowbuddy
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_pgsql, redis, intl, bcmath, gd, zip
+          tools: composer:v2
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Composer audit (known-vulnerability scan)
+        run: composer audit
+
       - name: Pint (style)
         run: vendor/bin/pint --test
 
@@ -80,6 +156,9 @@ jobs:
 
       - name: Install PHP dependencies (includes packages/shared-kernel via path repository)
         run: composer install --no-interaction --prefer-dist
+
+      - name: Composer audit (known-vulnerability scan)
+        run: composer audit
 
       - name: Install frontend dependencies
         run: npm ci

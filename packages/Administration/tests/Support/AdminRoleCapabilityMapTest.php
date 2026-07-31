@@ -29,6 +29,7 @@ it('returns the full capability list for a role', function () {
             AdminCapability::RestrictionsModerate,
             AdminCapability::DisputesReview,
             AdminCapability::AuditView,
+            AdminCapability::HorizonView,
         ]);
 });
 
@@ -51,4 +52,11 @@ it('grants audit.view to the Administrator role only', function () {
 
     expect($map->roleGrants(AdminRole::Administrator, AdminCapability::AuditView))->toBeTrue()
         ->and($map->roleGrants(AdminRole::Moderator, AdminCapability::AuditView))->toBeFalse();
+});
+
+it('grants horizon.view to the Administrator role only', function () {
+    $map = new AdminRoleCapabilityMap;
+
+    expect($map->roleGrants(AdminRole::Administrator, AdminCapability::HorizonView))->toBeTrue()
+        ->and($map->roleGrants(AdminRole::Moderator, AdminCapability::HorizonView))->toBeFalse();
 });

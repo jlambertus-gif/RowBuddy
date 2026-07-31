@@ -1,0 +1,116 @@
+# ADR-027 Decision 4: automated dependency-vulnerability tracking,
+# enabled as configuration only, not new tooling infrastructure. One
+# entry per Composer package directory (this repo has no top-level
+# composer.json — each bounded-context package and apps/web manages its
+# own dependencies independently), plus apps/web's npm dependencies and
+# this workflow directory's own GitHub Actions versions.
+version: 2
+updates:
+  - package-ecosystem: composer
+    directory: /packages/shared-kernel
+    schedule:
+      interval: weekly
+    groups:
+      shared-kernel-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: composer
+    directory: /packages/Queues
+    schedule:
+      interval: weekly
+    groups:
+      queues-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: composer
+    directory: /packages/QueuePresence
+    schedule:
+      interval: weekly
+    groups:
+      queue-presence-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: composer
+    directory: /packages/Auctions
+    schedule:
+      interval: weekly
+    groups:
+      auctions-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: composer
+    directory: /packages/Bids
+    schedule:
+      interval: weekly
+    groups:
+      bids-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: composer
+    directory: /packages/Payments
+    schedule:
+      interval: weekly
+    groups:
+      payments-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: composer
+    directory: /packages/Transfers
+    schedule:
+      interval: weekly
+    groups:
+      transfers-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: composer
+    directory: /packages/Disputes
+    schedule:
+      interval: weekly
+    groups:
+      disputes-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: composer
+    directory: /packages/Ratings
+    schedule:
+      interval: weekly
+    groups:
+      ratings-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: composer
+    directory: /packages/Notifications
+    schedule:
+      interval: weekly
+    groups:
+      notifications-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: composer
+    directory: /packages/Administration
+    schedule:
+      interval: weekly
+    groups:
+      administration-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: composer
+    directory: /apps/web
+    schedule:
+      interval: weekly
+    groups:
+      web-composer-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: npm
+    directory: /apps/web
+    schedule:
+      interval: weekly
+    groups:
+      web-npm-dependencies:
+        patterns: ['*']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

@@ -70,6 +70,48 @@ it('grants the audit.view capability to an Administrator', function () {
     expect(Gate::forUser($user)->allows(AdminCapability::AuditView->value))->toBeTrue();
 });
 
+it('denies the horizon.view capability for a user with no role assigned', function () {
+    $user = User::factory()->create();
+
+    expect(Gate::forUser($user)->allows(AdminCapability::HorizonView->value))->toBeFalse();
+});
+
+it('denies the horizon.view capability for a Moderator, per ADR-027 Decision 5', function () {
+    $user = User::factory()->create();
+
+    app(AdminRoleAssignmentRepository::class)->assignRole((string) $user->id, AdminRole::Moderator, null);
+
+    expect(Gate::forUser($user)->allows(AdminCapability::HorizonView->value))->toBeFalse();
+});
+
+it('grants the horizon.view capability to an Administrator', function () {
+    $user = User::factory()->create();
+
+    app(AdminRoleAssignmentRepository::class)->assignRole((string) $user->id, AdminRole::Administrator, null);
+
+    expect(Gate::forUser($user)->allows(AdminCapability::HorizonView->value))->toBeTrue();
+});
+
+it('denies Horizon dashboard access (the real viewHorizon gate) for a guest', function () {
+    expect(Gate::forUser(null)->allows('viewHorizon'))->toBeFalse();
+});
+
+it('denies Horizon dashboard access (the real viewHorizon gate) for a Moderator', function () {
+    $user = User::factory()->create();
+
+    app(AdminRoleAssignmentRepository::class)->assignRole((string) $user->id, AdminRole::Moderator, null);
+
+    expect(Gate::forUser($user)->allows('viewHorizon'))->toBeFalse();
+});
+
+it('grants Horizon dashboard access (the real viewHorizon gate) for an Administrator', function () {
+    $user = User::factory()->create();
+
+    app(AdminRoleAssignmentRepository::class)->assignRole((string) $user->id, AdminRole::Administrator, null);
+
+    expect(Gate::forUser($user)->allows('viewHorizon'))->toBeTrue();
+});
+
 it('assigns a role end-to-end through the documented engineering console command', function () {
     $user = User::factory()->create(['email' => 'future-admin@example.com']);
 

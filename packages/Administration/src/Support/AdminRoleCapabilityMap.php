@@ -22,9 +22,14 @@ use RowBuddy\Administration\ValueObjects\AdminRole;
  * correction risk, and — corrected before Sprint 5 committed — even a
  * purely read-only capability like `audit.view` is still sensitive
  * access, since the generic audit log can surface account, payment,
- * dispute, geolocation, and free-text business information. No Phase 8
- * product decision has granted `Moderator` anything beyond the routine
- * queue-moderation capability Sprint 1 introduced.
+ * dispute, geolocation, and free-text business information. Phase 9
+ * Sprint 1 (ADR-027 Decision 5) follows the same reasoning for
+ * `horizon.view`: Horizon's own dashboard surfaces job payloads across
+ * every queue in the system, a strictly broader (and more
+ * operationally sensitive) view than the audit log's own allowlisted
+ * one. No Phase 8 or Phase 9 product decision has granted `Moderator`
+ * anything beyond the routine queue-moderation capability Sprint 1
+ * introduced.
  */
 final class AdminRoleCapabilityMap
 {
@@ -40,6 +45,7 @@ final class AdminRoleCapabilityMap
             AdminCapability::RestrictionsModerate,
             AdminCapability::DisputesReview,
             AdminCapability::AuditView,
+            AdminCapability::HorizonView,
         ],
     ];
 

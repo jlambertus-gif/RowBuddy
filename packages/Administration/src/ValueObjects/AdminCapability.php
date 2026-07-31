@@ -19,4 +19,5 @@ enum AdminCapability: string
     case RestrictionsModerate = 'restrictions.moderate';
     case DisputesReview = 'disputes.review';
     case AuditView = 'audit.view';
+    case HorizonView = 'horizon.view';
 }
