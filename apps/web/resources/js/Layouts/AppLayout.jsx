@@ -5,8 +5,10 @@ export default function AppLayout({ title, children }) {
     const { auth } = usePage().props;
     const { t: tCommon } = useTranslation('common');
     const { t: tQueues } = useTranslation('queues');
+    const { t: tDisputes } = useTranslation('disputes');
     const user = auth?.user;
     const isAdmin = Boolean(user?.is_admin);
+    const canReviewDisputes = Boolean(user?.can_review_disputes);
 
     return (
         <>
@@ -51,6 +53,15 @@ export default function AppLayout({ title, children }) {
                                     className="hover:text-sky-400"
                                 >
                                     {tQueues('nav.moderate')}
+                                </Link>
+                            )}
+
+                            {canReviewDisputes && (
+                                <Link
+                                    href="/admin/disputes/review"
+                                    className="hover:text-sky-400"
+                                >
+                                    {tDisputes('nav.review')}
                                 </Link>
                             )}
 

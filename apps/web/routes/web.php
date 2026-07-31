@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Http\Controllers\ApproveQueueController;
 use App\Http\Controllers\DiscoverQueuesController;
+use App\Http\Controllers\DisputeReviewController;
 use App\Http\Controllers\EndPresenceSessionController;
 use App\Http\Controllers\PendingQueuesController;
 use App\Http\Controllers\PublishQueueController;
 use App\Http\Controllers\QueueSubmissionController;
+use App\Http\Controllers\RecordDisputeCorrectionController;
 use App\Http\Controllers\RecordGpsPingController;
 use App\Http\Controllers\RejectQueueController;
 use App\Http\Controllers\ShowEvidencePhotoUrlController;
@@ -63,5 +65,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/queues/{queueId}/approve', ApproveQueueController::class)->name('queues.approve');
         Route::post('/queues/{queueId}/reject', RejectQueueController::class)->name('queues.reject');
         Route::post('/queues/{queueId}/publish', PublishQueueController::class)->name('queues.publish');
+    });
+
+    Route::middleware('can:disputes.review')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/disputes', DisputeReviewController::class)->name('disputes.index');
+        Route::get('/disputes/review', function () {
+            return Inertia::render('Admin/DisputeReview');
+        })->name('disputes.review-page');
+        Route::post('/disputes/{disputeId}/corrections', RecordDisputeCorrectionController::class)->name('disputes.corrections.store');
     });
 });

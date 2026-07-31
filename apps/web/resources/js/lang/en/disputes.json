@@ -1,0 +1,28 @@
+{
+    "nav": {
+        "review": "Review disputes"
+    },
+    "review": {
+        "title": "Dispute review",
+        "subtitle": "Review any dispute, its evidence, and its history. Recording a correction never reopens or changes the original resolution.",
+        "loading": "Loading disputes…",
+        "load_error": "Could not load disputes.",
+        "empty": "There are no disputes to review right now.",
+        "status": {
+            "opened": "Opened",
+            "resolved": "Resolved"
+        },
+        "resolution_outcome": "Resolution outcome",
+        "refund_amount": "Refund amount",
+        "resolution_notes": "Resolution notes",
+        "evidence": "Evidence",
+        "evidence_type": {
+            "photo": "Photo",
+            "written_statement": "Written statement"
+        },
+        "photo_not_viewable": "Photo evidence viewing is not yet available in this admin surface.",
+        "note_placeholder": "Correction note (decision, note, or referral for the record)",
+        "note_required": "A note is required to record a correction.",
+        "record_correction": "Record correction"
+    }
+}

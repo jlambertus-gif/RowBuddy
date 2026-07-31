@@ -53,4 +53,13 @@ final class InMemoryDisputeRepository implements DisputeRepository
     {
         return $this->findById($id);
     }
+
+    public function findAll(): array
+    {
+        $disputes = array_values($this->saved);
+
+        usort($disputes, static fn (Dispute $a, Dispute $b): int => $b->openedAt <=> $a->openedAt);
+
+        return $disputes;
+    }
 }

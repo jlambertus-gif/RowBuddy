@@ -19,4 +19,5 @@ enum AdministrativeActionType: string
     case RestrictedCategoryDeactivated = 'restricted_category_deactivated';
     case JurisdictionRuleActivated = 'jurisdiction_rule_activated';
     case JurisdictionRuleDeactivated = 'jurisdiction_rule_deactivated';
+    case DisputeCorrectionRecorded = 'dispute_correction_recorded';
 }

@@ -15,12 +15,14 @@ use RowBuddy\Administration\ValueObjects\AdminRole;
  *
  * Sprint 1 introduced only `queues.moderate`, granted to both roles
  * equally, with nothing yet to differentiate `Moderator` from
- * `Administrator`. Sprint 3 (ADR-026 §5) is the first capability
+ * `Administrator`. Sprint 3 (ADR-026 §5) was the first capability
  * granted to `Administrator` only: restricted-category/jurisdiction-
  * rule administration is a legal/compliance-sensitive operational
- * lever, a stronger capability than routine queue moderation — exactly
- * the differentiation this separate map exists to express without
- * touching `AdminRole` itself.
+ * lever, a stronger capability than routine queue moderation. Sprint 4
+ * (ADR-026 §3) follows the same reasoning: dispute case/evidence review
+ * and administrative corrections are `Administrator`-only as well —
+ * exactly the differentiation this separate map exists to express
+ * without touching `AdminRole` itself.
  */
 final class AdminRoleCapabilityMap
 {
@@ -34,6 +36,7 @@ final class AdminRoleCapabilityMap
         'administrator' => [
             AdminCapability::QueuesModerate,
             AdminCapability::RestrictionsModerate,
+            AdminCapability::DisputesReview,
         ],
     ];
 

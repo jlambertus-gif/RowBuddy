@@ -1,0 +1,28 @@
+{
+    "nav": {
+        "review": "Revisar disputas"
+    },
+    "review": {
+        "title": "Revisión de disputas",
+        "subtitle": "Revisa cualquier disputa, su evidencia y su historial. Registrar una corrección nunca reabre ni cambia la resolución original.",
+        "loading": "Cargando disputas…",
+        "load_error": "No se pudieron cargar las disputas.",
+        "empty": "No hay disputas para revisar en este momento.",
+        "status": {
+            "opened": "Abierta",
+            "resolved": "Resuelta"
+        },
+        "resolution_outcome": "Resultado de la resolución",
+        "refund_amount": "Monto del reembolso",
+        "resolution_notes": "Notas de la resolución",
+        "evidence": "Evidencia",
+        "evidence_type": {
+            "photo": "Foto",
+            "written_statement": "Declaración escrita"
+        },
+        "photo_not_viewable": "La visualización de evidencia fotográfica aún no está disponible en esta interfaz administrativa.",
+        "note_placeholder": "Nota de corrección (decisión, nota o referencia para el registro)",
+        "note_required": "Se requiere una nota para registrar una corrección.",
+        "record_correction": "Registrar corrección"
+    }
+}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RowBuddy\Disputes\Infrastructure\Eloquent;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use RowBuddy\Disputes\Contracts\DisputeRepository;
 use RowBuddy\Disputes\Dispute;
@@ -96,6 +97,14 @@ final class EloquentDisputeRepository implements DisputeRepository
         }
 
         return $this->toDomain($model);
+    }
+
+    public function findAll(): array
+    {
+        /** @var Collection<int, DisputeModel> $models */
+        $models = DisputeModel::query()->orderByDesc('opened_at')->get();
+
+        return array_map($this->toDomain(...), $models->all());
     }
 
     private function toDomain(DisputeModel $model): Dispute

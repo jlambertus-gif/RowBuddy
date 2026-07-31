@@ -17,4 +17,5 @@ enum AdminCapability: string
 {
     case QueuesModerate = 'queues.moderate';
     case RestrictionsModerate = 'restrictions.moderate';
+    case DisputesReview = 'disputes.review';
 }

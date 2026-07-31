@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Infrastructure\BidsAccountStandingLookup;
 use App\Infrastructure\EloquentAuctionGateway;
+use App\Infrastructure\EloquentDisputeCaseLookup;
 use App\Infrastructure\EloquentDisputeParticipantLookup;
 use App\Infrastructure\EloquentNotificationTransferParticipantLookup;
 use App\Infrastructure\EloquentPaymentCaptureGateway;
@@ -29,6 +30,7 @@ use App\Infrastructure\RestrictedCategoryActivationAdapter;
 use App\Listeners\RecordAuditEvent;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use RowBuddy\Administration\Contracts\DisputeCaseLookup;
 use RowBuddy\Administration\Contracts\JurisdictionRuleActivationGateway;
 use RowBuddy\Administration\Contracts\RestrictedCategoryActivationGateway;
 use RowBuddy\Auctions\Contracts\SellerPresenceVerification;
@@ -194,6 +196,12 @@ class AppServiceProvider extends ServiceProvider
         // by writing to Queues' tables directly.
         $this->app->bind(RestrictedCategoryActivationGateway::class, RestrictedCategoryActivationAdapter::class);
         $this->app->bind(JurisdictionRuleActivationGateway::class, JurisdictionRuleActivationAdapter::class);
+
+        // Bridges Administration -> Disputes (ADR-026 §3; see
+        // EloquentDisputeCaseLookup's own docblock): Administration's
+        // dispute-review read model, never a change to Disputes' own
+        // aggregate or state machine.
+        $this->app->bind(DisputeCaseLookup::class, EloquentDisputeCaseLookup::class);
     }
 
     /**

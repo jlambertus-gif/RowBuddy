@@ -45,6 +45,11 @@ class HandleInertiaRequests extends Middleware
                     // frontend's own contract (this prop name) is
                     // deliberately unchanged.
                     'is_admin' => Gate::forUser($request->user())->allows(AdminCapability::QueuesModerate->value),
+                    // Sprint 4 (ADR-026 §3): a dedicated capability check,
+                    // not folded into is_admin above — dispute review is a
+                    // distinct capability from queue moderation, not a
+                    // generic "is this user any kind of admin" flag.
+                    'can_review_disputes' => Gate::forUser($request->user())->allows(AdminCapability::DisputesReview->value),
                 ],
             ],
 

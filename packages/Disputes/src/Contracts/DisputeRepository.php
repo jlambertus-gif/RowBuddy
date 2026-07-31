@@ -39,4 +39,14 @@ interface DisputeRepository
      * inside a transaction; this method does not open one itself.
      */
     public function findByIdForUpdate(string $id): ?Dispute;
+
+    /**
+     * Every dispute, most recently opened first — the read-side listing
+     * ADR-026 §3's Administration dispute-review capability needs
+     * (Phase 8 Sprint 4). A pure read addition: no new state, no new
+     * transition, nothing about {@see Dispute}'s own lifecycle changes.
+     *
+     * @return list<Dispute>
+     */
+    public function findAll(): array;
 }

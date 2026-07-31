@@ -144,6 +144,22 @@ it('locks and finds a dispute via findByIdForUpdate', function () {
     expect($found)->not->toBeNull()->and($found->id)->toBe('dispute-1');
 });
 
+it('finds every dispute, most recently opened first', function () {
+    $repository = new EloquentDisputeRepository;
+    $repository->save(Dispute::open('dispute-1', 'transfer-1', 'auction-1', '101', '102', 'reason', new FrozenClock(new DateTimeImmutable('2026-08-01 00:00:00'))));
+    $repository->save(Dispute::open('dispute-2', 'transfer-2', 'auction-2', '103', '104', 'reason', new FrozenClock(new DateTimeImmutable('2026-08-03 00:00:00'))));
+    $repository->save(Dispute::open('dispute-3', 'transfer-3', 'auction-3', '105', '106', 'reason', new FrozenClock(new DateTimeImmutable('2026-08-02 00:00:00'))));
+
+    $all = $repository->findAll();
+
+    expect($all)->toHaveCount(3)
+        ->and(array_map(fn (Dispute $d): string => $d->id, $all))->toBe(['dispute-2', 'dispute-3', 'dispute-1']);
+});
+
+it('returns an empty list when no disputes exist', function () {
+    expect((new EloquentDisputeRepository)->findAll())->toBe([]);
+});
+
 it('records evidence and returns it in submission order when finding the dispute', function () {
     $repository = new EloquentDisputeRepository;
     $dispute = Dispute::open('dispute-1', 'transfer-1', 'auction-1', '101', '102', 'reason', new FrozenClock);
