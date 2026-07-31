@@ -145,15 +145,16 @@ For each task:
 
 Phase 0 (Foundations), Phase 1 (Catalog), Phase 2 (Presence & Trust),
 Phase 3 (Auctions & Bids), Phase 4 (Payments), Phase 5 (Transfers),
-Phase 6 (Disputes), and Phase 7 (Ratings & Notifications) are complete
-and formally accepted — tagged `v0.1.0-foundation`, `v0.2.0-catalog`,
-`v0.3.0-presence`, `v0.4.0-auctions`, `v0.5.0-payments`,
-`v0.6.0-transfers`, `v0.7.0-disputes`, and
-`v0.8.0-ratings-notifications`. Phase 3's, Phase 4's, Phase 5's, and
-Phase 6's acceptance all cover the domain/backend scope only; Phase 7's
-acceptance covers domain/backend scope for Ratings and full end-to-end
-scope (a real, operating delivery channel) for Notifications — see
-below.
+Phase 6 (Disputes), Phase 7 (Ratings & Notifications), and Phase 8
+(Administration & Fraud/Risk v1) are complete and formally accepted —
+tagged `v0.1.0-foundation`, `v0.2.0-catalog`, `v0.3.0-presence`,
+`v0.4.0-auctions`, `v0.5.0-payments`, `v0.6.0-transfers`,
+`v0.7.0-disputes`, `v0.8.0-ratings-notifications`, and
+`v0.9.0-administration`. Phase 3's, Phase 4's, Phase 5's, and Phase 6's
+acceptance all cover the domain/backend scope only; Phase 7's acceptance
+covers domain/backend scope for Ratings and full end-to-end scope (a
+real, operating delivery channel) for Notifications; Phase 8's
+acceptance covers real, operating HTTP/UI scope throughout — see below.
 
 Phase 4 delivered, in `packages/Payments`: Stripe Connect Express seller
 onboarding (Sprint 3); buyer payment authorization on auction win via the
@@ -248,22 +249,58 @@ close — two deliberately different exit bars, decided explicitly
 (ADR-024 §7/ADR-025 §8). See `docs/releases/phase-7-completion-report.md`
 for the full report.
 
+Phase 8 delivered, in `packages/Administration`, across five sprints
+(ADR-026): a closed `AdminRole` enum and `AdminRoleCapabilityMap` kept
+separate from role identity, with one Gate per `AdminCapability` case
+registered generically, and a no-access-gap migration off
+`users.is_admin` (Sprint 1); `AccountSuspensionService` — a single,
+reversible suspension state with a mandatory reason — enforced across
+three independent `AccountStandingLookup` ports owned by Bids, Queues,
+and Ratings, each proven to reject before any domain mutation or event
+publication (Sprint 2); an additive `jurisdiction_rules.active` column
+(closing a gap surfaced during architecture review) plus
+`RestrictedCategoryActivationService`/`JurisdictionRuleActivationService`,
+narrow Queues-owned write capabilities Administration orchestrates but
+never bypasses (Sprint 3); `DisputeCaseLookup` (Administration's own read
+port into Disputes, via Disputes' own repository) and
+`DisputeCorrectionService` — read-only case/evidence review plus a
+mandatory-reason correction note that never mutates or reopens
+`Dispute.Resolved` — behind this phase's first real HTTP/UI surface
+(Sprint 4); and `AuditEventDisplayRegistry`, 36 hand-reviewed, explicit
+per-event-type display allowlists covering every `AuditableAction` event
+type in the codebase, fail-closed for any unregistered type (Sprint 5).
+Two corrections were requested and applied before their sprint's own
+commit — Sprint 3's `RestrictionActivationService` initially checked
+authorization internally, corrected to leave that to the boundary alone,
+matching `AccountSuspensionService`'s posture; Sprint 5's unregistered-
+event handling initially still produced a metadata-only placeholder row,
+and `audit.view` was initially granted to both admin roles, both
+corrected to the stricter behavior ADR-026 §6 requires. Automated,
+rules-based Fraud & Risk scoring is explicitly deferred beyond MVP
+(ADR-026 §1) — this phase preserves the architectural boundary a future
+Fraud & Risk context would need without building any scoring engine
+against it. See `docs/releases/phase-8-completion-report.md` for the
+full report.
+
 By deliberate decision, HTTP, frontend, Reverb, and a manual browser
 acceptance test were deferred to a later delivery-layer phase rather than
 required for Phase 3's closure — a departure from Phases 1 and 2's
 closure bar — and Phases 4, 5, 6, and Ratings within Phase 7 follow the
-same posture, with two exceptions: Phase 4 Sprint 5 introduced a real
+same posture, with three exceptions: Phase 4 Sprint 5 introduced a real
 HTTP endpoint (`POST /webhooks/stripe`) since receiving Stripe webhooks
-genuinely requires one, and Notifications within Phase 7 required a
-real, operating email delivery channel end-to-end, since a notification
-with no real delivery isn't a notification at all; Phases 5 and 6
-required no new HTTP surface at all. See
-`docs/releases/phase-3-completion-report.md`,
+genuinely requires one; Notifications within Phase 7 required a real,
+operating email delivery channel end-to-end, since a notification with
+no real delivery isn't a notification at all; and Phase 8 required real,
+capability-gated HTTP endpoints and Inertia/React pages throughout
+(Sprints 3–5), since an administrator with no real surface to act
+through isn't administration at all. Phases 5 and 6 required no new HTTP
+surface at all. See `docs/releases/phase-3-completion-report.md`,
 `docs/releases/phase-4-completion-report.md`,
 `docs/releases/phase-5-completion-report.md`,
-`docs/releases/phase-6-completion-report.md`, and
-`docs/releases/phase-7-completion-report.md` for the full reports and
-rationale. Phase 8 (Administration & Fraud/Risk v1) implementation
+`docs/releases/phase-6-completion-report.md`,
+`docs/releases/phase-7-completion-report.md`, and
+`docs/releases/phase-8-completion-report.md` for the full reports and
+rationale. Phase 9 (Hardening & Launch Readiness) implementation
 requires separate authorization before it begins. See
 `docs/roadmap.md` for the phase plan and sprint progress, and
 `docs/releases/phase-1-completion-report.md` /
@@ -272,5 +309,6 @@ requires separate authorization before it begins. See
 `docs/releases/phase-4-completion-report.md` /
 `docs/releases/phase-5-completion-report.md` /
 `docs/releases/phase-6-completion-report.md` /
-`docs/releases/phase-7-completion-report.md` for the completion reports
+`docs/releases/phase-7-completion-report.md` /
+`docs/releases/phase-8-completion-report.md` for the completion reports
 of the closed phases.

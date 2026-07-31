@@ -488,10 +488,64 @@ real, operating delivery channel. See
 
 ## Phase 8 — Administration & Fraud/Risk v1
 
-Status: not started.
+Status: **done**. Tagged `v0.9.0-administration`. Closes with real,
+operating HTTP/UI surfaces — the second exception to this project's
+domain/backend-only closure bar, after Notifications in Phase 7 —
+formally accepted 2026-07-31.
 
-Manual KYC/dispute overrides, rules-based risk scoring (Fraud & Risk
-context), restricted-category admin UI.
+**Closure scope note**: automated, rules-based Fraud & Risk scoring is
+explicitly out of MVP scope (ADR-026 Decision 1) — this phase preserves
+the architectural boundary a future Fraud & Risk context would need
+(every module's own domain events stay independently readable) without
+building any scoring engine against them. All seven Phase 8 product
+decisions were frozen individually, one at a time, before ADR-026 was
+drafted, mirroring Phases 6 and 7's process; seven further architecture
+refinements were then applied before Sprint 1 began. Two corrections
+were requested and applied before their sprint's own commit (Sprint 3's
+`RestrictionActivationService` authorization posture; Sprint 5's
+fail-closed behavior and `audit.view` role grant), and one real issue
+was caught and fixed during Sprint 4's manual browser verification
+(a private evidence storage path leaking into a JSON response). See
+`docs/releases/phase-8-completion-report.md` for the full report.
+
+Delivered across 5 sprints in `packages/Administration`, plus small,
+additive changes to `packages/Queues` and `packages/Disputes`:
+
+- A closed `AdminRole` enum and `AdminRoleCapabilityMap`, kept separate
+  from role identity; one Laravel Gate per `AdminCapability` case,
+  registered generically. Migration off `users.is_admin` with no
+  access-gap window, verified against the real dev database (Sprint 1).
+- `AccountSuspensionService` — a single, reversible suspension state,
+  mandatory reason, already-suspended/already-active guards — enforced
+  across three independent, identically-shaped `AccountStandingLookup`
+  ports (Bids, Queues, Ratings), each proven to reject before any domain
+  mutation or event publication (Sprint 2).
+- An additive `jurisdiction_rules.active` column (closing a gap found
+  during architecture review) plus `RestrictedCategoryActivationService`/
+  `JurisdictionRuleActivationService` — narrow, Queues-owned write
+  capabilities Administration orchestrates but never bypasses (Sprint 3).
+- `DisputeCaseLookup` (Administration's own read port into Disputes, via
+  Disputes' own repository) and `DisputeCorrectionService` — read-only
+  case/evidence review plus a mandatory-reason correction note that never
+  mutates or reopens `Dispute.Resolved`. The first real Administration
+  HTTP/UI (Sprint 4).
+- `AuditEventDisplayRegistry` — 36 hand-reviewed, explicit per-event-type
+  display allowlists (one for every `AuditableAction` event type in the
+  codebase), fail-closed for any unregistered type, excluding storage/
+  evidence references and Stripe identifiers throughout (Sprint 5).
+- 765 automated tests total (48 new in `packages/Administration`,
+  `packages/Queues` grew to 101, `packages/Disputes` to 47,
+  `apps/web` grew from 101 to 135), Larastan and Pint clean.
+
+Exit criteria: a small set of administrative roles can suspend/reinstate
+an account, toggle an existing restricted category or jurisdiction rule,
+review any dispute and record a correction note, and view an
+allowlist-filtered audit log — each behind its own real, capability-
+gated HTTP/UI surface — **met**. No automated Fraud & Risk scoring, no
+forfeiture, no dispute reopening, no manual KYC/Verification & Trust, and
+no photo-evidence viewing in the dispute-review surface exist yet — each
+deferred for a documented reason. See
+`docs/releases/phase-8-completion-report.md` for the full report.
 
 ## Phase 9 — Hardening & Launch Readiness
 

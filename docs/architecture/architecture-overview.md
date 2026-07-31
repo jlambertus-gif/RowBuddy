@@ -11,11 +11,13 @@
   presence capture, evidence-photo capture with private storage and
   signed URLs, the v1 confidence-scoring engine (ADR-008), Inertia/React
   frontend. See `docs/releases/phase-2-completion-report.md`.
-- **Audit**: partially implemented (Phase 2) — a minimal, platform-wide
-  append-only sink driven by the shared `AuditableAction` interface, not
-  the full Administration/Fraud-Risk-adjacent Audit context described
-  below (case management, partitioning/archival, admin tooling remain
-  unbuilt).
+- **Audit**: partially implemented (Phase 2, Phase 8) — a minimal,
+  platform-wide append-only sink driven by the shared `AuditableAction`
+  interface (Phase 2), now presented through Administration's own
+  `AuditEventDisplayRegistry` (Phase 8, 36 explicit per-event-type
+  allowlists, fail-closed for any unregistered type) — presentation only,
+  the sink itself is unchanged. Case management, partitioning/archival,
+  and any Fraud-Risk-adjacent tooling beyond display remain unbuilt.
 - **Auctions**: implemented, domain/backend scope only (Phase 3,
   `packages/Auctions`) — the `Auction` aggregate's Open/Closing/Won/
   Expired/Cancelled state machine, an explicit required `closesAt`, and
@@ -157,6 +159,26 @@
   §10); bounded retry relying on Laravel's own `failed_jobs`, no
   bespoke failure tracking or alerting (ADR-025 §11). No HTTP, no
   frontend. See `docs/releases/phase-7-completion-report.md`.
+- **Administration**: implemented, with real HTTP/UI throughout (Phase 8,
+  `packages/Administration`) — a closed `AdminRole` enum and
+  `AdminRoleCapabilityMap` kept separate from role identity, one Gate per
+  `AdminCapability` case (Sprint 1); `AccountSuspensionService` enforced
+  across independent `AccountStandingLookup` ports owned by Bids, Queues,
+  and Ratings (Sprint 2); `RestrictedCategoryActivationService`/
+  `JurisdictionRuleActivationService`, narrow Queues-owned write
+  capabilities Administration orchestrates but never bypasses, backed by
+  an additive `jurisdiction_rules.active` column (Sprint 3);
+  `DisputeCaseLookup` (via Disputes' own repository) and
+  `DisputeCorrectionService` — read-only case/evidence review plus a
+  correction note that never mutates `Dispute.Resolved` (Sprint 4);
+  `AuditEventDisplayRegistry`, 36 explicit per-event-type display
+  allowlists over the existing audit sink, fail-closed for any
+  unregistered type (Sprint 5). Real, capability-gated HTTP endpoints and
+  Inertia/React pages exist for every capability that needs one — this
+  phase's own exception to the domain/backend-only closure bar, alongside
+  Notifications in Phase 7. Automated Fraud & Risk scoring is explicitly
+  deferred beyond MVP (ADR-026 §1). See
+  `docs/releases/phase-8-completion-report.md`.
 - All other modules below: not started.
 
 ## Style

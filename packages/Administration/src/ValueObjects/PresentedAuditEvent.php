@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace RowBuddy\Administration\ValueObjects;
 
 use DateTimeImmutable;
+use RowBuddy\Administration\Support\AuditEventDisplayRegistry;
 
 /**
  * The admin-display-safe view of an audit event — only ever constructed
- * for an event type {@see \RowBuddy\Administration\Support\AuditEventDisplayRegistry}
+ * for an event type {@see AuditEventDisplayRegistry}
  * recognizes (ADR-026 §6's fail-closed rule, corrected before Sprint 5
  * committed: an unregistered event type produces no
  * `PresentedAuditEvent` at all — not even its id/subject/timestamp —
