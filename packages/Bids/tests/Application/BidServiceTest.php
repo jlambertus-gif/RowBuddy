@@ -5,9 +5,11 @@ declare(strict_types=1);
 use RowBuddy\Bids\Application\BidService;
 use RowBuddy\Bids\Events\BidPlaced;
 use RowBuddy\Bids\Exceptions\AuctionNotOpenForBidding;
+use RowBuddy\Bids\Exceptions\BidderAccountSuspended;
 use RowBuddy\Bids\Exceptions\BidTooLow;
 use RowBuddy\Bids\Exceptions\CurrencyMismatch;
 use RowBuddy\Bids\Exceptions\SellerCannotBidOnOwnAuction;
+use RowBuddy\Bids\Tests\Fakes\FakeAccountStandingLookup;
 use RowBuddy\Bids\Tests\Fakes\FakeAuctionGateway;
 use RowBuddy\Bids\Tests\Fakes\FakeDomainEvent;
 use RowBuddy\Bids\Tests\Fakes\InMemoryBidRepository;
@@ -32,8 +34,9 @@ function makeBidService(
     FakeAuctionGateway $auctionGateway,
     RecordingTransactionManager $transactions,
     RecordingDomainEventPublisher $events,
+    ?FakeAccountStandingLookup $accountStanding = null,
 ): BidService {
-    return new BidService($bids, $auctionGateway, $transactions, $events, new FrozenClock(new DateTimeImmutable('2026-09-23 10:00:00')));
+    return new BidService($bids, $auctionGateway, $transactions, $events, new FrozenClock(new DateTimeImmutable('2026-09-23 10:00:00')), $accountStanding ?? new FakeAccountStandingLookup);
 }
 
 function anOpenSnapshot(string $sellerId = 'seller-1'): AuctionSnapshot
@@ -266,4 +269,58 @@ it('publishes events in order: lock-check events, then accepted-bid-effects even
         ->and($events->published[0])->toBe($atRiskEvent)
         ->and($events->published[1])->toBe($extensionEvent)
         ->and($events->published[2])->toBeInstanceOf(BidPlaced::class);
+});
+
+// --- Account standing (ADR-026 §4) ---
+
+it('allows an active bidder to place a bid', function () {
+    $bids = new InMemoryBidRepository;
+    $auctionGateway = new FakeAuctionGateway;
+    $auctionGateway->stub('auction-1', new AuctionLockResult(anOpenSnapshot(), []));
+    $transactions = new RecordingTransactionManager;
+    $events = new RecordingDomainEventPublisher($transactions);
+    $accountStanding = new FakeAccountStandingLookup;
+
+    $service = makeBidService($bids, $auctionGateway, $transactions, $events, $accountStanding);
+    $bid = $service->place('bid-1', 'auction-1', 'bidder-1', usd(1100));
+
+    expect($bid->amount->equals(usd(1100)))->toBeTrue();
+});
+
+it('rejects a bid from a suspended bidder before any domain mutation or event publication', function () {
+    $bids = new InMemoryBidRepository;
+    $auctionGateway = new FakeAuctionGateway;
+    $auctionGateway->stub('auction-1', new AuctionLockResult(anOpenSnapshot(), []));
+    $transactions = new RecordingTransactionManager;
+    $events = new RecordingDomainEventPublisher($transactions);
+    $accountStanding = new FakeAccountStandingLookup;
+    $accountStanding->suspended['bidder-1'] = true;
+
+    $service = makeBidService($bids, $auctionGateway, $transactions, $events, $accountStanding);
+
+    expect(fn () => $service->place('bid-1', 'auction-1', 'bidder-1', usd(1100)))
+        ->toThrow(BidderAccountSuspended::class);
+
+    expect($bids->recorded)->toBe([])
+        ->and($auctionGateway->acceptedBidEffectsCalls)->toBe([])
+        ->and($events->published)->toBe([]);
+});
+
+it('still publishes a legitimate proximity event the lock surfaced even when the bidder is suspended', function () {
+    $bids = new InMemoryBidRepository;
+    $auctionGateway = new FakeAuctionGateway;
+    $atRiskEvent = new FakeDomainEvent('auctions.auction_proximity_at_risk');
+    $auctionGateway->stub('auction-1', new AuctionLockResult(anOpenSnapshot(), [$atRiskEvent]));
+    $transactions = new RecordingTransactionManager;
+    $events = new RecordingDomainEventPublisher($transactions);
+    $accountStanding = new FakeAccountStandingLookup;
+    $accountStanding->suspended['bidder-1'] = true;
+
+    $service = makeBidService($bids, $auctionGateway, $transactions, $events, $accountStanding);
+
+    expect(fn () => $service->place('bid-1', 'auction-1', 'bidder-1', usd(1100)))
+        ->toThrow(BidderAccountSuspended::class);
+
+    expect($bids->recorded)->toBe([])
+        ->and($events->published)->toBe([$atRiskEvent]);
 });

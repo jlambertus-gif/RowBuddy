@@ -10,6 +10,7 @@ use RowBuddy\Queues\Gating\JurisdictionGate;
 use RowBuddy\Queues\Gating\QueueGateChecker;
 use RowBuddy\Queues\Infrastructure\Eloquent\EloquentQueueRepository;
 use RowBuddy\Queues\Infrastructure\PostGIS\PostGISQueueDiscoveryRepository;
+use RowBuddy\Queues\Tests\Fakes\FakeAccountStandingLookup;
 use RowBuddy\Queues\Tests\Fakes\InMemoryJurisdictionRuleRepository;
 use RowBuddy\Queues\Tests\Fakes\InMemoryRestrictedCategoryRepository;
 use RowBuddy\Queues\Tests\Fakes\RecordingDomainEventPublisher;
@@ -52,6 +53,7 @@ it('is discoverable immediately after being published directly by an admin', fun
         new RecordingDomainEventPublisher,
         $clock,
         new CoverageAreaAssigner($discovery),
+        new FakeAccountStandingLookup,
     );
 
     $center = new GeoPoint(32.7157, -117.1611);
@@ -70,7 +72,7 @@ it('is discoverable immediately after an admin approves and publishes a user-sub
     $clock = new FrozenClock(new DateTimeImmutable('2026-06-01'));
     $events = new RecordingDomainEventPublisher;
 
-    $submissionService = new QueueSubmissionService($queues, realGateChecker(), $events, $clock, new CoverageAreaAssigner($discovery));
+    $submissionService = new QueueSubmissionService($queues, realGateChecker(), $events, $clock, new CoverageAreaAssigner($discovery), new FakeAccountStandingLookup);
     $moderationService = new QueueModerationService($queues, realGateChecker(), $events, $clock, new CoverageAreaAssigner($discovery));
 
     $center = new GeoPoint(40.7128, -74.0060);
@@ -104,6 +106,7 @@ it('is not discoverable from a point outside the automatically derived coverage 
         new RecordingDomainEventPublisher,
         $clock,
         new CoverageAreaAssigner($discovery),
+        new FakeAccountStandingLookup,
     );
 
     $center = new GeoPoint(32.7157, -117.1611);

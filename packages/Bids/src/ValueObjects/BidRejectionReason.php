@@ -17,4 +17,5 @@ enum BidRejectionReason
     case CurrencyMismatch;
     case BidTooLow;
     case SellerCannotBidOnOwnAuction;
+    case BidderAccountSuspended;
 }

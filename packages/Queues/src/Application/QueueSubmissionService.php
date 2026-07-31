@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace RowBuddy\Queues\Application;
 
 use RowBuddy\Queues\Application\Discovery\CoverageAreaAssigner;
+use RowBuddy\Queues\Contracts\AccountStandingLookup;
 use RowBuddy\Queues\Contracts\DomainEventPublisher;
 use RowBuddy\Queues\Contracts\QueueRepository;
 use RowBuddy\Queues\Exceptions\QueueSubmissionBlocked;
+use RowBuddy\Queues\Exceptions\SubmitterAccountSuspended;
 use RowBuddy\Queues\Gating\QueueGateChecker;
 use RowBuddy\Queues\Queue;
 use RowBuddy\SharedKernel\Contracts\ClockInterface;
@@ -32,10 +34,12 @@ final class QueueSubmissionService
         private readonly DomainEventPublisher $events,
         private readonly ClockInterface $clock,
         private readonly CoverageAreaAssigner $coverageAreaAssigner,
+        private readonly AccountStandingLookup $accountStanding,
     ) {}
 
     /**
      * @throws QueueSubmissionBlocked
+     * @throws SubmitterAccountSuspended
      */
     public function submitForApproval(
         string $id,
@@ -44,6 +48,10 @@ final class QueueSubmissionService
         Geofence $geofence,
         string $submittedByUserId,
     ): Queue {
+        if ($this->accountStanding->isSuspended($submittedByUserId)) {
+            throw SubmitterAccountSuspended::forSubmitter($submittedByUserId);
+        }
+
         $this->gateChecker->assertNotBlocked($category, $jurisdictionCountry, $this->clock->now());
 
         $queue = Queue::submitForApproval($id, $category, $jurisdictionCountry, $geofence, $submittedByUserId, $this->clock);

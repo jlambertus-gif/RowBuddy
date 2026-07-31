@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace RowBuddy\Ratings\Application;
 
+use RowBuddy\Ratings\Contracts\AccountStandingLookup;
 use RowBuddy\Ratings\Contracts\DomainEventPublisher;
 use RowBuddy\Ratings\Contracts\RatingRepository;
 use RowBuddy\Ratings\Contracts\TransferParticipantLookup;
 use RowBuddy\Ratings\Exceptions\InvalidRatingScore;
+use RowBuddy\Ratings\Exceptions\RaterAccountSuspended;
 use RowBuddy\Ratings\Exceptions\RatingAlreadyExistsForTransferAndRater;
 use RowBuddy\Ratings\Exceptions\RatingCommentTooLong;
 use RowBuddy\Ratings\Exceptions\RatingSubmissionNotAuthorized;
@@ -42,9 +44,11 @@ final class RatingSubmissionService
         private readonly TransferParticipantLookup $transferParticipants,
         private readonly DomainEventPublisher $events,
         private readonly ClockInterface $clock,
+        private readonly AccountStandingLookup $accountStanding,
     ) {}
 
     /**
+     * @throws RaterAccountSuspended
      * @throws TransferNotEligibleForRating
      * @throws RatingSubmissionNotAuthorized
      * @throws RatingAlreadyExistsForTransferAndRater
@@ -53,6 +57,10 @@ final class RatingSubmissionService
      */
     public function submit(string $ratingId, string $transferId, string $raterId, int $score, ?string $comment): Rating
     {
+        if ($this->accountStanding->isSuspended($raterId)) {
+            throw RaterAccountSuspended::forRater($raterId);
+        }
+
         $snapshot = $this->transferParticipants->findByTransferId($transferId);
 
         if ($snapshot === null || ! $snapshot->isConfirmed) {

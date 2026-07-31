@@ -5110,13 +5110,14 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/Administration",
-                "reference": "9227bb0febcced147a5ee91fc7c20a4e5b1a4708"
+                "reference": "aaf22d611ce469e3bc4057e4bd2df03e9398501f"
             },
             "require": {
                 "illuminate/contracts": "^12.0",
                 "illuminate/database": "^12.0",
                 "illuminate/support": "^12.0",
                 "php": "^8.2",
+                "ramsey/uuid": "^4.7",
                 "rowbuddy/shared-kernel": "@dev"
             },
             "require-dev": {

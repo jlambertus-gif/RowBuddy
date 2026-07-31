@@ -6,8 +6,10 @@ use RowBuddy\Queues\Application\Discovery\CoverageAreaAssigner;
 use RowBuddy\Queues\Application\QueueSubmissionService;
 use RowBuddy\Queues\Events\QueueSubmittedForApproval;
 use RowBuddy\Queues\Exceptions\QueueSubmissionBlocked;
+use RowBuddy\Queues\Exceptions\SubmitterAccountSuspended;
 use RowBuddy\Queues\Gating\JurisdictionGate;
 use RowBuddy\Queues\Gating\QueueGateChecker;
+use RowBuddy\Queues\Tests\Fakes\FakeAccountStandingLookup;
 use RowBuddy\Queues\Tests\Fakes\InMemoryJurisdictionRuleRepository;
 use RowBuddy\Queues\Tests\Fakes\InMemoryQueueDiscoveryRepository;
 use RowBuddy\Queues\Tests\Fakes\InMemoryQueueRepository;
@@ -32,6 +34,7 @@ function makeQueueSubmissionService(
     InMemoryJurisdictionRuleRepository $jurisdictionRules,
     RecordingDomainEventPublisher $events,
     ?InMemoryQueueDiscoveryRepository $discovery = null,
+    ?FakeAccountStandingLookup $accountStanding = null,
 ): QueueSubmissionService {
     return new QueueSubmissionService(
         $queues,
@@ -39,6 +42,7 @@ function makeQueueSubmissionService(
         $events,
         new FrozenClock(new DateTimeImmutable('2026-06-01')),
         new CoverageAreaAssigner($discovery ?? new InMemoryQueueDiscoveryRepository),
+        $accountStanding ?? new FakeAccountStandingLookup,
     );
 }
 
@@ -179,4 +183,46 @@ it('prefers a category-specific jurisdiction rule over a permissive country-wide
 
     expect(fn () => $service->submitForApproval('queue-6', 'concert', 'US', aTestGeofence(), 'user-9'))
         ->toThrow(QueueSubmissionBlocked::class);
+});
+
+// --- Account standing (ADR-026 §4) ---
+
+it('allows an active submitter to submit a queue for approval', function () {
+    $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $accountStanding = new FakeAccountStandingLookup;
+
+    $service = makeQueueSubmissionService(
+        $queues = new InMemoryQueueRepository,
+        new InMemoryRestrictedCategoryRepository,
+        $jurisdictionRules,
+        new RecordingDomainEventPublisher,
+        accountStanding: $accountStanding,
+    );
+
+    $queue = $service->submitForApproval('queue-9', 'concert', 'US', aTestGeofence(), 'user-9');
+
+    expect($queue->status())->toBe(QueueStatus::Pending);
+});
+
+it('rejects submission from a suspended submitter before any domain mutation or event publication', function () {
+    $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $accountStanding = new FakeAccountStandingLookup;
+    $accountStanding->suspended['user-9'] = true;
+    $events = new RecordingDomainEventPublisher;
+
+    $service = makeQueueSubmissionService(
+        $queues = new InMemoryQueueRepository,
+        new InMemoryRestrictedCategoryRepository,
+        $jurisdictionRules,
+        $events,
+        accountStanding: $accountStanding,
+    );
+
+    expect(fn () => $service->submitForApproval('queue-10', 'concert', 'US', aTestGeofence(), 'user-9'))
+        ->toThrow(SubmitterAccountSuspended::class);
+
+    expect($queues->findById('queue-10'))->toBeNull()
+        ->and($events->published)->toBe([]);
 });

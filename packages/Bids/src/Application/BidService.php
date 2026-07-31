@@ -6,11 +6,13 @@ namespace RowBuddy\Bids\Application;
 
 use LogicException;
 use RowBuddy\Bids\Bid;
+use RowBuddy\Bids\Contracts\AccountStandingLookup;
 use RowBuddy\Bids\Contracts\AuctionGateway;
 use RowBuddy\Bids\Contracts\BidRepository;
 use RowBuddy\Bids\Contracts\DomainEventPublisher;
 use RowBuddy\Bids\Contracts\TransactionManager;
 use RowBuddy\Bids\Exceptions\AuctionNotOpenForBidding;
+use RowBuddy\Bids\Exceptions\BidderAccountSuspended;
 use RowBuddy\Bids\Exceptions\BidTooLow;
 use RowBuddy\Bids\Exceptions\CurrencyMismatch;
 use RowBuddy\Bids\Exceptions\SellerCannotBidOnOwnAuction;
@@ -42,6 +44,7 @@ final class BidService
         private readonly TransactionManager $transactions,
         private readonly DomainEventPublisher $events,
         private readonly ClockInterface $clock,
+        private readonly AccountStandingLookup $accountStanding,
     ) {}
 
     /**
@@ -50,6 +53,7 @@ final class BidService
      * @throws CurrencyMismatch
      * @throws SellerCannotBidOnOwnAuction
      * @throws BidTooLow
+     * @throws BidderAccountSuspended
      */
     public function place(string $bidId, string $auctionId, string $bidderId, Money $amount): Bid
     {
@@ -77,6 +81,7 @@ final class BidService
             BidRejectionReason::CurrencyMismatch => CurrencyMismatch::forAuction($auctionId),
             BidRejectionReason::SellerCannotBidOnOwnAuction => SellerCannotBidOnOwnAuction::forAuction($auctionId),
             BidRejectionReason::BidTooLow => BidTooLow::forAuction($auctionId),
+            BidRejectionReason::BidderAccountSuspended => BidderAccountSuspended::forBidder($bidderId),
         };
     }
 
@@ -95,6 +100,10 @@ final class BidService
         // arriving at or after closesAt is rejected here, never accepted.
         if (! $snapshot->isOpenForBidding) {
             return new BidPlacementOutcome(null, BidRejectionReason::AuctionNotOpenForBidding, $lockResult->events);
+        }
+
+        if ($this->accountStanding->isSuspended($bidderId)) {
+            return new BidPlacementOutcome(null, BidRejectionReason::BidderAccountSuspended, $lockResult->events);
         }
 
         if (! $amount->currency->equals($snapshot->startingPrice->currency)) {
