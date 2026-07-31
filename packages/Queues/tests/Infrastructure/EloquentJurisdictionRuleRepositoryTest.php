@@ -24,6 +24,7 @@ beforeEach(function () {
         $table->boolean('permitted');
         $table->timestamp('effective_from');
         $table->timestamp('effective_to')->nullable();
+        $table->boolean('active')->default(true);
         $table->timestamps();
     });
 });
@@ -40,6 +41,7 @@ it('maps stored rows into JurisdictionRule value objects, including open-ended a
         'permitted' => true,
         'effective_from' => '2026-01-01 00:00:00',
         'effective_to' => null,
+        'active' => true,
     ]);
 
     JurisdictionRuleModel::query()->create([
@@ -49,6 +51,7 @@ it('maps stored rows into JurisdictionRule value objects, including open-ended a
         'permitted' => false,
         'effective_from' => '2026-03-01 00:00:00',
         'effective_to' => '2026-09-01 00:00:00',
+        'active' => false,
     ]);
 
     $rules = (new EloquentJurisdictionRuleRepository)->findForCountry('US');
@@ -61,9 +64,27 @@ it('maps stored rows into JurisdictionRule value objects, including open-ended a
     expect($global->jurisdictionCountry)->toBe('US')
         ->and($global->permitted)->toBeTrue()
         ->and($global->effectiveTo)->toBeNull()
+        ->and($global->active)->toBeTrue()
         ->and($categorySpecific->permitted)->toBeFalse()
         ->and($categorySpecific->effectiveFrom)->toBeInstanceOf(DateTimeImmutable::class)
-        ->and($categorySpecific->effectiveTo)->toBeInstanceOf(DateTimeImmutable::class);
+        ->and($categorySpecific->effectiveTo)->toBeInstanceOf(DateTimeImmutable::class)
+        ->and($categorySpecific->active)->toBeFalse();
+});
+
+it('defaults active to true for a row created without specifying it, proving the migration default backfills existing rows', function () {
+    JurisdictionRuleModel::query()->create([
+        'id' => 'rule-legacy',
+        'jurisdiction_country' => 'US',
+        'category' => null,
+        'permitted' => true,
+        'effective_from' => '2026-01-01 00:00:00',
+        'effective_to' => null,
+    ]);
+
+    $rules = (new EloquentJurisdictionRuleRepository)->findForCountry('US');
+
+    expect($rules)->toHaveCount(1)
+        ->and($rules[0]->active)->toBeTrue();
 });
 
 it('returns an empty list for a country with no rules at all', function () {

@@ -22,5 +22,15 @@ it('returns the full capability list for a role', function () {
     $map = new AdminRoleCapabilityMap;
 
     expect($map->capabilitiesFor(AdminRole::Moderator))->toBe([AdminCapability::QueuesModerate])
-        ->and($map->capabilitiesFor(AdminRole::Administrator))->toBe([AdminCapability::QueuesModerate]);
+        ->and($map->capabilitiesFor(AdminRole::Administrator))->toBe([
+            AdminCapability::QueuesModerate,
+            AdminCapability::RestrictionsModerate,
+        ]);
+});
+
+it('grants restrictions.moderate to the Administrator role only', function () {
+    $map = new AdminRoleCapabilityMap;
+
+    expect($map->roleGrants(AdminRole::Administrator, AdminCapability::RestrictionsModerate))->toBeTrue()
+        ->and($map->roleGrants(AdminRole::Moderator, AdminCapability::RestrictionsModerate))->toBeFalse();
 });

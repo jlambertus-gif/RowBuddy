@@ -13,12 +13,13 @@ use RowBuddy\Administration\ValueObjects\AdminRole;
  * {@see AdminRole} itself so authorization decisions are never embedded
  * in the role enum. Fixed in code; no runtime permission editing.
  *
- * Both roles currently grant the same, single capability — Sprint 1
- * introduces only `queues.moderate`, so there is nothing yet to
- * differentiate `Moderator` from `Administrator` on. Future sprints
- * (account suspension, dispute administration, audit visibility) are
- * expected to grant additional capabilities to `Administrator` only,
- * which is exactly what this separate map exists to express without
+ * Sprint 1 introduced only `queues.moderate`, granted to both roles
+ * equally, with nothing yet to differentiate `Moderator` from
+ * `Administrator`. Sprint 3 (ADR-026 §5) is the first capability
+ * granted to `Administrator` only: restricted-category/jurisdiction-
+ * rule administration is a legal/compliance-sensitive operational
+ * lever, a stronger capability than routine queue moderation — exactly
+ * the differentiation this separate map exists to express without
  * touching `AdminRole` itself.
  */
 final class AdminRoleCapabilityMap
@@ -32,6 +33,7 @@ final class AdminRoleCapabilityMap
         ],
         'administrator' => [
             AdminCapability::QueuesModerate,
+            AdminCapability::RestrictionsModerate,
         ],
     ];
 

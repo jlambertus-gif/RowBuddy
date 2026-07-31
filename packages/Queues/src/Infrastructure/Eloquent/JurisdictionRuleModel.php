@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
  * @property bool $permitted
  * @property Carbon $effective_from
  * @property Carbon|null $effective_to
+ * @property bool $active
  */
 final class JurisdictionRuleModel extends Model
 {
@@ -31,6 +32,7 @@ final class JurisdictionRuleModel extends Model
         'permitted',
         'effective_from',
         'effective_to',
+        'active',
     ];
 
     /** @var array<string, string> */
@@ -38,5 +40,6 @@ final class JurisdictionRuleModel extends Model
         'permitted' => 'bool',
         'effective_from' => 'datetime',
         'effective_to' => 'datetime',
+        'active' => 'bool',
     ];
 }

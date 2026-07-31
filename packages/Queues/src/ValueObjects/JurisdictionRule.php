@@ -17,6 +17,12 @@ use DateTimeImmutable;
  * Callers are responsible for not creating overlapping effective windows
  * for the same country+category — this value object and the gate that
  * consumes it assume at most one rule is effective at a given instant.
+ *
+ * `$active` (ADR-026 §5/Architecture Refinements §6) is a separate
+ * administrative on/off switch, independent of `$permitted` (the rule's
+ * legal content) and `$effectiveFrom`/`$effectiveTo` (its legal
+ * effectiveness window) — an inactive rule never gates, even while its
+ * legal effective window includes the instant being checked.
  */
 final class JurisdictionRule
 {
@@ -26,6 +32,7 @@ final class JurisdictionRule
         public readonly bool $permitted,
         public readonly DateTimeImmutable $effectiveFrom,
         public readonly ?DateTimeImmutable $effectiveTo,
+        public readonly bool $active,
     ) {}
 
     public function isEffectiveAt(DateTimeImmutable $when): bool

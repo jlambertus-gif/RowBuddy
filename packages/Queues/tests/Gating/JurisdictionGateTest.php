@@ -13,14 +13,14 @@ it('fails closed when no rule exists for the country at all', function () {
 
 it('is permitted when a country-wide rule allows it', function () {
     $gate = new JurisdictionGate;
-    $rules = [new JurisdictionRule('US', null, true, new DateTimeImmutable('2026-01-01'), null)];
+    $rules = [new JurisdictionRule('US', null, true, new DateTimeImmutable('2026-01-01'), null, true)];
 
     expect($gate->isPermitted($rules, 'concert', new DateTimeImmutable('2026-06-01')))->toBeTrue();
 });
 
 it('is blocked when a country-wide rule forbids it', function () {
     $gate = new JurisdictionGate;
-    $rules = [new JurisdictionRule('US', null, false, new DateTimeImmutable('2026-01-01'), null)];
+    $rules = [new JurisdictionRule('US', null, false, new DateTimeImmutable('2026-01-01'), null, true)];
 
     expect($gate->isPermitted($rules, 'concert', new DateTimeImmutable('2026-06-01')))->toBeFalse();
 });
@@ -28,8 +28,8 @@ it('is blocked when a country-wide rule forbids it', function () {
 it('prefers a category-specific rule over a country-wide rule', function () {
     $gate = new JurisdictionGate;
     $rules = [
-        new JurisdictionRule('US', null, true, new DateTimeImmutable('2026-01-01'), null),
-        new JurisdictionRule('US', 'concert', false, new DateTimeImmutable('2026-01-01'), null),
+        new JurisdictionRule('US', null, true, new DateTimeImmutable('2026-01-01'), null, true),
+        new JurisdictionRule('US', 'concert', false, new DateTimeImmutable('2026-01-01'), null, true),
     ];
 
     expect($gate->isPermitted($rules, 'concert', new DateTimeImmutable('2026-06-01')))->toBeFalse()
@@ -39,8 +39,8 @@ it('prefers a category-specific rule over a country-wide rule', function () {
 it('picks the rule version in effect as of the given date, not the newest one overall', function () {
     $gate = new JurisdictionGate;
     $rules = [
-        new JurisdictionRule('FR', 'concert', true, new DateTimeImmutable('2020-01-01'), new DateTimeImmutable('2026-01-01')),
-        new JurisdictionRule('FR', 'concert', false, new DateTimeImmutable('2026-01-01'), null),
+        new JurisdictionRule('FR', 'concert', true, new DateTimeImmutable('2020-01-01'), new DateTimeImmutable('2026-01-01'), true),
+        new JurisdictionRule('FR', 'concert', false, new DateTimeImmutable('2026-01-01'), null, true),
     ];
 
     expect($gate->isPermitted($rules, 'concert', new DateTimeImmutable('2025-06-01')))->toBeTrue()
@@ -49,7 +49,33 @@ it('picks the rule version in effect as of the given date, not the newest one ov
 
 it('ignores rules for a different category and falls back to fail-closed', function () {
     $gate = new JurisdictionGate;
-    $rules = [new JurisdictionRule('US', 'sports', true, new DateTimeImmutable('2026-01-01'), null)];
+    $rules = [new JurisdictionRule('US', 'sports', true, new DateTimeImmutable('2026-01-01'), null, true)];
 
     expect($gate->isPermitted($rules, 'concert', new DateTimeImmutable('2026-06-01')))->toBeFalse();
+});
+
+it('ignores an inactive rule even when its legal effective window includes the checked instant', function () {
+    $gate = new JurisdictionGate;
+    $rules = [new JurisdictionRule('US', null, true, new DateTimeImmutable('2026-01-01'), null, false)];
+
+    expect($gate->isPermitted($rules, 'concert', new DateTimeImmutable('2026-06-01')))->toBeFalse();
+});
+
+it('an inactive category-specific rule falls back to a still-active country-wide rule', function () {
+    $gate = new JurisdictionGate;
+    $rules = [
+        new JurisdictionRule('US', null, true, new DateTimeImmutable('2026-01-01'), null, true),
+        new JurisdictionRule('US', 'concert', false, new DateTimeImmutable('2026-01-01'), null, false),
+    ];
+
+    expect($gate->isPermitted($rules, 'concert', new DateTimeImmutable('2026-06-01')))->toBeTrue();
+});
+
+it('reactivating a previously inactive rule restores gating', function () {
+    $gate = new JurisdictionGate;
+    $inactive = [new JurisdictionRule('US', null, true, new DateTimeImmutable('2026-01-01'), null, false)];
+    $reactivated = [new JurisdictionRule('US', null, true, new DateTimeImmutable('2026-01-01'), null, true)];
+
+    expect($gate->isPermitted($inactive, 'concert', new DateTimeImmutable('2026-06-01')))->toBeFalse()
+        ->and($gate->isPermitted($reactivated, 'concert', new DateTimeImmutable('2026-06-01')))->toBeTrue();
 });

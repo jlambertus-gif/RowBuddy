@@ -37,7 +37,7 @@ afterEach(fn () => rollbackPostgisTestConnection());
 function realGateChecker(): QueueGateChecker
 {
     $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
-    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null, true));
 
     return new QueueGateChecker(new InMemoryRestrictedCategoryRepository, $jurisdictionRules, new JurisdictionGate);
 }

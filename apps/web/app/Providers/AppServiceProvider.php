@@ -18,15 +18,19 @@ use App\Infrastructure\EloquentTransferGeofenceLookup;
 use App\Infrastructure\EloquentTransferParticipantLookup;
 use App\Infrastructure\EloquentWinningBidderLookup;
 use App\Infrastructure\EloquentWinningBidLookup;
+use App\Infrastructure\JurisdictionRuleActivationAdapter;
 use App\Infrastructure\LaravelTransactionManager;
 use App\Infrastructure\LocalPrivateEvidenceStorage;
 use App\Infrastructure\LocalPrivateTransferEvidenceStorage;
 use App\Infrastructure\QueuePresenceSellerVerification;
 use App\Infrastructure\QueuesAccountStandingLookup;
 use App\Infrastructure\RatingsAccountStandingLookup;
+use App\Infrastructure\RestrictedCategoryActivationAdapter;
 use App\Listeners\RecordAuditEvent;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use RowBuddy\Administration\Contracts\JurisdictionRuleActivationGateway;
+use RowBuddy\Administration\Contracts\RestrictedCategoryActivationGateway;
 use RowBuddy\Auctions\Contracts\SellerPresenceVerification;
 use RowBuddy\Auctions\Contracts\WinningBidLookup;
 use RowBuddy\Bids\Contracts\AccountStandingLookup as BidsAccountStanding;
@@ -182,6 +186,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(BidsAccountStanding::class, BidsAccountStandingLookup::class);
         $this->app->bind(QueuesAccountStanding::class, QueuesAccountStandingLookup::class);
         $this->app->bind(RatingsAccountStanding::class, RatingsAccountStandingLookup::class);
+
+        // Bridges Administration -> Queues (ADR-026 §5/Architecture
+        // Refinements §6; see each *ActivationAdapter's own docblock):
+        // Administration orchestrates restricted-category/jurisdiction-
+        // rule toggling only through Queues' own write capability, never
+        // by writing to Queues' tables directly.
+        $this->app->bind(RestrictedCategoryActivationGateway::class, RestrictedCategoryActivationAdapter::class);
+        $this->app->bind(JurisdictionRuleActivationGateway::class, JurisdictionRuleActivationAdapter::class);
     }
 
     /**

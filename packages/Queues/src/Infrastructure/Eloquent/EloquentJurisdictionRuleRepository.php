@@ -20,6 +20,7 @@ final class EloquentJurisdictionRuleRepository implements JurisdictionRuleReposi
                 permitted: $model->permitted,
                 effectiveFrom: $model->effective_from->toDateTimeImmutable(),
                 effectiveTo: $model->effective_to?->toDateTimeImmutable(),
+                active: $model->active,
             ))
             ->values()
             ->all();

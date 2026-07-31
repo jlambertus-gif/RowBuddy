@@ -15,4 +15,8 @@ enum AdministrativeActionType: string
 {
     case AccountSuspended = 'account_suspended';
     case AccountReinstated = 'account_reinstated';
+    case RestrictedCategoryActivated = 'restricted_category_activated';
+    case RestrictedCategoryDeactivated = 'restricted_category_deactivated';
+    case JurisdictionRuleActivated = 'jurisdiction_rule_activated';
+    case JurisdictionRuleDeactivated = 'jurisdiction_rule_deactivated';
 }

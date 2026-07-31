@@ -26,6 +26,28 @@ it('grants the queues.moderate capability once a role is assigned via the real r
     expect(Gate::forUser($user)->allows(AdminCapability::QueuesModerate->value))->toBeTrue();
 });
 
+it('denies the restrictions.moderate capability for a user with no role assigned', function () {
+    $user = User::factory()->create();
+
+    expect(Gate::forUser($user)->allows(AdminCapability::RestrictionsModerate->value))->toBeFalse();
+});
+
+it('denies the restrictions.moderate capability for a Moderator, per ADR-026 §5', function () {
+    $user = User::factory()->create();
+
+    app(AdminRoleAssignmentRepository::class)->assignRole((string) $user->id, AdminRole::Moderator, null);
+
+    expect(Gate::forUser($user)->allows(AdminCapability::RestrictionsModerate->value))->toBeFalse();
+});
+
+it('grants the restrictions.moderate capability to an Administrator via the real repository', function () {
+    $user = User::factory()->create();
+
+    app(AdminRoleAssignmentRepository::class)->assignRole((string) $user->id, AdminRole::Administrator, null);
+
+    expect(Gate::forUser($user)->allows(AdminCapability::RestrictionsModerate->value))->toBeTrue();
+});
+
 it('assigns a role end-to-end through the documented engineering console command', function () {
     $user = User::factory()->create(['email' => 'future-admin@example.com']);
 

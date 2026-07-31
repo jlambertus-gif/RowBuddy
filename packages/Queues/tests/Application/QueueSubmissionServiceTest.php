@@ -54,7 +54,7 @@ function aTestGeofence(): Geofence
 it('submits a queue for approval, persists it, and publishes its domain event', function () {
     $queues = new InMemoryQueueRepository;
     $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
-    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null, true));
     $events = new RecordingDomainEventPublisher;
 
     $service = makeQueueSubmissionService($queues, new InMemoryRestrictedCategoryRepository, $jurisdictionRules, $events);
@@ -72,7 +72,7 @@ it('blocks submission of a globally restricted category before ever persisting i
     $restrictedCategories = new InMemoryRestrictedCategoryRepository;
     $restrictedCategories->restrict('medical_emergency', null);
     $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
-    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null, true));
     $events = new RecordingDomainEventPublisher;
 
     $service = makeQueueSubmissionService($queues, $restrictedCategories, $jurisdictionRules, $events);
@@ -101,7 +101,7 @@ it('blocks submission when the jurisdiction has no rule permitting that category
 it('publishes an admin-curated queue directly when not gated', function () {
     $queues = new InMemoryQueueRepository;
     $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
-    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null, true));
     $events = new RecordingDomainEventPublisher;
 
     $service = makeQueueSubmissionService($queues, new InMemoryRestrictedCategoryRepository, $jurisdictionRules, $events);
@@ -117,7 +117,7 @@ it('blocks a direct-publish attempt for a restricted category, even for admin-cu
     $restrictedCategories = new InMemoryRestrictedCategoryRepository;
     $restrictedCategories->restrict('school_admissions', null);
     $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
-    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null, true));
 
     $service = makeQueueSubmissionService(
         $queues = new InMemoryQueueRepository,
@@ -135,7 +135,7 @@ it('blocks a direct-publish attempt for a restricted category, even for admin-cu
 it('assigns a default coverage area automatically when publishing directly', function () {
     $discovery = new InMemoryQueueDiscoveryRepository;
     $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
-    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null, true));
 
     $service = makeQueueSubmissionService(
         new InMemoryQueueRepository,
@@ -154,7 +154,7 @@ it('assigns a default coverage area automatically when publishing directly', fun
 it('does not assign a coverage area when a queue is only submitted for approval, not published', function () {
     $discovery = new InMemoryQueueDiscoveryRepository;
     $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
-    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null, true));
 
     $service = makeQueueSubmissionService(
         new InMemoryQueueRepository,
@@ -171,8 +171,8 @@ it('does not assign a coverage area when a queue is only submitted for approval,
 
 it('prefers a category-specific jurisdiction rule over a permissive country-wide one', function () {
     $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
-    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
-    $jurisdictionRules->addRule(new JurisdictionRule('US', 'concert', false, new DateTimeImmutable('2020-01-01'), null));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null, true));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', 'concert', false, new DateTimeImmutable('2020-01-01'), null, true));
 
     $service = makeQueueSubmissionService(
         $queues = new InMemoryQueueRepository,
@@ -189,7 +189,7 @@ it('prefers a category-specific jurisdiction rule over a permissive country-wide
 
 it('allows an active submitter to submit a queue for approval', function () {
     $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
-    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null, true));
     $accountStanding = new FakeAccountStandingLookup;
 
     $service = makeQueueSubmissionService(
@@ -207,7 +207,7 @@ it('allows an active submitter to submit a queue for approval', function () {
 
 it('rejects submission from a suspended submitter before any domain mutation or event publication', function () {
     $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
-    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null, true));
     $accountStanding = new FakeAccountStandingLookup;
     $accountStanding->suspended['user-9'] = true;
     $events = new RecordingDomainEventPublisher;

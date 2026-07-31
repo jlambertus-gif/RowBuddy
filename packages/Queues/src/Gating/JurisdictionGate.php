@@ -26,7 +26,7 @@ final class JurisdictionGate
     {
         $effectiveRules = array_values(array_filter(
             $rules,
-            static fn (JurisdictionRule $rule): bool => $rule->appliesToCategory($category) && $rule->isEffectiveAt($asOf),
+            static fn (JurisdictionRule $rule): bool => $rule->active && $rule->appliesToCategory($category) && $rule->isEffectiveAt($asOf),
         ));
 
         $categorySpecific = array_values(array_filter(

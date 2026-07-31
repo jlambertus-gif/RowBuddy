@@ -16,4 +16,5 @@ namespace RowBuddy\Administration\ValueObjects;
 enum AdminCapability: string
 {
     case QueuesModerate = 'queues.moderate';
+    case RestrictionsModerate = 'restrictions.moderate';
 }

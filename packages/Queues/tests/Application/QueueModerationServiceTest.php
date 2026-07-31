@@ -76,7 +76,7 @@ it('approves a pending queue, persists it, and publishes the domain event', func
     $queues = new InMemoryQueueRepository;
     $queues->save(aPendingQueue());
     $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
-    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null, true));
     $events = new RecordingDomainEventPublisher;
 
     $service = makeModerationService($queues, new InMemoryRestrictedCategoryRepository, $jurisdictionRules, $events);
@@ -108,7 +108,7 @@ it('cannot approve a queue that is not pending', function () {
     $queues = new InMemoryQueueRepository;
     $queues->save(Queue::publishDirectly('queue-1', 'concert', 'US', aModerationTestGeofence(), 'venue-1'));
     $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
-    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null, true));
 
     $service = makeModerationService($queues, new InMemoryRestrictedCategoryRepository, $jurisdictionRules, new RecordingDomainEventPublisher);
 
@@ -187,7 +187,7 @@ it('does not assign a coverage area when a queue is only approved, not published
     $queues->save(aPendingQueue('queue-10'));
     $discovery = new InMemoryQueueDiscoveryRepository;
     $jurisdictionRules = new InMemoryJurisdictionRuleRepository;
-    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null));
+    $jurisdictionRules->addRule(new JurisdictionRule('US', null, true, new DateTimeImmutable('2020-01-01'), null, true));
 
     $service = makeModerationService(
         $queues,
