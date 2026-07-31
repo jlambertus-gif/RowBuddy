@@ -1,0 +1,50 @@
+{
+    "name": "rowbuddy/administration",
+    "description": "Administration bounded context: roles/capability-based authorization, manual moderation/dispute/account/restricted-category administration, and audit visibility (Phase 8, ADR-026).",
+    "type": "library",
+    "license": "proprietary",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../shared-kernel",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/contracts": "^12.0",
+        "illuminate/database": "^12.0",
+        "illuminate/support": "^12.0",
+        "rowbuddy/shared-kernel": "@dev"
+    },
+    "require-dev": {
+        "pestphp/pest": "^3.0",
+        "laravel/pint": "^1.18",
+        "phpstan/phpstan": "^1.12"
+    },
+    "autoload": {
+        "psr-4": {
+            "RowBuddy\\Administration\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "RowBuddy\\Administration\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "lint": "pint --test",
+        "stan": "phpstan analyse"
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

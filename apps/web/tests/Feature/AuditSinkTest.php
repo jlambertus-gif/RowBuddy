@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
+use RowBuddy\Administration\Contracts\AdminRoleAssignmentRepository;
+use RowBuddy\Administration\ValueObjects\AdminRole;
 use RowBuddy\Queues\Infrastructure\Eloquent\JurisdictionRuleModel;
 use RowBuddy\Queues\Infrastructure\Eloquent\QueueModel;
 
@@ -129,7 +131,8 @@ it('also audits an existing Queues module event, proving the sink is shared, not
         'effective_from' => now()->subYear(),
         'effective_to' => null,
     ]);
-    $admin = User::factory()->create(['is_admin' => true]);
+    $admin = User::factory()->create();
+    app(AdminRoleAssignmentRepository::class)->assignRole((string) $admin->id, AdminRole::Administrator, null);
     $seller = User::factory()->create();
 
     $this->actingAs($seller)->post('/queues', [

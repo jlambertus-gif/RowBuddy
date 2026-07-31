@@ -22,9 +22,7 @@ use App\Infrastructure\LocalPrivateEvidenceStorage;
 use App\Infrastructure\LocalPrivateTransferEvidenceStorage;
 use App\Infrastructure\QueuePresenceSellerVerification;
 use App\Listeners\RecordAuditEvent;
-use App\Models\User;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use RowBuddy\Auctions\Contracts\SellerPresenceVerification;
 use RowBuddy\Auctions\Contracts\WinningBidLookup;
@@ -176,12 +174,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // A minimal is_admin flag stands in for the Identity module's
-        // future roles/permissions model (see the migration adding this
-        // column) — enough to authorize the Sprint 1 Administration
-        // moderation queue without inventing a full roles system early.
-        Gate::define('queues.moderate', static fn (User $user): bool => $user->is_admin);
-
         // The one, platform-wide audit sink (Sprint 6): registered
         // against the AuditableAction interface, not a concrete event
         // class, so it fires for every module's audit-worthy events —

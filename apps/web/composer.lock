@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0f87b9e11035c68dbc2b73f72a88fded",
+    "content-hash": "c20006e6f6a7ec7f7c86c58b7eb7cc27",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -5103,6 +5103,57 @@
                 }
             ],
             "time": "2024-06-11T12:45:25+00:00"
+        },
+        {
+            "name": "rowbuddy/administration",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "../../packages/Administration",
+                "reference": "9227bb0febcced147a5ee91fc7c20a4e5b1a4708"
+            },
+            "require": {
+                "illuminate/contracts": "^12.0",
+                "illuminate/database": "^12.0",
+                "illuminate/support": "^12.0",
+                "php": "^8.2",
+                "rowbuddy/shared-kernel": "@dev"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.18",
+                "pestphp/pest": "^3.0",
+                "phpstan/phpstan": "^1.12"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "RowBuddy\\Administration\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "RowBuddy\\Administration\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "pest"
+                ],
+                "lint": [
+                    "pint --test"
+                ],
+                "stan": [
+                    "phpstan analyse"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Administration bounded context: roles/capability-based authorization, manual moderation/dispute/account/restricted-category administration, and audit visibility (Phase 8, ADR-026).",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "rowbuddy/auctions",
@@ -12379,6 +12430,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
+        "rowbuddy/administration": 20,
         "rowbuddy/auctions": 20,
         "rowbuddy/bids": 20,
         "rowbuddy/disputes": 20,

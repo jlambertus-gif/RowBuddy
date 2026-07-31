@@ -1,0 +1,60 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Gate;
+use RowBuddy\Administration\Contracts\AdminRoleAssignmentRepository;
+use RowBuddy\Administration\ValueObjects\AdminCapability;
+use RowBuddy\Administration\ValueObjects\AdminRole;
+
+uses(RefreshDatabase::class);
+
+it('denies the queues.moderate capability for a user with no role assigned', function () {
+    $user = User::factory()->create();
+
+    expect(Gate::forUser($user)->allows(AdminCapability::QueuesModerate->value))->toBeFalse();
+});
+
+it('grants the queues.moderate capability once a role is assigned via the real repository', function () {
+    $user = User::factory()->create();
+
+    app(AdminRoleAssignmentRepository::class)->assignRole((string) $user->id, AdminRole::Moderator, null);
+
+    expect(Gate::forUser($user)->allows(AdminCapability::QueuesModerate->value))->toBeTrue();
+});
+
+it('assigns a role end-to-end through the documented engineering console command', function () {
+    $user = User::factory()->create(['email' => 'future-admin@example.com']);
+
+    $exitCode = Artisan::call('admin:assign-role', [
+        'email' => 'future-admin@example.com',
+        'role' => 'administrator',
+    ]);
+
+    expect($exitCode)->toBe(0)
+        ->and(app(AdminRoleAssignmentRepository::class)->findRoleForUser((string) $user->id))->toBe(AdminRole::Administrator)
+        ->and(Gate::forUser($user)->allows(AdminCapability::QueuesModerate->value))->toBeTrue();
+});
+
+it('the console command fails cleanly for an invalid role', function () {
+    User::factory()->create(['email' => 'invalid-role@example.com']);
+
+    $exitCode = Artisan::call('admin:assign-role', [
+        'email' => 'invalid-role@example.com',
+        'role' => 'super-admin',
+    ]);
+
+    expect($exitCode)->toBe(1);
+});
+
+it('the console command fails cleanly for an unknown email', function () {
+    $exitCode = Artisan::call('admin:assign-role', [
+        'email' => 'nobody@example.com',
+        'role' => 'administrator',
+    ]);
+
+    expect($exitCode)->toBe(1);
+});

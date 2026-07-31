@@ -6,6 +6,8 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
+use RowBuddy\Administration\Contracts\AdminRoleAssignmentRepository;
+use RowBuddy\Administration\ValueObjects\AdminRole;
 use RowBuddy\Queues\Events\QueueApproved;
 use RowBuddy\Queues\Events\QueuePublished;
 use RowBuddy\Queues\Events\QueueRejected;
@@ -45,7 +47,10 @@ function aStoredPendingQueue(?string $id = null, string $category = 'concert', s
 
 function anAdminUser(): User
 {
-    return User::factory()->create(['is_admin' => true]);
+    $user = User::factory()->create();
+    app(AdminRoleAssignmentRepository::class)->assignRole((string) $user->id, AdminRole::Administrator, null);
+
+    return $user;
 }
 
 // --- Authorization ---
@@ -60,7 +65,7 @@ it('redirects guests away from every moderation endpoint', function () {
 });
 
 it('forbids authenticated non-admin users from every moderation endpoint', function () {
-    $user = User::factory()->create(['is_admin' => false]);
+    $user = User::factory()->create();
     $queue = aStoredPendingQueue();
 
     $this->actingAs($user)->get('/admin/queues')->assertForbidden();
