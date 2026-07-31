@@ -1,0 +1,12 @@
+{
+    "nav": {
+        "audit_log": "Registro de auditoría"
+    },
+    "log": {
+        "title": "Registro de auditoría",
+        "subtitle": "Eventos auditados de la plataforma con una definición de visualización registrada. Solo aparecen a continuación los campos explícitamente permitidos para su visualización; el registro subyacente conserva el payload original completo. Los tipos de evento sin una definición de visualización no aparecen aquí en absoluto.",
+        "loading": "Cargando eventos de auditoría…",
+        "load_error": "No se pudo cargar el registro de auditoría.",
+        "empty": "Aún no hay eventos auditados."
+    }
+}

@@ -50,6 +50,10 @@ class HandleInertiaRequests extends Middleware
                     // distinct capability from queue moderation, not a
                     // generic "is this user any kind of admin" flag.
                     'can_review_disputes' => Gate::forUser($request->user())->allows(AdminCapability::DisputesReview->value),
+                    // Sprint 5 (ADR-026 §6): audit visibility is its own
+                    // capability, granted to both admin roles (it is
+                    // read-only), distinct from the two above.
+                    'can_view_audit_log' => Gate::forUser($request->user())->allows(AdminCapability::AuditView->value),
                 ],
             ],
 

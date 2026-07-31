@@ -6,9 +6,11 @@ export default function AppLayout({ title, children }) {
     const { t: tCommon } = useTranslation('common');
     const { t: tQueues } = useTranslation('queues');
     const { t: tDisputes } = useTranslation('disputes');
+    const { t: tAudit } = useTranslation('audit');
     const user = auth?.user;
     const isAdmin = Boolean(user?.is_admin);
     const canReviewDisputes = Boolean(user?.can_review_disputes);
+    const canViewAuditLog = Boolean(user?.can_view_audit_log);
 
     return (
         <>
@@ -62,6 +64,15 @@ export default function AppLayout({ title, children }) {
                                     className="hover:text-sky-400"
                                 >
                                     {tDisputes('nav.review')}
+                                </Link>
+                            )}
+
+                            {canViewAuditLog && (
+                                <Link
+                                    href="/admin/audit-log"
+                                    className="hover:text-sky-400"
+                                >
+                                    {tAudit('nav.audit_log')}
                                 </Link>
                             )}
 

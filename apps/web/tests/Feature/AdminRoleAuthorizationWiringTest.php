@@ -48,6 +48,28 @@ it('grants the restrictions.moderate capability to an Administrator via the real
     expect(Gate::forUser($user)->allows(AdminCapability::RestrictionsModerate->value))->toBeTrue();
 });
 
+it('denies the audit.view capability for a user with no role assigned', function () {
+    $user = User::factory()->create();
+
+    expect(Gate::forUser($user)->allows(AdminCapability::AuditView->value))->toBeFalse();
+});
+
+it('denies the audit.view capability for a Moderator, per ADR-026 §6', function () {
+    $user = User::factory()->create();
+
+    app(AdminRoleAssignmentRepository::class)->assignRole((string) $user->id, AdminRole::Moderator, null);
+
+    expect(Gate::forUser($user)->allows(AdminCapability::AuditView->value))->toBeFalse();
+});
+
+it('grants the audit.view capability to an Administrator', function () {
+    $user = User::factory()->create();
+
+    app(AdminRoleAssignmentRepository::class)->assignRole((string) $user->id, AdminRole::Administrator, null);
+
+    expect(Gate::forUser($user)->allows(AdminCapability::AuditView->value))->toBeTrue();
+});
+
 it('assigns a role end-to-end through the documented engineering console command', function () {
     $user = User::factory()->create(['email' => 'future-admin@example.com']);
 

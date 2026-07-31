@@ -6,6 +6,7 @@ namespace App\Providers;
 
 use App\Infrastructure\BidsAccountStandingLookup;
 use App\Infrastructure\EloquentAuctionGateway;
+use App\Infrastructure\EloquentAuditEventLookup;
 use App\Infrastructure\EloquentDisputeCaseLookup;
 use App\Infrastructure\EloquentDisputeParticipantLookup;
 use App\Infrastructure\EloquentNotificationTransferParticipantLookup;
@@ -30,6 +31,7 @@ use App\Infrastructure\RestrictedCategoryActivationAdapter;
 use App\Listeners\RecordAuditEvent;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use RowBuddy\Administration\Contracts\AuditEventLookup;
 use RowBuddy\Administration\Contracts\DisputeCaseLookup;
 use RowBuddy\Administration\Contracts\JurisdictionRuleActivationGateway;
 use RowBuddy\Administration\Contracts\RestrictedCategoryActivationGateway;
@@ -202,6 +204,12 @@ class AppServiceProvider extends ServiceProvider
         // dispute-review read model, never a change to Disputes' own
         // aggregate or state machine.
         $this->app->bind(DisputeCaseLookup::class, EloquentDisputeCaseLookup::class);
+
+        // Bridges Administration -> the platform-wide audit sink
+        // (ADR-026 §6; see EloquentAuditEventLookup's own docblock):
+        // Administration's own read-only view of audit_events, never a
+        // change to how RecordAuditEvent persists it.
+        $this->app->bind(AuditEventLookup::class, EloquentAuditEventLookup::class);
     }
 
     /**

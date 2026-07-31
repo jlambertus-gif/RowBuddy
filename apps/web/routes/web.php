@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\ApproveQueueController;
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\DiscoverQueuesController;
 use App\Http\Controllers\DisputeReviewController;
 use App\Http\Controllers\EndPresenceSessionController;
@@ -73,5 +74,12 @@ Route::middleware('auth')->group(function () {
             return Inertia::render('Admin/DisputeReview');
         })->name('disputes.review-page');
         Route::post('/disputes/{disputeId}/corrections', RecordDisputeCorrectionController::class)->name('disputes.corrections.store');
+    });
+
+    Route::middleware('can:audit.view')->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/audit-events', AuditLogController::class)->name('audit-events.index');
+        Route::get('/audit-log', function () {
+            return Inertia::render('Admin/AuditLog');
+        })->name('audit-log-page');
     });
 });

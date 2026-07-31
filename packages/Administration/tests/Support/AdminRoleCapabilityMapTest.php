@@ -21,11 +21,14 @@ it('grants queues.moderate to the Administrator role', function () {
 it('returns the full capability list for a role', function () {
     $map = new AdminRoleCapabilityMap;
 
-    expect($map->capabilitiesFor(AdminRole::Moderator))->toBe([AdminCapability::QueuesModerate])
+    expect($map->capabilitiesFor(AdminRole::Moderator))->toBe([
+        AdminCapability::QueuesModerate,
+    ])
         ->and($map->capabilitiesFor(AdminRole::Administrator))->toBe([
             AdminCapability::QueuesModerate,
             AdminCapability::RestrictionsModerate,
             AdminCapability::DisputesReview,
+            AdminCapability::AuditView,
         ]);
 });
 
@@ -41,4 +44,11 @@ it('grants disputes.review to the Administrator role only', function () {
 
     expect($map->roleGrants(AdminRole::Administrator, AdminCapability::DisputesReview))->toBeTrue()
         ->and($map->roleGrants(AdminRole::Moderator, AdminCapability::DisputesReview))->toBeFalse();
+});
+
+it('grants audit.view to the Administrator role only', function () {
+    $map = new AdminRoleCapabilityMap;
+
+    expect($map->roleGrants(AdminRole::Administrator, AdminCapability::AuditView))->toBeTrue()
+        ->and($map->roleGrants(AdminRole::Moderator, AdminCapability::AuditView))->toBeFalse();
 });

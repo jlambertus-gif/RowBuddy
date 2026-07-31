@@ -1,0 +1,12 @@
+{
+    "nav": {
+        "audit_log": "Audit log"
+    },
+    "log": {
+        "title": "Audit log",
+        "subtitle": "Audited platform events with a registered display definition. Only the fields explicitly allowed for display appear below; the underlying record retains the complete original payload. Event types without a display definition do not appear here at all.",
+        "loading": "Loading audit events…",
+        "load_error": "Could not load the audit log.",
+        "empty": "There are no audited events yet."
+    }
+}
