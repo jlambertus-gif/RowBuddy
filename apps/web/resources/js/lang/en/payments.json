@@ -1,0 +1,18 @@
+{
+    "title": "Payment method",
+    "loading": "Loading…",
+    "fields": {
+        "card": "Card details"
+    },
+    "actions": {
+        "save": "Save payment method",
+        "saving": "Saving…"
+    },
+    "status": {
+        "saved": "Your payment method has been saved."
+    },
+    "errors": {
+        "generic": "Something went wrong. Please try again.",
+        "load_error": "Payment setup could not be started."
+    }
+}

@@ -53,6 +53,26 @@
         <env name="PULSE_ENABLED" value="false" force="true"/>
         <env name="TELESCOPE_ENABLED" value="false" force="true"/>
         <env name="NIGHTWATCH_ENABLED" value="false" force="true"/>
+        <!--
+            A non-empty placeholder for all three (Phase 9, ADR-027
+            Sprint 3) — Stripe's own SDK validates the API key format
+            eagerly at StripeClient construction time, so any test that
+            merely resolves a Stripe-touching service from the container
+            (e.g. a real AuctionWon dispatch reaching
+            TriggerAuctionWinAuthorization) throws before ever reaching a
+            test's own assertions unless something is configured. None of
+            these three values is a real credential, and none is shaped
+            like one — deliberately not prefixed "sk_test_"/"pk_test_"/
+            "whsec_", the real prefixes Stripe itself issues, so it can
+            never be mistaken for or misused as a real Stripe credential.
+            Real Stripe test-mode integration tests detect the absence of
+            a genuine "sk_test_"-prefixed secret and skip themselves
+            explicitly rather than attempting a real network call against
+            this placeholder.
+        -->
+        <env name="STRIPE_KEY" value="phpunit_placeholder_publishable_key_not_real" force="true"/>
+        <env name="STRIPE_SECRET" value="phpunit_placeholder_secret_key_not_real" force="true"/>
+        <env name="STRIPE_WEBHOOK_SECRET" value="phpunit_placeholder_webhook_secret_not_real" force="true"/>
         <server name="APP_ENV" value="testing"/>
         <server name="APP_MAINTENANCE_DRIVER" value="file"/>
         <server name="BCRYPT_ROUNDS" value="4"/>
@@ -67,5 +87,8 @@
         <server name="PULSE_ENABLED" value="false"/>
         <server name="TELESCOPE_ENABLED" value="false"/>
         <server name="NIGHTWATCH_ENABLED" value="false"/>
+        <server name="STRIPE_KEY" value="phpunit_placeholder_publishable_key_not_real"/>
+        <server name="STRIPE_SECRET" value="phpunit_placeholder_secret_key_not_real"/>
+        <server name="STRIPE_WEBHOOK_SECRET" value="phpunit_placeholder_webhook_secret_not_real"/>
     </php>
 </phpunit>

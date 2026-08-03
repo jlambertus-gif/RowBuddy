@@ -30,6 +30,8 @@ use App\Infrastructure\RatingsAccountStandingLookup;
 use App\Infrastructure\RestrictedCategoryActivationAdapter;
 use App\Listeners\BroadcastAuctionSnapshot;
 use App\Listeners\RecordAuditEvent;
+use App\Listeners\TriggerAuctionWinAuthorization;
+use App\Listeners\TriggerTransferInitiation;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
@@ -58,6 +60,7 @@ use RowBuddy\Notifications\Contracts\RecipientLocalePreferenceLookup;
 use RowBuddy\Notifications\Contracts\TransferParticipantLookup as NotificationsTransferParticipantLookup;
 use RowBuddy\Notifications\Contracts\WinningBidderLookup;
 use RowBuddy\Payments\Contracts\TransactionManager as PaymentsTransactionManager;
+use RowBuddy\Payments\Events\PaymentAuthorized;
 use RowBuddy\QueuePresence\Contracts\EvidenceStorage;
 use RowBuddy\QueuePresence\Contracts\QueueGeofenceLookup;
 use RowBuddy\Queues\Contracts\AccountStandingLookup as QueuesAccountStanding;
@@ -243,6 +246,16 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(AuctionWon::class, BroadcastAuctionSnapshot::class);
         Event::listen(AuctionExpired::class, BroadcastAuctionSnapshot::class);
         Event::listen(AuctionCancelled::class, BroadcastAuctionSnapshot::class);
+
+        // The real money-movement path Phase 9 Sprint 3 exists to exercise
+        // (Decision 0) — AuctionWon -> real authorization -> real Transfer
+        // issuance, neither of which any caller wired to a real listener
+        // before this sprint. Additive, not a replacement of Phase 4/5's
+        // own direct-invocation orchestration (ADR-027 Architecture
+        // Refinements §6): no existing wiring is touched, since none
+        // existed for either reaction.
+        Event::listen(AuctionWon::class, TriggerAuctionWinAuthorization::class);
+        Event::listen(PaymentAuthorized::class, TriggerTransferInitiation::class);
 
         // Provisional MVP rate limit (ADR-027 Decision 3/6's own
         // "provisional engineering constant" precedent) — generous enough

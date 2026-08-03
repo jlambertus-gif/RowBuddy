@@ -1,0 +1,18 @@
+{
+    "title": "Método de pago",
+    "loading": "Cargando…",
+    "fields": {
+        "card": "Datos de la tarjeta"
+    },
+    "actions": {
+        "save": "Guardar método de pago",
+        "saving": "Guardando…"
+    },
+    "status": {
+        "saved": "Tu método de pago ha sido guardado."
+    },
+    "errors": {
+        "generic": "Algo salió mal. Inténtalo de nuevo.",
+        "load_error": "No se pudo iniciar la configuración del pago."
+    }
+}

@@ -17,6 +17,7 @@
     },
     "dependencies": {
         "@inertiajs/react": "^3.6.1",
+        "@stripe/stripe-js": "^9.12.1",
         "i18next": "^26.3.6",
         "laravel-echo": "^2.4.0",
         "pusher-js": "^8.5.0",

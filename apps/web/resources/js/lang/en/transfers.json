@@ -1,0 +1,33 @@
+{
+    "title": "Transfer",
+    "loading": "Loading transfer…",
+    "role": {
+        "seller": "You are the seller",
+        "buyer": "You are the buyer"
+    },
+    "status": {
+        "issued": "Awaiting confirmation",
+        "confirmed": "Confirmed",
+        "expired": "Expired",
+        "cancelled": "Cancelled"
+    },
+    "fields": {
+        "seller_confirmed": "Seller confirmed",
+        "buyer_confirmed": "Buyer confirmed",
+        "expires_at": "Expires at",
+        "qr_token": "Confirmation code",
+        "yes": "Yes",
+        "no": "Not yet"
+    },
+    "actions": {
+        "confirm": "Confirm",
+        "confirming": "Confirming…",
+        "reveal_code": "Show my confirmation code"
+    },
+    "errors": {
+        "generic": "Something went wrong. Please try again.",
+        "load_error": "This transfer could not be loaded.",
+        "geolocation_unsupported": "Your device does not support location services.",
+        "geolocation_denied": "Location access is required to confirm this transfer."
+    }
+}

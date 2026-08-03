@@ -383,16 +383,21 @@ Decision 0's necessity boundary:
 4. **`BuyerPaymentMethod` persists whatever Stripe reference actually
    supports safe reuse, not merely a detached PaymentMethod id** — including
    the buyer's Stripe Customer reference where Stripe's own model requires
-   it for reuse. Stripe stays fully isolated behind a Payments-owned port,
-   implemented by an `apps/web` infrastructure adapter, mirroring every
-   other Stripe integration in this codebase (`ConnectAccountGateway`,
-   `WebhookSignatureVerifier`). SetupIntent/Stripe.js/Elements ensures raw
-   card data never reaches Laravel. The frontend receives no raw Stripe
-   identifier beyond the client secret Stripe.js strictly requires. No
-   Stripe key, client secret, webhook secret, or test credential is ever
-   committed. Real Stripe test-mode integration stays explicitly
-   disabled/skipped, with a stated reason, until externally supplied test
-   credentials exist.
+   it for reuse. Stripe stays fully isolated behind a Payments-owned port
+   — implemented by an adapter living inside `packages/Payments` itself
+   (corrected during Sprint 3 implementation: "implemented by an
+   `apps/web` infrastructure adapter" was this refinement's own drafting
+   inaccuracy, not a new placement pattern — every other Stripe
+   integration in this codebase, `ConnectAccountGateway`,
+   `WebhookSignatureVerifier`, `PaymentAuthorizationGateway`, already
+   lives Payments-internal, bound in `PaymentsServiceProvider`; this ADR
+   now mirrors that, rather than the other way around). SetupIntent/
+   Stripe.js/Elements ensures raw card data never reaches Laravel. The
+   frontend receives no raw Stripe identifier beyond the client secret
+   Stripe.js strictly requires. No Stripe key, client secret, webhook
+   secret, or test credential is ever committed. Real Stripe test-mode
+   integration stays explicitly disabled/skipped, with a stated reason,
+   until externally supplied test credentials exist.
 
 5. **Transfers/QR HTTP exposes existing domain behavior through thin
    boundaries — it does not invent a second confirmation protocol.**
@@ -530,6 +535,141 @@ operations/legal documentation finalization, the separately approved
 branch/release resolution, full validation, completion report, release
 tag. Each sprint requires explicit review and approval before the next
 begins.
+
+## Sprint 3 approved implementation decisions
+
+Sprint 3 implemented the minimum `BuyerPaymentMethod`+Transfers surface
+(Refinements §4–§5 above). Four implementation decisions were required
+and explicitly approved:
+
+1. **Stripe adapter placement corrected to match actual precedent** — see
+   Refinement §4's own updated text above. `StripeBuyerPaymentMethodGateway`
+   lives in `packages/Payments/src/Infrastructure/Stripe/`, bound in
+   `PaymentsServiceProvider`, exactly like every other Stripe adapter in
+   this codebase.
+
+2. **Real `AuctionWon` → `AuctionWinAuthorizationService` and
+   `PaymentAuthorized` → `TransferInitiationService` wiring**, both
+   previously unwired since Phase 4/5. `TriggerAuctionWinAuthorization`
+   resolves the winning buyer's saved `BuyerPaymentMethod` itself; a
+   missing payment method fails loudly via `MissingBuyerPaymentMethod`
+   (an uncaught exception on this queued listener, landing in Laravel's
+   own `failed_jobs` — the explicit, documented failure path ADR-025 §11
+   already established for bounded, unproactive failure handling).
+   `TriggerTransferInitiation` additionally delivers the one-time
+   plaintext QR/confirmation token `TransferInitiationService` returns
+   (never persisted by Transfers itself, ADR-017 §2) to the buyer via a
+   short-lived cache entry, TTL-bound by the transfer's own expiry —
+   the delivery-layer mechanism `TransferIssuance`'s own docblock
+   explicitly flagged as not yet existing. Both listeners are additive
+   composition-root wiring for a previously entirely-unwired capability,
+   not a replacement of Phase 4/5's own accepted direct-invocation
+   orchestration (Refinement §6) — no existing wiring is touched, since
+   none existed for either reaction.
+
+3. **The `Transfer` participant-authorization gap is fixed at the
+   application-service layer, not the aggregate.** `TransferConfirmationService::confirmBySeller()`/
+   `confirmByBuyer()` now require and verify `requestingUserId` against
+   the transfer's own `sellerId`/`buyerId` before anything else runs —
+   including before the expiry evaluator — throwing the new
+   `TransferAccessDenied` otherwise. `Transfer` the aggregate itself is
+   unchanged; this mirrors `PresenceSessionService`'s own
+   `assertOwnedBy()` posture (ownership enforced in the application
+   layer, never the aggregate or the HTTP layer). `Issued -> Confirmed/
+   Expired/Cancelled` behavior is unaffected beyond this guard.
+
+4. **`@stripe/stripe-js` added as the one new frontend dependency**,
+   smallest compatible caret range, `npm audit` clean. No
+   `@stripe/react-stripe-js` or any other Stripe frontend package —
+   `SetupPaymentMethod.jsx` uses `loadStripe()`/`elements.create('card')`/
+   `confirmCardSetup()` directly. Raw card data is entered into a
+   Stripe-controlled DOM node and never reaches Laravel; only the
+   resulting `setup_intent_id` is ever posted to the backend.
+
+**Design decisions made during implementation — approved:**
+
+- **QR/confirmation-code delivery is cache-based, not a rendered QR
+  barcode — a presentation limitation only, not a protocol decision.**
+  The buyer retrieves the plaintext code as text via an authenticated,
+  buyer-only endpoint (`GET /transfers/{id}/qr-token`), backed by a
+  short-lived cache entry keyed by transfer id, TTL bound to the
+  transfer's own `expiresAt`. No QR-image-rendering library was
+  introduced (only `@stripe/stripe-js` was approved as a new
+  dependency); the code may later be rendered as a visual QR barcode
+  purely as a presentation change, without touching the domain
+  protocol — the underlying value is, and remains, the same plaintext
+  string `TransferConfirmationService::confirmBySeller()` already
+  verifies via `hash_equals()` against the stored hash. This does not
+  invent a second confirmation protocol; it only delivers the secret the
+  *existing* hash-based protocol already expects the seller to submit.
+  Confirmed satisfied:
+  - Buyer-only authenticated retrieval (`ShowTransferQrTokenController`
+    checks `requestingUserId === $transfer->buyerId`, 403 otherwise).
+  - TTL bounded by the transfer's own expiry — the cache entry is
+    written with exactly `$transfer->expiresAt` as its expiration.
+  - No token exposure in logs (no `Log::` call anywhere in this
+    delivery path touches it), audit payloads (`TransferIssued::payload()`/
+    `auditPayload()` carry only `transfer_id`/`auction_id`/
+    `winning_bid_id`/`seller_id`/`buyer_id` — never the QR token, at rest
+    or hashed), page source (the token is fetched via a separate
+    authenticated XHR after an explicit buyer click, never embedded in
+    an initial Inertia page prop that would appear in the server-rendered
+    HTML), or any unrelated response (`ShowTransferController`'s own
+    `toResponse()` never includes it; only the dedicated endpoint does).
+  - Confirmation remains one-time through the existing `Transfer`
+    invariants unchanged by this sprint: a second seller confirmation
+    attempt is still rejected as `IllegalStateTransition` regardless of
+    how many times the code was retrieved or resubmitted.
+  - The cache used in production (`CACHE_STORE=redis`, `.env.example`)
+    is already shared and multi-process-safe by the existing platform
+    default — no code change was needed to satisfy this; the array
+    driver is used only in the test environment (`phpunit.xml`,
+    per-process, correctly isolated per test).
+- **Evidence-photo HTTP endpoints were not built.** Sprint 3's explicit
+  scope named "minimal transfer HTTP/UI" and "QR confirmation flow," not
+  evidence upload; `TransferEvidenceSubmissionService` (Phase 6) remains
+  domain/backend-only, consistent with "necessity, not completeness"
+  (Decision 0) and explicitly reaffirmed on Sprint 3 approval.
+- **`GET /transfers/{id}` is participant-only, not public** — unlike the
+  public Auction read endpoint (Refinement §1), a transfer inherently
+  concerns exactly two named parties and their confirmation obligation,
+  not general discovery.
+
+**Real Stripe test-mode status — explicit, not to be conflated with
+"validated."** `packages/Payments/tests/Infrastructure/StripeBuyerPaymentMethodGatewayTest.php`
+exists and is written, but **has not executed against real Stripe test
+credentials in this environment** — all five of its cases
+`markTestSkipped()` because `STRIPE_SECRET` is not configured. That skip
+condition is exact: it triggers only when the configured secret does not
+start with `sk_test_`, never unconditionally. **Phase 9 must not be
+described as having validated the real Stripe money-movement path until
+externally supplied real Stripe test-mode credentials are configured and
+these five tests actually run and pass** — this mirrors Decision 2's own
+"external input, never fabricated" discipline for legal conclusions,
+applied here to Stripe credentials specifically, and is a launch
+blocker to be resolved no later than Sprint 6 (§7's "resolved during
+Phase 9" list already commits to this).
+
+## Sprint 4 note (recorded during Sprint 3 implementation)
+
+Any test that fires a real `AuctionWon` event now exercises
+`TriggerAuctionWinAuthorization`'s full dependency graph, including a
+real `StripeClient` construction — `apps/web/phpunit.xml` now configures
+a non-empty, deliberately non-`sk_test_`-shaped placeholder `STRIPE_KEY`/
+`STRIPE_SECRET`/`STRIPE_WEBHOOK_SECRET` so tests unrelated to Payments do
+not fail merely resolving the listener. **These placeholders are not, and
+must never be mistaken for, real Stripe credentials**: none of the three
+values (`STRIPE_KEY`/`STRIPE_SECRET`/`STRIPE_WEBHOOK_SECRET`, all
+literally `phpunit_placeholder_..._not_real`) is a valid Stripe key of
+any kind, none starts with `sk_test_`/`pk_test_`/`whsec_` — the real
+prefixes Stripe itself issues — all three are confined to `phpunit.xml`
+(never `.env` or any file Laravel would load outside the PHPUnit test
+runner), and none is ever read as satisfying the real-Stripe-credentials
+skip check in `StripeBuyerPaymentMethodGatewayTest.php`, which explicitly
+requires the `sk_test_` prefix Stripe issues to real test-mode secret
+keys. Real Stripe
+test-mode integration tests detect the placeholder's shape and skip
+themselves explicitly rather than attempting a network call against it.
 
 ## References
 

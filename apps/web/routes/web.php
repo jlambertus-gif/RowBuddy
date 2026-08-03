@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 use App\Http\Controllers\ApproveQueueController;
 use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\BeginBuyerPaymentMethodSetupController;
+use App\Http\Controllers\CompleteBuyerPaymentMethodSetupController;
+use App\Http\Controllers\ConfirmTransferAsBuyerController;
+use App\Http\Controllers\ConfirmTransferAsSellerController;
 use App\Http\Controllers\DiscoverQueuesController;
 use App\Http\Controllers\DisputeReviewController;
 use App\Http\Controllers\EndPresenceSessionController;
@@ -16,6 +20,8 @@ use App\Http\Controllers\RecordGpsPingController;
 use App\Http\Controllers\RejectQueueController;
 use App\Http\Controllers\ShowAuctionController;
 use App\Http\Controllers\ShowEvidencePhotoUrlController;
+use App\Http\Controllers\ShowTransferController;
+use App\Http\Controllers\ShowTransferQrTokenController;
 use App\Http\Controllers\StartPresenceSessionController;
 use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\UploadEvidencePhotoController;
@@ -75,6 +81,25 @@ Route::middleware('auth')->group(function () {
     Route::post('/presence-sessions/{sessionId}/end', EndPresenceSessionController::class)->name('presence-sessions.end');
     Route::post('/presence-sessions/{sessionId}/evidence-photos', UploadEvidencePhotoController::class)->name('presence-sessions.evidence-photos.upload');
     Route::get('/presence-sessions/{sessionId}/evidence-photos/{photoId}', ShowEvidencePhotoUrlController::class)->name('presence-sessions.evidence-photos.show');
+
+    // Minimum buyer payment-method surface (ADR-027 Architecture
+    // Refinements §4): buyerId always comes from the authenticated user.
+    Route::post('/buyer-payment-methods/setup-intent', BeginBuyerPaymentMethodSetupController::class)->name('buyer-payment-methods.setup-intent');
+    Route::post('/buyer-payment-methods', CompleteBuyerPaymentMethodSetupController::class)->name('buyer-payment-methods.store');
+    Route::get('/payment-method-setup', function () {
+        return Inertia::render('Payments/SetupPaymentMethod');
+    })->name('payment-method-setup-page');
+
+    // Minimum Transfers/QR surface (ADR-027 Architecture Refinements §5):
+    // requestingUserId always comes from the authenticated user; no
+    // sellerId/buyerId is ever accepted from request input.
+    Route::get('/transfers/{transferId}', ShowTransferController::class)->name('transfers.show');
+    Route::get('/transfers/{transferId}/qr-token', ShowTransferQrTokenController::class)->name('transfers.qr-token.show');
+    Route::post('/transfers/{transferId}/confirm-as-seller', ConfirmTransferAsSellerController::class)->name('transfers.confirm-as-seller');
+    Route::post('/transfers/{transferId}/confirm-as-buyer', ConfirmTransferAsBuyerController::class)->name('transfers.confirm-as-buyer');
+    Route::get('/transfers/{transferId}/live', function (string $transferId) {
+        return Inertia::render('Transfers/Show', ['transferId' => $transferId]);
+    })->name('transfers.show-page');
 
     Route::middleware('can:queues.moderate')->prefix('admin')->name('admin.')->group(function () {
         Route::get('/queues', [PendingQueuesController::class, 'index'])->name('queues.index');

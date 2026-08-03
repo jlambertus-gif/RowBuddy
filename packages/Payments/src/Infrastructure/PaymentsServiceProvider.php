@@ -10,6 +10,8 @@ use Illuminate\Support\ServiceProvider;
 use RowBuddy\Payments\Application\FixedPaymentProcessingCostPolicy;
 use RowBuddy\Payments\Application\FixedPlatformFeePolicy;
 use RowBuddy\Payments\Application\FixedTransactionValueLimitPolicy;
+use RowBuddy\Payments\Contracts\BuyerPaymentMethodGateway;
+use RowBuddy\Payments\Contracts\BuyerPaymentMethodRepository;
 use RowBuddy\Payments\Contracts\ConnectAccountGateway;
 use RowBuddy\Payments\Contracts\DomainEventPublisher;
 use RowBuddy\Payments\Contracts\PaymentAuthorizationGateway;
@@ -20,10 +22,12 @@ use RowBuddy\Payments\Contracts\SellerPayoutAccountRepository;
 use RowBuddy\Payments\Contracts\TransactionValueLimitPolicy;
 use RowBuddy\Payments\Contracts\WebhookEventRepository;
 use RowBuddy\Payments\Contracts\WebhookSignatureVerifier;
+use RowBuddy\Payments\Infrastructure\Eloquent\EloquentBuyerPaymentMethodRepository;
 use RowBuddy\Payments\Infrastructure\Eloquent\EloquentPaymentIntentRepository;
 use RowBuddy\Payments\Infrastructure\Eloquent\EloquentSellerPayoutAccountRepository;
 use RowBuddy\Payments\Infrastructure\Eloquent\EloquentWebhookEventRepository;
 use RowBuddy\Payments\Infrastructure\Events\LaravelDomainEventPublisher;
+use RowBuddy\Payments\Infrastructure\Stripe\StripeBuyerPaymentMethodGateway;
 use RowBuddy\Payments\Infrastructure\Stripe\StripeConnectAccountGateway;
 use RowBuddy\Payments\Infrastructure\Stripe\StripePaymentAuthorizationGateway;
 use RowBuddy\Payments\Infrastructure\Stripe\StripeWebhookSignatureVerifier;
@@ -38,6 +42,7 @@ final class PaymentsServiceProvider extends ServiceProvider
         $this->app->bind(PaymentIntentRepository::class, EloquentPaymentIntentRepository::class);
         $this->app->bind(SellerPayoutAccountRepository::class, EloquentSellerPayoutAccountRepository::class);
         $this->app->bind(WebhookEventRepository::class, EloquentWebhookEventRepository::class);
+        $this->app->bind(BuyerPaymentMethodRepository::class, EloquentBuyerPaymentMethodRepository::class);
 
         $this->app->bind(DomainEventPublisher::class, function ($app) {
             return new LaravelDomainEventPublisher($app->make(Dispatcher::class));
@@ -61,6 +66,15 @@ final class PaymentsServiceProvider extends ServiceProvider
             $config = $app->make(Repository::class);
 
             return new StripeWebhookSignatureVerifier((string) $config->get('services.stripe.webhook_secret'));
+        });
+
+        // ADR-027 Architecture Refinements §4: the new Stripe adapter for
+        // buyer payment-method setup lives here, exactly like every other
+        // Stripe adapter in this package — not in apps/web, correcting
+        // the ADR's own literal "apps/web infrastructure adapter" wording
+        // (a drafting inaccuracy, per José's own Sprint 3 decision).
+        $this->app->bind(BuyerPaymentMethodGateway::class, function ($app) {
+            return new StripeBuyerPaymentMethodGateway($app->make(StripeClient::class));
         });
 
         // Provisional MVP configuration values, not permanent domain

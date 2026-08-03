@@ -1,0 +1,33 @@
+{
+    "title": "Transferencia",
+    "loading": "Cargando transferencia…",
+    "role": {
+        "seller": "Eres el vendedor",
+        "buyer": "Eres el comprador"
+    },
+    "status": {
+        "issued": "Esperando confirmación",
+        "confirmed": "Confirmada",
+        "expired": "Expirada",
+        "cancelled": "Cancelada"
+    },
+    "fields": {
+        "seller_confirmed": "Vendedor confirmó",
+        "buyer_confirmed": "Comprador confirmó",
+        "expires_at": "Expira el",
+        "qr_token": "Código de confirmación",
+        "yes": "Sí",
+        "no": "Aún no"
+    },
+    "actions": {
+        "confirm": "Confirmar",
+        "confirming": "Confirmando…",
+        "reveal_code": "Mostrar mi código de confirmación"
+    },
+    "errors": {
+        "generic": "Algo salió mal. Inténtalo de nuevo.",
+        "load_error": "No se pudo cargar esta transferencia.",
+        "geolocation_unsupported": "Tu dispositivo no admite servicios de ubicación.",
+        "geolocation_denied": "Se requiere acceso a la ubicación para confirmar esta transferencia."
+    }
+}

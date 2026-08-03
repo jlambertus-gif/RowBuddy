@@ -14,6 +14,7 @@ use RowBuddy\Transfers\Contracts\TransferRepository;
 use RowBuddy\Transfers\Exceptions\ConfirmationOutsideGeofence;
 use RowBuddy\Transfers\Exceptions\IllegalStateTransition;
 use RowBuddy\Transfers\Exceptions\InvalidQrToken;
+use RowBuddy\Transfers\Exceptions\TransferAccessDenied;
 use RowBuddy\Transfers\Transfer;
 use RowBuddy\Transfers\ValueObjects\TransferStatus;
 
@@ -45,6 +46,16 @@ use RowBuddy\Transfers\ValueObjects\TransferStatus;
  * token match (ADR-017 §5) both gate whether the aggregate's own
  * `confirmBySeller()`/`confirmByBuyer()` is ever called — a rejected
  * attempt never reaches it, mirroring `BidService`'s rejection shape.
+ *
+ * `requestingUserId` is verified against the transfer's own
+ * `sellerId`/`buyerId` before anything else happens — including before
+ * the expiry evaluator runs (Phase 9, ADR-027 Architecture Refinements
+ * §5) — the same "ownership enforced in the application layer" posture
+ * `PresenceSessionService` already established (`assertOwnedBy()`);
+ * `Transfer` the aggregate itself has no concept of a requesting user, by
+ * design. An unrelated authenticated user (or the wrong-role participant,
+ * e.g. the buyer calling `confirmBySeller()`) is rejected identically to
+ * a stranger with no relationship to this transfer at all.
  */
 final class TransferConfirmationService
 {
@@ -59,42 +70,66 @@ final class TransferConfirmationService
 
     /**
      * @throws NotFoundException
+     * @throws TransferAccessDenied
      * @throws IllegalStateTransition
      * @throws ConfirmationOutsideGeofence
      * @throws InvalidQrToken
      */
-    public function confirmBySeller(string $transferId, string $qrToken, GeoPoint $geo): void
+    public function confirmBySeller(string $transferId, string $requestingUserId, string $qrToken, GeoPoint $geo): void
     {
-        $this->confirmWithinTransaction($transferId, $geo, function (Transfer $transfer) use ($qrToken, $geo): void {
-            $this->assertQrTokenMatches($transfer, $qrToken);
-            $transfer->confirmBySeller($geo, $this->clock);
-        });
+        $this->confirmWithinTransaction(
+            $transferId,
+            $requestingUserId,
+            $geo,
+            static fn (Transfer $transfer): string => $transfer->sellerId,
+            function (Transfer $transfer) use ($qrToken, $geo): void {
+                $this->assertQrTokenMatches($transfer, $qrToken);
+                $transfer->confirmBySeller($geo, $this->clock);
+            },
+        );
     }
 
     /**
      * @throws NotFoundException
+     * @throws TransferAccessDenied
      * @throws IllegalStateTransition
      * @throws ConfirmationOutsideGeofence
      */
-    public function confirmByBuyer(string $transferId, GeoPoint $geo): void
+    public function confirmByBuyer(string $transferId, string $requestingUserId, GeoPoint $geo): void
     {
-        $this->confirmWithinTransaction($transferId, $geo, function (Transfer $transfer) use ($geo): void {
-            $transfer->confirmByBuyer($geo, $this->clock);
-        });
+        $this->confirmWithinTransaction(
+            $transferId,
+            $requestingUserId,
+            $geo,
+            static fn (Transfer $transfer): string => $transfer->buyerId,
+            function (Transfer $transfer) use ($geo): void {
+                $transfer->confirmByBuyer($geo, $this->clock);
+            },
+        );
     }
 
     /**
      * @throws NotFoundException
+     * @throws TransferAccessDenied
      * @throws IllegalStateTransition
      * @throws ConfirmationOutsideGeofence
      */
-    private function confirmWithinTransaction(string $transferId, GeoPoint $geo, callable $mutate): void
-    {
-        [$events, $rejection] = $this->transactions->run(function () use ($transferId, $geo, $mutate) {
+    private function confirmWithinTransaction(
+        string $transferId,
+        string $requestingUserId,
+        GeoPoint $geo,
+        callable $expectedParticipantId,
+        callable $mutate,
+    ): void {
+        [$events, $rejection] = $this->transactions->run(function () use ($transferId, $requestingUserId, $geo, $expectedParticipantId, $mutate) {
             $transfer = $this->transfers->findByIdForUpdate($transferId);
 
             if ($transfer === null) {
                 throw new NotFoundException("Transfer [{$transferId}] not found.");
+            }
+
+            if ($expectedParticipantId($transfer) !== $requestingUserId) {
+                throw TransferAccessDenied::forTransferId($transferId);
             }
 
             $this->expiryEvaluator->evaluate($transfer);
