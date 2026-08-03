@@ -1,0 +1,27 @@
+{
+    "title": "Live auction",
+    "loading": "Loading auction…",
+    "status": {
+        "open": "Open",
+        "closing": "Closing",
+        "won": "Won",
+        "expired": "Expired",
+        "cancelled": "Cancelled"
+    },
+    "fields": {
+        "status": "Status",
+        "current_price": "Current price",
+        "bid_count": "Bids",
+        "closes_at": "Closes at",
+        "bid_amount": "Your bid"
+    },
+    "actions": {
+        "place_bid": "Place bid",
+        "placing": "Placing…"
+    },
+    "errors": {
+        "generic": "Something went wrong. Please try again.",
+        "load_error": "This auction could not be loaded.",
+        "login_required": "Log in to place a bid on this auction."
+    }
+}

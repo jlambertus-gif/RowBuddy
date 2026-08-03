@@ -63,6 +63,11 @@ final class EloquentBidRepository implements BidRepository
         return $this->toDomain($model);
     }
 
+    public function countFor(string $auctionId): int
+    {
+        return BidModel::query()->where('auction_id', $auctionId)->count();
+    }
+
     private function toDomain(BidModel $model): Bid
     {
         return Bid::fromPersistence(

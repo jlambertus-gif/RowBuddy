@@ -1,0 +1,27 @@
+{
+    "title": "Subasta en vivo",
+    "loading": "Cargando subasta…",
+    "status": {
+        "open": "Abierta",
+        "closing": "Cerrando",
+        "won": "Adjudicada",
+        "expired": "Expirada",
+        "cancelled": "Cancelada"
+    },
+    "fields": {
+        "status": "Estado",
+        "current_price": "Precio actual",
+        "bid_count": "Pujas",
+        "closes_at": "Cierra el",
+        "bid_amount": "Tu puja"
+    },
+    "actions": {
+        "place_bid": "Pujar",
+        "placing": "Pujando…"
+    },
+    "errors": {
+        "generic": "Algo salió mal. Inténtalo de nuevo.",
+        "load_error": "No se pudo cargar esta subasta.",
+        "login_required": "Inicia sesión para pujar en esta subasta."
+    }
+}

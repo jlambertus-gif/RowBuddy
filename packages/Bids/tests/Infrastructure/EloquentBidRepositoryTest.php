@@ -75,3 +75,15 @@ it('scopes highestAmountFor to the given auction only', function () {
 
     expect($repository->highestAmountFor('auction-1')->equals(usd(1100)))->toBeTrue();
 });
+
+it('counts bids scoped to the given auction only', function () {
+    $repository = new EloquentBidRepository;
+
+    $repository->record(Bid::place('bid-1', 'auction-1', '101', usd(1100), new FrozenClock));
+    $repository->record(Bid::place('bid-2', 'auction-1', '102', usd(1200), new FrozenClock));
+    $repository->record(Bid::place('bid-3', 'auction-2', '103', usd(5000), new FrozenClock));
+
+    expect($repository->countFor('auction-1'))->toBe(2)
+        ->and($repository->countFor('auction-2'))->toBe(1)
+        ->and($repository->countFor('auction-missing'))->toBe(0);
+});

@@ -8,11 +8,13 @@ use App\Http\Controllers\DiscoverQueuesController;
 use App\Http\Controllers\DisputeReviewController;
 use App\Http\Controllers\EndPresenceSessionController;
 use App\Http\Controllers\PendingQueuesController;
+use App\Http\Controllers\PlaceBidController;
 use App\Http\Controllers\PublishQueueController;
 use App\Http\Controllers\QueueSubmissionController;
 use App\Http\Controllers\RecordDisputeCorrectionController;
 use App\Http\Controllers\RecordGpsPingController;
 use App\Http\Controllers\RejectQueueController;
+use App\Http\Controllers\ShowAuctionController;
 use App\Http\Controllers\ShowEvidencePhotoUrlController;
 use App\Http\Controllers\StartPresenceSessionController;
 use App\Http\Controllers\StripeWebhookController;
@@ -37,7 +39,23 @@ Route::get('/discover', function () {
     return Inertia::render('Queues/Discover');
 })->name('queues.discover-page');
 
+// Public JSON API: no authentication required to view an auction's public
+// snapshot (ADR-027 Architecture Refinements §1) — only auctions eligible
+// for public discovery are returned.
+Route::get('/auctions/{auctionId}', ShowAuctionController::class)->name('auctions.show');
+
+// Public page: mirrors the API's accessibility above — the live auction
+// page fetches from /auctions/{auctionId} client-side and subscribes to
+// the matching public Reverb channel for subsequent updates.
+Route::get('/auctions/{auctionId}/live', function (string $auctionId) {
+    return Inertia::render('Auctions/Show', ['auctionId' => $auctionId]);
+})->name('auctions.show-page');
+
 Route::middleware('auth')->group(function () {
+    Route::post('/auctions/{auctionId}/bids', PlaceBidController::class)
+        ->middleware('throttle:bid-placement')
+        ->name('auctions.bids.store');
+
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');

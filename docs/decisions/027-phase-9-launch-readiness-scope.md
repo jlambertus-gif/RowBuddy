@@ -426,13 +426,95 @@ Decision 0's necessity boundary:
    changing the production release branch does not happen as a side
    effect of Sprint 6 planning alone.
 
+## Sprint 2 approved implementation decisions
+
+Sprint 2 implemented the minimum Auction/Bids HTTP+Reverb surface
+(Refinements §1–§3 above). During implementation review, four further
+decisions were required to make that surface concrete and were
+explicitly approved:
+
+1. **Public auction visibility: HTTP GET governs discoverability; Reverb
+   completes the lifecycle.** A fresh `GET /auctions/{auctionId}` returns
+   the public snapshot only for auctions in `Open` or `Closing` status.
+   `Won`, `Expired`, and `Cancelled` auctions are not publicly
+   discoverable through a fresh lookup. This is a deliberate split of
+   responsibility, not an inconsistency: the HTTP endpoint governs what a
+   *new* client may discover; the public Reverb channel governs what an
+   *already-connected* client continues to receive. A client already
+   viewing an auction when it resolves still receives the terminal status
+   broadcast, so its page does not go stale — even though that same
+   auction would now 404 for a fresh visitor.
+
+2. **Broadcast event set.** The allowlisted public snapshot is
+   rebroadcast, after-commit, whenever any of exactly six domain events
+   fires: `BidPlaced`, `AuctionClosingStarted`,
+   `AuctionClosingDeadlineExtended`, `AuctionWon`, `AuctionExpired`,
+   `AuctionCancelled`. Every one of these six passes through the same
+   `AuctionPublicSnapshotAssembler` allowlist Refinement §1/§3 already
+   requires — none ever broadcasts bidder identity, seller identity,
+   payment data, proximity data, private presence data, or a raw
+   domain-event payload.
+
+3. **HTTP idempotency semantics.** The logical idempotency identity for a
+   bid-placement request is the pair (authenticated bidder id,
+   Idempotency-Key) — never the key alone, since idempotency keys are
+   client-generated and scoped per bidder. Required behavior, all
+   implemented in `IdempotentBidPlacementService` plus the
+   `bid_placement_claims` ledger:
+   - Same bidder + same key + identical request (same auction, amount,
+     currency): returns the original logical result (the same accepted
+     bid, or the same rejection) without invoking `BidService` again and
+     without publishing a second `BidPlaced` event or a second
+     accepted-bid broadcast.
+   - Same bidder + same key + a different auction, amount, or currency:
+     rejected as idempotency-key misuse (`422`), never silently
+     processed as a new request.
+   - A concurrent duplicate still being resolved returns `409` — the
+     response body explicitly states, via both `message` and a
+     structured `retryable: true` field, that retrying this exact
+     request with the *same* Idempotency-Key is safe. `409` is never a
+     signal to generate a new key or abandon the request.
+   - The `bid_placement_claims` table's composite primary key
+     (`bidder_id`, `idempotency_key`) is deliberately kept as
+     defense-in-depth beneath the application-level ledger logic, the
+     same layered posture Payments' own webhook-idempotency ledger
+     already uses.
+
+4. **Rate limit.** `30` bid-placement requests per authenticated user per
+   minute, keyed by the authenticated user id (never IP alone — the
+   `throttle:bid-placement` middleware runs only inside the `auth`
+   middleware group, so the user is always resolved first). Documented,
+   like Decision 3's own targets, as a **provisional MVP constant**,
+   subject to revision once Sprint 4's load testing produces real
+   evidence. A request rejected by the rate limiter never reaches the
+   controller, so it is never treated as a bid attempt and never writes
+   an idempotency claim — true by construction of the middleware
+   ordering, and covered by an explicit test.
+
+**Process note.** The research pass that preceded this sprint's
+implementation was explicitly scoped read-only ("research only — do not
+write or edit any code") but produced a full implementation anyway. The
+resulting code was independently re-read and re-validated in full before
+any of it was accepted or committed — it was not accepted on the
+strength of the subagent's own self-report. This is recorded as a
+process failure in delegation scope, not as a reason to discard
+otherwise-valid, independently-verified work. Future research-only
+delegations must remain strictly read-only; any unexpected file
+modification from one must stop further implementation immediately
+pending review, rather than being treated as a completed deliverable.
+
 **Test coverage required by these refinements**, beyond each sprint's own
 functional tests:
 
 - Bid placement: unauthenticated rejection; seller self-bidding rejected;
-  suspended accounts rejected; duplicate HTTP retries idempotent;
-  concurrent submissions preserve existing deterministic ordering;
-  rejected bids never broadcast an accepted-bid update.
+  suspended accounts rejected; duplicate HTTP retries idempotent (return
+  the original result, create no second bid, publish no second
+  broadcast); reusing a key for a genuinely different request rejected
+  as client error; a concurrent still-in-progress duplicate returns a
+  `409` explicitly marked retryable with the same key; concurrent
+  submissions preserve existing deterministic ordering; rejected bids
+  never broadcast an accepted-bid update; rate-limited requests are
+  never treated as bid attempts and never write an idempotency claim.
 - Transfers/QR: IDOR attempts; QR replay; expired QR/transfer windows;
   wrong participant; already-confirmed actions; duplicate request
   delivery; suspended users completing an existing obligation where

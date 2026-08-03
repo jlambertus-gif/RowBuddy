@@ -38,4 +38,11 @@ interface BidRepository
     public function findHighestBidFor(string $auctionId): ?Bid;
 
     public function findById(string $id): ?Bid;
+
+    /**
+     * The total number of bids recorded for this auction — used only for
+     * public read presentation (Phase 9, ADR-027 Architecture Refinements
+     * §1); never consulted by bid-placement validation itself.
+     */
+    public function countFor(string $auctionId): int;
 }

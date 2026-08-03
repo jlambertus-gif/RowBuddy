@@ -16,6 +16,15 @@ return Application::configure(basePath: dirname(__DIR__))
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',
     )
+    // Every cross-module domain-event reaction in this codebase is wired
+    // through an explicit Event::listen() call (AppServiceProvider::boot()),
+    // never left to convention — automatic discovery silently double-
+    // registered App\Listeners\BroadcastAuctionSnapshot (once by explicit
+    // registration, once by its handle() union-type hint), producing a
+    // second accepted-bid broadcast per event (Phase 9, ADR-027 Sprint 2).
+    // Discovery is disabled outright so this class of bug cannot recur for
+    // any future listener added to app/Listeners.
+    ->withEvents(discover: false)
     ->withSchedule(function (Schedule $schedule): void {
         // The scheduled sweep half of ADR-018 §3's hybrid evaluation —
         // catches transfers nobody ever touches again (silence), which

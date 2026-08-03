@@ -53,4 +53,12 @@ final class InMemoryBidRepository implements BidRepository
     {
         return $this->recorded[$id] ?? null;
     }
+
+    public function countFor(string $auctionId): int
+    {
+        return count(array_filter(
+            $this->recorded,
+            static fn (Bid $bid): bool => $bid->auctionId === $auctionId,
+        ));
+    }
 }

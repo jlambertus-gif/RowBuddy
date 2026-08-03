@@ -28,8 +28,11 @@ use App\Infrastructure\QueuePresenceSellerVerification;
 use App\Infrastructure\QueuesAccountStandingLookup;
 use App\Infrastructure\RatingsAccountStandingLookup;
 use App\Infrastructure\RestrictedCategoryActivationAdapter;
+use App\Listeners\BroadcastAuctionSnapshot;
 use App\Listeners\RecordAuditEvent;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use RowBuddy\Administration\Contracts\AuditEventLookup;
 use RowBuddy\Administration\Contracts\DisputeCaseLookup;
@@ -37,9 +40,15 @@ use RowBuddy\Administration\Contracts\JurisdictionRuleActivationGateway;
 use RowBuddy\Administration\Contracts\RestrictedCategoryActivationGateway;
 use RowBuddy\Auctions\Contracts\SellerPresenceVerification;
 use RowBuddy\Auctions\Contracts\WinningBidLookup;
+use RowBuddy\Auctions\Events\AuctionCancelled;
+use RowBuddy\Auctions\Events\AuctionClosingDeadlineExtended;
+use RowBuddy\Auctions\Events\AuctionClosingStarted;
+use RowBuddy\Auctions\Events\AuctionExpired;
+use RowBuddy\Auctions\Events\AuctionWon;
 use RowBuddy\Bids\Contracts\AccountStandingLookup as BidsAccountStanding;
 use RowBuddy\Bids\Contracts\AuctionGateway;
 use RowBuddy\Bids\Contracts\TransactionManager;
+use RowBuddy\Bids\Events\BidPlaced;
 use RowBuddy\Disputes\Contracts\PaymentRefundGateway;
 use RowBuddy\Disputes\Contracts\TransactionManager as DisputesTransactionManager;
 use RowBuddy\Disputes\Contracts\TransferCaseLookup;
@@ -222,5 +231,26 @@ class AppServiceProvider extends ServiceProvider
         // class, so it fires for every module's audit-worthy events —
         // Queues' and QueuePresence's alike — with no per-module wiring.
         Event::listen(AuditableAction::class, RecordAuditEvent::class);
+
+        // Rebroadcasts an auction's public snapshot on its Reverb channel
+        // whenever any of these six events commits (Phase 9, ADR-027
+        // Architecture Refinements §3) — registered against each concrete
+        // event class, not DomainEvent generally, so only auction-relevant
+        // events trigger a broadcast.
+        Event::listen(BidPlaced::class, BroadcastAuctionSnapshot::class);
+        Event::listen(AuctionClosingStarted::class, BroadcastAuctionSnapshot::class);
+        Event::listen(AuctionClosingDeadlineExtended::class, BroadcastAuctionSnapshot::class);
+        Event::listen(AuctionWon::class, BroadcastAuctionSnapshot::class);
+        Event::listen(AuctionExpired::class, BroadcastAuctionSnapshot::class);
+        Event::listen(AuctionCancelled::class, BroadcastAuctionSnapshot::class);
+
+        // Provisional MVP rate limit (ADR-027 Decision 3/6's own
+        // "provisional engineering constant" precedent) — generous enough
+        // for legitimate rapid bidding/retries during a hot closing
+        // window, low enough to block scripted flooding. Revisit once
+        // Sprint 4's load testing produces real evidence.
+        RateLimiter::for('bid-placement', function ($request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }
