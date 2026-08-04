@@ -6,5 +6,11 @@
         "dashboard": "Panel de control",
         "logout": "Cerrar sesión",
         "login": "Iniciar sesión"
+    },
+    "dashboard": {
+        "panel_title": "Panel de control",
+        "session_active": "Sesión iniciada",
+        "welcome": "Bienvenido, {{name}}",
+        "auth_working": "La autenticación base de RowBuddy está funcionando."
     }
 }

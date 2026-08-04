@@ -1,7 +1,9 @@
 import { Link, useForm, usePage } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import AuthLayout from '../../Layouts/AuthLayout';
 
 export default function ForgotPassword() {
+    const { t } = useTranslation('auth');
     const { flash } = usePage().props;
 
     const { data, setData, post, processing, errors } = useForm({
@@ -15,8 +17,8 @@ export default function ForgotPassword() {
 
     return (
         <AuthLayout
-            title="Recuperar contraseña"
-            subtitle="Te enviaremos un enlace para restablecerla"
+            title={t('forgot_password.title')}
+            subtitle={t('forgot_password.subtitle')}
         >
             {flash?.status && (
                 <div className="mb-5 rounded-lg border border-emerald-800 bg-emerald-950 p-3 text-sm text-emerald-300">
@@ -30,7 +32,7 @@ export default function ForgotPassword() {
                         htmlFor="email"
                         className="mb-2 block text-sm font-medium"
                     >
-                        Correo electrónico
+                        {t('forgot_password.email_label')}
                     </label>
 
                     <input
@@ -59,8 +61,8 @@ export default function ForgotPassword() {
                     className="w-full rounded-lg bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-500 disabled:opacity-50"
                 >
                     {processing
-                        ? 'Enviando enlace...'
-                        : 'Enviar enlace de recuperación'}
+                        ? t('forgot_password.submitting')
+                        : t('forgot_password.submit_button')}
                 </button>
             </form>
 
@@ -69,7 +71,7 @@ export default function ForgotPassword() {
                     href="/login"
                     className="text-sky-400 hover:text-sky-300"
                 >
-                    Volver al inicio de sesión
+                    {t('forgot_password.back_to_login_link')}
                 </Link>
             </p>
         </AuthLayout>

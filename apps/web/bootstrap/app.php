@@ -8,6 +8,8 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Stripe\Exception\ExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -46,5 +48,19 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // A raw Stripe SDK exception (e.g. a missing/invalid API key)
+        // must never leak its technical message to the client — the
+        // full exception is still logged via Laravel's own default
+        // exception reporting; only the rendered response is replaced
+        // (Phase 9 stabilization, functional-acceptance finding FA-002).
+        // Domain-level Stripe outcomes (e.g. InvalidWebhookSignature,
+        // SetupIntentNotConfirmed) are RowBuddy's own exception types,
+        // already handled by each controller's own catch block, and are
+        // unaffected by this — this only guards against the raw Stripe
+        // SDK exception classes themselves.
+        $exceptions->render(function (ExceptionInterface $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => __('payments.errors.provider_unavailable')], 503);
+            }
+        });
     })->create();

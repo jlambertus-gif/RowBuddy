@@ -1,7 +1,9 @@
 import { Link, useForm } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import AuthLayout from '../../Layouts/AuthLayout';
 
 export default function Register() {
+    const { t } = useTranslation('auth');
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
@@ -19,8 +21,8 @@ export default function Register() {
 
     return (
         <AuthLayout
-            title="Crear cuenta"
-            subtitle="Registra tu cuenta para comenzar"
+            title={t('register.title')}
+            subtitle={t('register.subtitle')}
         >
             <form onSubmit={submit} className="space-y-5">
                 <div>
@@ -28,7 +30,7 @@ export default function Register() {
                         htmlFor="name"
                         className="mb-2 block text-sm font-medium"
                     >
-                        Nombre completo
+                        {t('register.name_label')}
                     </label>
 
                     <input
@@ -56,7 +58,7 @@ export default function Register() {
                         htmlFor="email"
                         className="mb-2 block text-sm font-medium"
                     >
-                        Correo electrónico
+                        {t('register.email_label')}
                     </label>
 
                     <input
@@ -83,7 +85,7 @@ export default function Register() {
                         htmlFor="password"
                         className="mb-2 block text-sm font-medium"
                     >
-                        Contraseña
+                        {t('register.password_label')}
                     </label>
 
                     <input
@@ -110,7 +112,7 @@ export default function Register() {
                         htmlFor="password_confirmation"
                         className="mb-2 block text-sm font-medium"
                     >
-                        Confirmar contraseña
+                        {t('register.password_confirmation_label')}
                     </label>
 
                     <input
@@ -134,17 +136,19 @@ export default function Register() {
                     disabled={processing}
                     className="w-full rounded-lg bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    {processing ? 'Creando cuenta...' : 'Crear cuenta'}
+                    {processing
+                        ? t('register.submitting')
+                        : t('register.submit_button')}
                 </button>
             </form>
 
             <p className="mt-6 text-center text-sm text-slate-400">
-                ¿Ya tienes una cuenta?{' '}
+                {t('register.has_account_prompt')}{' '}
                 <Link
                     href="/login"
                     className="font-medium text-sky-400 hover:text-sky-300"
                 >
-                    Inicia sesión
+                    {t('register.login_link')}
                 </Link>
             </p>
         </AuthLayout>

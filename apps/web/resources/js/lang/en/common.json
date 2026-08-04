@@ -6,5 +6,11 @@
         "dashboard": "Dashboard",
         "logout": "Log out",
         "login": "Log in"
+    },
+    "dashboard": {
+        "panel_title": "Control panel",
+        "session_active": "Session active",
+        "welcome": "Welcome, {{name}}",
+        "auth_working": "RowBuddy's core authentication is working."
     }
 }

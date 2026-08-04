@@ -9,5 +9,6 @@ return [
     'errors' => [
         'setup_intent_not_confirmed' => 'Esta configuración del método de pago aún no ha sido confirmada.',
         'setup_intent_mismatch' => 'Esta configuración del método de pago no pertenece a tu cuenta.',
+        'provider_unavailable' => 'La configuración de pago no está disponible temporalmente. Inténtalo de nuevo más tarde.',
     ],
 ];

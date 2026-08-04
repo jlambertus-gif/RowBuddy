@@ -32,8 +32,12 @@ use App\Listeners\BroadcastAuctionSnapshot;
 use App\Listeners\RecordAuditEvent;
 use App\Listeners\TriggerAuctionWinAuthorization;
 use App\Listeners\TriggerTransferInitiation;
+use App\Mail\ResetPasswordMail;
+use App\Mail\VerifyEmailMail;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
@@ -238,6 +242,21 @@ class AppServiceProvider extends ServiceProvider
         // same posture every other cross-module reaction in this codebase
         // already takes (Phase 9 Sprint 5 security review).
         Event::listen(Registered::class, SendEmailVerificationNotification::class);
+
+        // Replaces Laravel/Fortify's own default, unbranded verification/
+        // reset-password emails with RowBuddy's own self-contained
+        // templates (Phase 9 stabilization, functional-acceptance
+        // finding FA-003) — the signed-URL/token generation itself is
+        // untouched, only the rendered mail message.
+        VerifyEmail::toMailUsing(
+            fn ($notifiable, string $url) => new VerifyEmailMail($notifiable->getEmailForVerification(), $url),
+        );
+        ResetPassword::toMailUsing(
+            fn ($notifiable, string $token) => new ResetPasswordMail(
+                $notifiable->getEmailForPasswordReset(),
+                url(route('password.reset', ['token' => $token, 'email' => $notifiable->getEmailForPasswordReset()], false)),
+            ),
+        );
 
         // The one, platform-wide audit sink (Sprint 6): registered
         // against the AuditableAction interface, not a concrete event

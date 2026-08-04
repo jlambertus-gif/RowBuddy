@@ -1,7 +1,9 @@
 import { Link, useForm, usePage } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import AuthLayout from '../../Layouts/AuthLayout';
 
 export default function Login() {
+    const { t } = useTranslation('auth');
     const { flash } = usePage().props;
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -20,8 +22,8 @@ export default function Login() {
 
     return (
         <AuthLayout
-            title="Iniciar sesión"
-            subtitle="Accede a tu cuenta de RowBuddy"
+            title={t('login.title')}
+            subtitle={t('login.subtitle')}
         >
             {flash?.status && (
                 <div className="mb-5 rounded-lg border border-emerald-800 bg-emerald-950 p-3 text-sm text-emerald-300">
@@ -35,7 +37,7 @@ export default function Login() {
                         htmlFor="email"
                         className="mb-2 block text-sm font-medium"
                     >
-                        Correo electrónico
+                        {t('login.email_label')}
                     </label>
 
                     <input
@@ -64,14 +66,14 @@ export default function Login() {
                             htmlFor="password"
                             className="text-sm font-medium"
                         >
-                            Contraseña
+                            {t('login.password_label')}
                         </label>
 
                         <Link
                             href="/forgot-password"
                             className="text-sm text-sky-400 hover:text-sky-300"
                         >
-                            ¿Olvidaste tu contraseña?
+                            {t('login.forgot_password_link')}
                         </Link>
                     </div>
 
@@ -104,7 +106,7 @@ export default function Login() {
                         className="h-4 w-4 rounded border-slate-700"
                     />
 
-                    Mantener la sesión iniciada
+                    {t('login.remember_me')}
                 </label>
 
                 <button
@@ -112,17 +114,17 @@ export default function Login() {
                     disabled={processing}
                     className="w-full rounded-lg bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    {processing ? 'Ingresando...' : 'Iniciar sesión'}
+                    {processing ? t('login.submitting') : t('login.submit_button')}
                 </button>
             </form>
 
             <p className="mt-6 text-center text-sm text-slate-400">
-                ¿No tienes una cuenta?{' '}
+                {t('login.no_account_prompt')}{' '}
                 <Link
                     href="/register"
                     className="font-medium text-sky-400 hover:text-sky-300"
                 >
-                    Regístrate
+                    {t('login.register_link')}
                 </Link>
             </p>
         </AuthLayout>

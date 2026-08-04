@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Mail\ResetPasswordMail;
+use App\Mail\VerifyEmailMail;
 use App\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -30,6 +33,34 @@ it('sends a verification notification when a new user registers', function () {
     expect($user->hasVerifiedEmail())->toBeFalse();
 
     Notification::assertSentTo($user, VerifyEmail::class);
+});
+
+it('builds RowBuddy\'s own branded verification email, not Laravel\'s default (FA-003)', function () {
+    $user = User::factory()->unverified()->create();
+
+    $mail = (new VerifyEmail)->toMail($user);
+    $rendered = $mail->render();
+
+    expect($mail)->toBeInstanceOf(VerifyEmailMail::class)
+        ->and($mail->hasTo($user->email))->toBeTrue()
+        ->and($mail->envelope()->subject)->toBe(__('auth.verify_email.subject'))
+        ->and($rendered)->toContain(__('auth.verify_email.action_label'))
+        ->and($rendered)->not->toContain('Laravel')
+        ->and($rendered)->not->toContain('hello@example.com');
+});
+
+it('builds RowBuddy\'s own branded password-reset email, not Laravel\'s default (FA-003)', function () {
+    $user = User::factory()->create();
+
+    $mail = (new ResetPassword('a-real-looking-token'))->toMail($user);
+    $rendered = $mail->render();
+
+    expect($mail)->toBeInstanceOf(ResetPasswordMail::class)
+        ->and($mail->hasTo($user->email))->toBeTrue()
+        ->and($mail->envelope()->subject)->toBe(__('auth.reset_password.subject'))
+        ->and($rendered)->toContain(__('auth.reset_password.action_label'))
+        ->and($rendered)->not->toContain('Laravel')
+        ->and($rendered)->not->toContain('hello@example.com');
 });
 
 it('lets an unverified user sign in', function () {

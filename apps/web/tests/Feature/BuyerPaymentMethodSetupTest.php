@@ -10,6 +10,7 @@ use RowBuddy\Payments\Exceptions\SetupIntentNotConfirmed;
 use RowBuddy\Payments\Infrastructure\Eloquent\BuyerPaymentMethodModel;
 use RowBuddy\Payments\ValueObjects\ConfirmedPaymentMethod;
 use RowBuddy\Payments\ValueObjects\SetupIntentDraft;
+use Stripe\Exception\InvalidArgumentException;
 
 uses(RefreshDatabase::class);
 
@@ -112,6 +113,36 @@ it('rejects completing setup with a SetupIntent belonging to a different buyer',
 
     $response->assertStatus(403);
     expect(BuyerPaymentMethodModel::query()->where('buyer_id', $buyer->id)->exists())->toBeFalse();
+});
+
+it('never leaks a raw Stripe exception to the client, and logs it instead (FA-002)', function () {
+    $this->app->bind(BuyerPaymentMethodGateway::class, fn () => new class implements BuyerPaymentMethodGateway
+    {
+        public function createCustomer(string $buyerId): string
+        {
+            // Mirrors the real failure this regression-tests: the Stripe
+            // SDK itself throws when misconfigured (e.g. an empty API
+            // key), before any RowBuddy domain logic runs.
+            throw new InvalidArgumentException('api_key cannot be the empty string');
+        }
+
+        public function createSetupIntent(string $stripeCustomerId): SetupIntentDraft
+        {
+            throw new LogicException('not reached in this test');
+        }
+
+        public function retrieveConfirmedPaymentMethod(string $setupIntentId, string $buyerId): ConfirmedPaymentMethod
+        {
+            throw new LogicException('not reached in this test');
+        }
+    });
+    $buyer = User::factory()->create();
+
+    $response = $this->actingAs($buyer)->post('/buyer-payment-methods/setup-intent', [], ['Accept' => 'application/json']);
+
+    $response->assertStatus(503);
+    expect($response->json('message'))->toBe(__('payments.errors.provider_unavailable'))
+        ->and($response->getContent())->not->toContain('api_key cannot be the empty string');
 });
 
 it('requires a setup_intent_id', function () {

@@ -9,5 +9,6 @@ return [
     'errors' => [
         'setup_intent_not_confirmed' => 'This payment method setup has not been confirmed yet.',
         'setup_intent_mismatch' => 'This payment method setup does not belong to your account.',
+        'provider_unavailable' => 'Payment setup is temporarily unavailable. Please try again later.',
     ],
 ];

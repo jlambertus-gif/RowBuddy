@@ -1,7 +1,9 @@
 import { useForm } from '@inertiajs/react';
+import { useTranslation } from 'react-i18next';
 import AuthLayout from '../../Layouts/AuthLayout';
 
 export default function ResetPassword({ email, token }) {
+    const { t } = useTranslation('auth');
     const { data, setData, post, processing, errors, reset } = useForm({
         token,
         email: email ?? '',
@@ -19,8 +21,8 @@ export default function ResetPassword({ email, token }) {
 
     return (
         <AuthLayout
-            title="Nueva contraseña"
-            subtitle="Establece una contraseña segura para tu cuenta"
+            title={t('reset_password.title')}
+            subtitle={t('reset_password.subtitle')}
         >
             <form onSubmit={submit} className="space-y-5">
                 <div>
@@ -28,7 +30,7 @@ export default function ResetPassword({ email, token }) {
                         htmlFor="email"
                         className="mb-2 block text-sm font-medium"
                     >
-                        Correo electrónico
+                        {t('reset_password.email_label')}
                     </label>
 
                     <input
@@ -54,7 +56,7 @@ export default function ResetPassword({ email, token }) {
                         htmlFor="password"
                         className="mb-2 block text-sm font-medium"
                     >
-                        Nueva contraseña
+                        {t('reset_password.new_password_label')}
                     </label>
 
                     <input
@@ -81,7 +83,7 @@ export default function ResetPassword({ email, token }) {
                         htmlFor="password_confirmation"
                         className="mb-2 block text-sm font-medium"
                     >
-                        Confirmar contraseña
+                        {t('reset_password.password_confirmation_label')}
                     </label>
 
                     <input
@@ -106,8 +108,8 @@ export default function ResetPassword({ email, token }) {
                     className="w-full rounded-lg bg-sky-600 px-4 py-3 font-semibold text-white transition hover:bg-sky-500 disabled:opacity-50"
                 >
                     {processing
-                        ? 'Actualizando contraseña...'
-                        : 'Restablecer contraseña'}
+                        ? t('reset_password.submitting')
+                        : t('reset_password.submit_button')}
                 </button>
             </form>
         </AuthLayout>
