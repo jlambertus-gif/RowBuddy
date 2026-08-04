@@ -37,11 +37,18 @@ RUN apk add --no-cache \
         bcmath \
         gd \
         opcache \
+        pcntl \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && apk del .build-deps
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+# Phase 9 Sprint 4 (ADR-027 Decision 6): overrides Alpine's stock
+# pm.max_children=5 pool default, empirically found to be a real
+# synchronous bottleneck under load-testing — see
+# infrastructure/docker/php/www.conf's own comment for the evidence.
+COPY infrastructure/docker/php/www.conf /usr/local/etc/php-fpm.d/www.conf
 
 WORKDIR /var/www
 
@@ -49,6 +56,14 @@ COPY apps/web/ /var/www/apps/web/
 COPY packages/shared-kernel/ /var/www/packages/shared-kernel/
 COPY packages/Queues/ /var/www/packages/Queues/
 COPY packages/QueuePresence/ /var/www/packages/QueuePresence/
+COPY packages/Auctions/ /var/www/packages/Auctions/
+COPY packages/Bids/ /var/www/packages/Bids/
+COPY packages/Payments/ /var/www/packages/Payments/
+COPY packages/Transfers/ /var/www/packages/Transfers/
+COPY packages/Disputes/ /var/www/packages/Disputes/
+COPY packages/Ratings/ /var/www/packages/Ratings/
+COPY packages/Notifications/ /var/www/packages/Notifications/
+COPY packages/Administration/ /var/www/packages/Administration/
 
 WORKDIR /var/www/apps/web
 
