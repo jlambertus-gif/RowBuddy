@@ -59,7 +59,7 @@ Route::get('/auctions/{auctionId}/live', function (string $auctionId) {
 
 Route::middleware('auth')->group(function () {
     Route::post('/auctions/{auctionId}/bids', PlaceBidController::class)
-        ->middleware('throttle:bid-placement')
+        ->middleware(['throttle:bid-placement', 'verified'])
         ->name('auctions.bids.store');
 
     Route::get('/dashboard', function () {
@@ -70,13 +70,23 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('Queues/Submit');
     })->name('queues.submit-page');
 
-    Route::post('/queues', QueueSubmissionController::class)->name('queues.store');
+    Route::post('/queues', QueueSubmissionController::class)
+        ->middleware('verified')
+        ->name('queues.store');
 
     Route::get('/queues/{queueId}/presence', function (string $queueId) {
         return Inertia::render('Queues/Presence', ['queueId' => $queueId]);
     })->name('queues.presence-page');
 
-    Route::post('/presence-sessions', StartPresenceSessionController::class)->name('presence-sessions.start');
+    // Starting a presence session is the seller's own initiation of new
+    // transactional activity (Phase 9 Sprint 5 security review) — gated by
+    // 'verified'. The continuation endpoints below are not: they only ever
+    // continue a session that already required a verified email to start,
+    // and blocking them mid-flow would mutate an in-progress obligation
+    // based on unverified status, which is explicitly out of scope here.
+    Route::post('/presence-sessions', StartPresenceSessionController::class)
+        ->middleware('verified')
+        ->name('presence-sessions.start');
     Route::post('/presence-sessions/{sessionId}/gps-pings', RecordGpsPingController::class)->name('presence-sessions.gps-pings.record');
     Route::post('/presence-sessions/{sessionId}/end', EndPresenceSessionController::class)->name('presence-sessions.end');
     Route::post('/presence-sessions/{sessionId}/evidence-photos', UploadEvidencePhotoController::class)->name('presence-sessions.evidence-photos.upload');
@@ -84,19 +94,34 @@ Route::middleware('auth')->group(function () {
 
     // Minimum buyer payment-method surface (ADR-027 Architecture
     // Refinements §4): buyerId always comes from the authenticated user.
-    Route::post('/buyer-payment-methods/setup-intent', BeginBuyerPaymentMethodSetupController::class)->name('buyer-payment-methods.setup-intent');
-    Route::post('/buyer-payment-methods', CompleteBuyerPaymentMethodSetupController::class)->name('buyer-payment-methods.store');
+    Route::post('/buyer-payment-methods/setup-intent', BeginBuyerPaymentMethodSetupController::class)
+        ->middleware('verified')
+        ->name('buyer-payment-methods.setup-intent');
+    Route::post('/buyer-payment-methods', CompleteBuyerPaymentMethodSetupController::class)
+        ->middleware('verified')
+        ->name('buyer-payment-methods.store');
     Route::get('/payment-method-setup', function () {
         return Inertia::render('Payments/SetupPaymentMethod');
     })->name('payment-method-setup-page');
 
     // Minimum Transfers/QR surface (ADR-027 Architecture Refinements §5):
     // requestingUserId always comes from the authenticated user; no
-    // sellerId/buyerId is ever accepted from request input.
+    // sellerId/buyerId is ever accepted from request input. Deliberately
+    // NOT gated by 'verified' (Phase 9 Sprint 5 security review): a
+    // Transfer here already exists because a bid was already won and
+    // payment already authorized — confirming it fulfills an existing
+    // obligation rather than initiating new transactional activity, and
+    // blocking it on unverified-email status would let the transfer
+    // silently expire, which is the exact "existing obligation mutated
+    // because of unverified status" outcome this sprint was told to avoid.
     Route::get('/transfers/{transferId}', ShowTransferController::class)->name('transfers.show');
     Route::get('/transfers/{transferId}/qr-token', ShowTransferQrTokenController::class)->name('transfers.qr-token.show');
-    Route::post('/transfers/{transferId}/confirm-as-seller', ConfirmTransferAsSellerController::class)->name('transfers.confirm-as-seller');
-    Route::post('/transfers/{transferId}/confirm-as-buyer', ConfirmTransferAsBuyerController::class)->name('transfers.confirm-as-buyer');
+    Route::post('/transfers/{transferId}/confirm-as-seller', ConfirmTransferAsSellerController::class)
+        ->middleware('throttle:transfer-confirmation')
+        ->name('transfers.confirm-as-seller');
+    Route::post('/transfers/{transferId}/confirm-as-buyer', ConfirmTransferAsBuyerController::class)
+        ->middleware('throttle:transfer-confirmation')
+        ->name('transfers.confirm-as-buyer');
     Route::get('/transfers/{transferId}/live', function (string $transferId) {
         return Inertia::render('Transfers/Show', ['transferId' => $transferId]);
     })->name('transfers.show-page');

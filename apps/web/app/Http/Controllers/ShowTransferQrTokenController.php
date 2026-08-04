@@ -12,17 +12,20 @@ use Illuminate\Support\Facades\Cache;
 use RowBuddy\Transfers\Contracts\TransferRepository;
 
 /**
- * Buyer-only, one-time-delivery reveal of the plaintext QR/confirmation
- * token (Phase 9, ADR-027 Sprint 3) — the token itself is never persisted
- * by the Transfers package (ADR-017 §2); this reads the short-lived cache
- * entry {@see TriggerTransferInitiation} writes, TTL-bound
- * by the transfer's own expiry, so it naturally stops being retrievable
- * once the handoff window closes. requestingUserId is derived exclusively
- * from the authenticated user — never accepted from request input, and
- * only the buyer (who must display the token to the seller) may retrieve
- * it. Not a second confirmation protocol: this only delivers the secret
- * value the existing hash-based confirmation already expects the seller
- * to submit.
+ * Buyer-only reveal of the plaintext QR/confirmation token (Phase 9,
+ * ADR-027 Sprint 3) — the token itself is never persisted by the
+ * Transfers package (ADR-017 §2); this reads the short-lived cache entry
+ * {@see TriggerTransferInitiation} writes, TTL-bound by the transfer's
+ * own expiry, so it naturally stops being retrievable once the handoff
+ * window closes. Re-readable by the buyer any number of times within
+ * that window — deliberately not single-use, since the buyer may need
+ * to redisplay the same QR code to the seller more than once before a
+ * successful scan. requestingUserId is derived exclusively from the
+ * authenticated user — never accepted from request input, and only the
+ * buyer (who must display the token to the seller) may retrieve it. Not
+ * a second confirmation protocol: this only delivers the secret value
+ * the existing hash-based confirmation already expects the seller to
+ * submit.
  */
 final class ShowTransferQrTokenController extends Controller
 {

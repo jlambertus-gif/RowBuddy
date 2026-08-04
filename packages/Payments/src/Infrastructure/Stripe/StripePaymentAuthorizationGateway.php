@@ -32,6 +32,14 @@ use Stripe\StripeClient;
  * propagating loudly rather than converting to a domain state. Every
  * other Stripe exception is left to propagate uncaught, exactly like an
  * unexpected infrastructure failure elsewhere in this codebase.
+ *
+ * `capture()` and `cancel()` derive their own deterministic Stripe
+ * idempotency key from the target PaymentIntent id (Phase 9 Sprint 5
+ * security review) — matching `authorize()`/`refund()`'s existing
+ * pattern in this same class. Each is a one-shot state transition Stripe
+ * itself already rejects a second time even without a key, so this is a
+ * defense-in-depth consistency fix, not a fix for an observed duplicate
+ * side effect.
  */
 final class StripePaymentAuthorizationGateway implements PaymentAuthorizationGateway
 {
@@ -66,7 +74,11 @@ final class StripePaymentAuthorizationGateway implements PaymentAuthorizationGat
     public function capture(string $stripePaymentIntentId): CaptureAttempt
     {
         try {
-            $this->client->paymentIntents->capture($stripePaymentIntentId);
+            $this->client->paymentIntents->capture(
+                $stripePaymentIntentId,
+                [],
+                ['idempotency_key' => "payments.capture.{$stripePaymentIntentId}"],
+            );
 
             return CaptureAttempt::succeeded();
         } catch (InvalidRequestException $exception) {
@@ -82,7 +94,11 @@ final class StripePaymentAuthorizationGateway implements PaymentAuthorizationGat
         // requested_by_customer/abandoned) that doesn't map cleanly onto
         // it. It is preserved in AuthorizationCancelled's own payload for
         // audit purposes instead.
-        $this->client->paymentIntents->cancel($stripePaymentIntentId);
+        $this->client->paymentIntents->cancel(
+            $stripePaymentIntentId,
+            [],
+            ['idempotency_key' => "payments.cancel.{$stripePaymentIntentId}"],
+        );
     }
 
     public function refund(string $stripePaymentIntentId, Money $amount, string $idempotencyKey): void

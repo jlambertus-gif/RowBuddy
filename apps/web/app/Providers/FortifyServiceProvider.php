@@ -51,6 +51,8 @@ class FortifyServiceProvider extends ServiceProvider
             ])
         );
 
+        Fortify::verifyEmailView(fn () => Inertia::render('Auth/VerifyEmail'));
+
         /*
         |--------------------------------------------------------------------------
         | Fortify Actions

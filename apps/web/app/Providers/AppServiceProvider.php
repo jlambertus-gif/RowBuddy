@@ -32,6 +32,8 @@ use App\Listeners\BroadcastAuctionSnapshot;
 use App\Listeners\RecordAuditEvent;
 use App\Listeners\TriggerAuctionWinAuthorization;
 use App\Listeners\TriggerTransferInitiation;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
@@ -229,6 +231,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // This app has no App\Providers\EventServiceProvider, so the
+        // framework's own default Registered -> SendEmailVerificationNotification
+        // wiring (normally configured by the base EventServiceProvider's
+        // boot()) never runs here — it must be registered explicitly, the
+        // same posture every other cross-module reaction in this codebase
+        // already takes (Phase 9 Sprint 5 security review).
+        Event::listen(Registered::class, SendEmailVerificationNotification::class);
+
         // The one, platform-wide audit sink (Sprint 6): registered
         // against the AuditableAction interface, not a concrete event
         // class, so it fires for every module's audit-worthy events —
@@ -264,6 +274,17 @@ class AppServiceProvider extends ServiceProvider
         // Sprint 4's load testing produces real evidence.
         RateLimiter::for('bid-placement', function ($request) {
             return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Defense-in-depth only (Phase 9 Sprint 5 security review): the
+        // QR token itself is a 256-bit random value compared with
+        // hash_equals() and gated behind seller/buyer identity checks
+        // (ADR-017 §5), so this is not brute-force-relevant — it matches
+        // bid-placement's own existing convention rather than responding
+        // to any demonstrated exploit. Generous enough for a buyer/seller
+        // legitimately retrying a failed scan.
+        RateLimiter::for('transfer-confirmation', function ($request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
         });
     }
 }
