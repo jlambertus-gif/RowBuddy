@@ -36,9 +36,17 @@ state; `AuctionStatus` is not extended.
 
 2. **Payments owns and persists its own lifecycle independently**, keyed
    by `(auctionId, winningBidId)` — never by writing to, or extending,
-   `Auction`. Payments' own aggregate (`PaymentIntent`, per ADR-004/§7.3)
-   tracks authorized/captured/held/released/refunded/cancelled entirely
-   within `packages/Payments`, with no corresponding field on `Auction`.
+   `Auction`. Payments' own `PaymentIntent` aggregate tracks its
+   financial lifecycle entirely within `packages/Payments`, with no
+   corresponding field on `Auction`. At the time this decision was
+   written, the exact state set was still forward-looking; it was
+   finalized later, incrementally, as `Authorized → Captured` /
+   `CaptureFailed` / `Cancelled` (ADR-019 §2, Phase 5) and `Refunded`
+   (ADR-022, Phase 6) — never `Held`/`ReleasedToSeller`/`RefundedToBuyer`,
+   which ADR-019 §2 explicitly declined to model. This correction is
+   recorded here rather than left as a dangling citation to a
+   nonexistent "ADR-004/§7.3" (ADR-004 has no numbered sections at all)
+   — found during Phase 9 Sprint 6's ADR cross-reference verification.
 
 3. **This extends, one hop further downstream, the "consumer owns the
    port, the upstream aggregate stays ignorant" pattern already

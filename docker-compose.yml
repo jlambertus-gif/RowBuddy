@@ -4,9 +4,14 @@
 # ports, the Vite dev server). This file alone is meant to stay closer to
 # how the stack would run in a real environment.
 #
-# NOTE: this configuration has not been executed in this environment (no
-# Docker installation was available to verify it end-to-end). It has been
-# reviewed for correctness but should be smoke-tested before being relied on.
+# This full stack (app, nginx, postgres, redis, horizon, reverb) has been
+# built and run end-to-end against this exact configuration — Phase 9
+# Sprint 4's load testing and Sprint 5's security review both exercised it
+# directly via `docker compose build`/`up`/`exec` (see
+# docs/operations/load-test-report.md). Still a Windows/Docker Desktop
+# development environment, not a production-like Linux host — see that
+# report's own environment caveat before treating it as a production
+# capacity reference.
 
 services:
     app:
