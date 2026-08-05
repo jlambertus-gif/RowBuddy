@@ -34,6 +34,8 @@ use App\Listeners\TriggerAuctionWinAuthorization;
 use App\Listeners\TriggerTransferInitiation;
 use App\Mail\ResetPasswordMail;
 use App\Mail\VerifyEmailMail;
+use App\Support\Fortify\PasswordResetResponse;
+use App\Support\Fortify\VerifyEmailResponse;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -42,6 +44,8 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Fortify\Contracts\PasswordResetResponse as PasswordResetResponseContract;
+use Laravel\Fortify\Contracts\VerifyEmailResponse as VerifyEmailResponseContract;
 use RowBuddy\Administration\Contracts\AuditEventLookup;
 use RowBuddy\Administration\Contracts\DisputeCaseLookup;
 use RowBuddy\Administration\Contracts\JurisdictionRuleActivationGateway;
@@ -257,6 +261,16 @@ class AppServiceProvider extends ServiceProvider
                 url(route('password.reset', ['token' => $token, 'email' => $notifiable->getEmailForPasswordReset()], false)),
             ),
         );
+
+        // Additive-only mobile "return to the app" branch (ADR-028
+        // Decision 7): rebinds only the *success* response contracts.
+        // Both new classes fall through to Fortify's own unmodified
+        // default response whenever no valid, mobile-originated marker
+        // is present — ordinary web verification/reset behavior is
+        // completely unaffected. See docs/decisions/028-*.md Decision 7
+        // and app/Support/MobileReturnMarker.php.
+        $this->app->singleton(VerifyEmailResponseContract::class, VerifyEmailResponse::class);
+        $this->app->singleton(PasswordResetResponseContract::class, PasswordResetResponse::class);
 
         // The one, platform-wide audit sink (Sprint 6): registered
         // against the AuditableAction interface, not a concrete event

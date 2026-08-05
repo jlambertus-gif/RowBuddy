@@ -39,6 +39,15 @@
             sqlite, and RefreshDatabase's migrate:fresh wipes it on every
             run.
         -->
+        <!--
+            The architecture-preset test parses every file under app/ into
+            an AST (nikic/php-parser) to check every expectation in one
+            pass. That AST no longer fits in PHP's default 128M CLI
+            memory_limit now that Sprint 1 (ADR-028) added the /api/v1
+            surface — this raises it for the test runner only; no
+            production/php-fpm configuration is affected.
+        -->
+        <ini name="memory_limit" value="512M"/>
         <env name="APP_ENV" value="testing" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
         <env name="BCRYPT_ROUNDS" value="4" force="true"/>

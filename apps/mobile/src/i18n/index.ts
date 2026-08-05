@@ -2,7 +2,9 @@ import * as Localization from 'expo-localization';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+import enAuth from './locales/en/auth.json';
 import en from './locales/en/common.json';
+import esAuth from './locales/es/auth.json';
 import es from './locales/es/common.json';
 
 export const SUPPORTED_LOCALES = ['en', 'es'] as const;
@@ -28,8 +30,8 @@ function detectSupportedDeviceLocale(): SupportedLocale {
 // eslint-disable-next-line import/no-named-as-default-member -- i18next's own documented chained-call pattern; `.use()` is a real instance method here, not the named export.
 void i18n.use(initReactI18next).init({
   resources: {
-    en: { common: en },
-    es: { common: es },
+    en: { common: en, auth: enAuth },
+    es: { common: es, auth: esAuth },
   },
   lng: detectSupportedDeviceLocale(),
   fallbackLng: FALLBACK_LOCALE,

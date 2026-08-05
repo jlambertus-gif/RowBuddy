@@ -14,6 +14,11 @@ use Stripe\Exception\ExceptionInterface;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        // Mobile's own versioned surface (ADR-028 Decision 2/3) — lives
+        // inside this same application, never a separate apps/api
+        // installation (ADR-028 Decision 2's apps/api resolution).
+        // routes/api.php itself wraps everything in Route::prefix('v1').
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',

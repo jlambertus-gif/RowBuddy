@@ -1,0 +1,44 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Http\Controllers\LoginApiUserController;
+use App\Http\Controllers\LogoutApiUserController;
+use App\Http\Controllers\RegisterApiUserController;
+use App\Http\Controllers\ResetApiPasswordController;
+use App\Http\Controllers\SendApiEmailVerificationNotificationController;
+use App\Http\Controllers\SendApiPasswordResetLinkController;
+use App\Http\Controllers\ShowApiCurrentUserController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Mobile API — v1 (ADR-028)
+|--------------------------------------------------------------------------
+|
+| Versioned from day one: a native client can't be force-refreshed the
+| way a web page can, so retrofitting a version segment later would be
+| far more disruptive than reserving it now. Every route below is
+| Sanctum-token-guarded where authentication is required — never the
+| web session guard, never CSRF. Every controller here is a thin wrapper
+| over an already-existing domain service/Fortify action; no new
+| business logic is introduced by this file.
+|
+*/
+
+Route::prefix('v1')->group(function (): void {
+    Route::post('auth/register', RegisterApiUserController::class);
+    Route::post('auth/login', LoginApiUserController::class)->middleware('throttle:login');
+    Route::post('auth/forgot-password', SendApiPasswordResetLinkController::class);
+    Route::post('auth/reset-password', ResetApiPasswordController::class);
+
+    Route::middleware('auth:sanctum')->group(function (): void {
+        Route::post('auth/logout', LogoutApiUserController::class);
+        Route::post(
+            'auth/email/verification-notification',
+            SendApiEmailVerificationNotificationController::class,
+        )->middleware('throttle:'.config('fortify.limiters.verification', '6,1'));
+
+        Route::get('me', ShowApiCurrentUserController::class);
+    });
+});

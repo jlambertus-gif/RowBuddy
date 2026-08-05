@@ -1,19 +1,53 @@
-import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+
+import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser';
+import { getAuthToken } from '@/lib/authToken';
 
 /**
- * Sprint 0 placeholder route only — proves Expo Router, i18n, and the
- * TanStack Query provider are wired up together. Not a real product
- * screen: splash/auth/home are all reserved (see src/features/*) for
- * later sprints per ADR-028.
+ * Splash/token-bootstrap (ADR-028 Sprint 1 scope). Reads any stored
+ * token, validates it against GET /me, and routes accordingly. A 401
+ * from /me already clears the stored token (src/api/client.ts) before
+ * this screen ever sees the failure, so there is no risk of looping
+ * back here with a dead token.
  */
-export default function SprintZeroPlaceholder() {
-  const { t } = useTranslation();
+export default function Splash() {
+  const [hasCheckedToken, setHasCheckedToken] = useState(false);
+  const [hasStoredToken, setHasStoredToken] = useState(false);
+
+  useEffect(() => {
+    getAuthToken().then((token) => {
+      setHasStoredToken(token !== null);
+      setHasCheckedToken(true);
+    });
+  }, []);
+
+  const { data: user, isError, isFetched } = useCurrentUser(hasCheckedToken && hasStoredToken);
+
+  useEffect(() => {
+    if (!hasCheckedToken) {
+      return;
+    }
+
+    if (!hasStoredToken) {
+      router.replace('/(auth)/login');
+      return;
+    }
+
+    if (isError) {
+      router.replace('/(auth)/login');
+      return;
+    }
+
+    if (isFetched && user) {
+      router.replace(user.email_verified_at ? '/home' : '/(auth)/verify-email');
+    }
+  }, [hasCheckedToken, hasStoredToken, isError, isFetched, user]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('app_name')}</Text>
-      <Text style={styles.subtitle}>{t('sprint0_placeholder')}</Text>
+      <ActivityIndicator size="large" />
     </View>
   );
 }
@@ -24,14 +58,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
-    gap: 8,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
   },
 });

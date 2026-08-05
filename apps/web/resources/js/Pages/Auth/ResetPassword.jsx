@@ -4,11 +4,20 @@ import AuthLayout from '../../Layouts/AuthLayout';
 
 export default function ResetPassword({ email, token }) {
     const { t } = useTranslation('auth');
+    // Threads a mobile-originated request's return marker from this
+    // page's own URL through to the POST body untouched (ADR-028
+    // Decision 7). Empty for every ordinary web user — the backend
+    // treats an empty/missing value as "not mobile-originated" and
+    // falls back to the existing behavior unchanged.
+    const mobileReturn =
+        new URLSearchParams(window.location.search).get('mobile_return') ??
+        '';
     const { data, setData, post, processing, errors, reset } = useForm({
         token,
         email: email ?? '',
         password: '',
         password_confirmation: '',
+        mobile_return: mobileReturn,
     });
 
     function submit(event) {
