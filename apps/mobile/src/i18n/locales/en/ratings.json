@@ -1,0 +1,12 @@
+{
+  "section_title": "Rate this transaction",
+  "score_label": "Your rating",
+  "comment_label": "Comment (optional)",
+  "submit_button": "Submit rating",
+  "submitting": "Submitting...",
+  "submitted_label": "Your rating",
+  "counterpart_pending": "The other party hasn't rated yet.",
+  "counterpart_hidden": "The other party's rating will appear once revealed.",
+  "counterpart_label": "Their rating",
+  "generic_error": "Something went wrong. Please try again."
+}

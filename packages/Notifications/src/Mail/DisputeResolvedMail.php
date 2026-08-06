@@ -9,6 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use RowBuddy\Disputes\ValueObjects\DisputeResolutionOutcome;
 use RowBuddy\Notifications\Support\MoneyFormatter;
+use RowBuddy\Notifications\ValueObjects\PushContent;
 use RowBuddy\SharedKernel\ValueObjects\Money;
 
 /**
@@ -53,5 +54,27 @@ final class DisputeResolvedMail extends Mailable
         $body = '<p>'.implode('</p><p>', $lines).'</p>';
 
         return (new Content)->htmlString($body);
+    }
+
+    /** See the identical note on AuctionWonMail::toPushContent(). */
+    public function toPushContent(string $language): PushContent
+    {
+        $outcomeText = __("notifications.dispute_resolved.outcomes.{$this->outcome->value}", [], $language);
+
+        $body = __('notifications.dispute_resolved.body', [
+            'reference' => $this->disputeReference,
+            'outcome' => $outcomeText,
+        ], $language);
+
+        if ($this->refundAmount !== null) {
+            $body .= ' '.__('notifications.dispute_resolved.refund_note', [
+                'amount' => MoneyFormatter::format($this->refundAmount, $language),
+            ], $language);
+        }
+
+        return new PushContent(
+            title: __('notifications.dispute_resolved.subject', [], $language),
+            body: $body,
+        );
     }
 }

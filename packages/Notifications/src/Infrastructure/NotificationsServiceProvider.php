@@ -9,7 +9,10 @@ use Illuminate\Support\ServiceProvider;
 use RowBuddy\Auctions\Events\AuctionWon;
 use RowBuddy\Disputes\Events\DisputeOpened;
 use RowBuddy\Disputes\Events\DisputeResolved;
+use RowBuddy\Notifications\Contracts\DeviceTokenRepository;
 use RowBuddy\Notifications\Contracts\NotificationDeliveryLedger;
+use RowBuddy\Notifications\Contracts\PushNotificationSender;
+use RowBuddy\Notifications\Infrastructure\Eloquent\EloquentDeviceTokenRepository;
 use RowBuddy\Notifications\Infrastructure\Eloquent\EloquentNotificationDeliveryLedger;
 use RowBuddy\Notifications\Listeners\SendAuctionWonNotification;
 use RowBuddy\Notifications\Listeners\SendDisputeOpenedNotification;
@@ -30,6 +33,8 @@ final class NotificationsServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->bind(NotificationDeliveryLedger::class, EloquentNotificationDeliveryLedger::class);
+        $this->app->bind(DeviceTokenRepository::class, EloquentDeviceTokenRepository::class);
+        $this->app->bind(PushNotificationSender::class, ExpoPushNotificationSender::class);
     }
 
     public function boot(): void

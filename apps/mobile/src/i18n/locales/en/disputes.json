@@ -1,0 +1,28 @@
+{
+  "file": {
+    "button": "Report a problem",
+    "title": "Report a problem",
+    "reason_label": "What went wrong?",
+    "reason_placeholder": "Describe what happened...",
+    "submit_button": "Submit report",
+    "submitting": "Submitting...",
+    "generic_error": "Something went wrong. Please try again."
+  },
+  "status": {
+    "title": "Dispute",
+    "loading": "Loading dispute...",
+    "load_error": "We couldn't load this dispute.",
+    "reason_label": "Reason",
+    "status_label": "Status",
+    "status_opened": "Under review",
+    "status_resolved": "Resolved",
+    "outcome_label": "Outcome",
+    "outcome_release_to_seller": "Released to seller",
+    "outcome_refund_to_buyer": "Refunded to buyer",
+    "outcome_split": "Split",
+    "outcome_cancelled": "Cancelled",
+    "refund_amount_label": "Refund amount",
+    "opened_at_label": "Opened",
+    "resolved_at_label": "Resolved on"
+  }
+}

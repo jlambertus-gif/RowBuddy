@@ -49,5 +49,12 @@ final class SendDisputeOpenedNotification implements ShouldQueue
             NotificationType::DisputeOpened,
             fn (string $language) => new DisputeOpenedMail($disputeId),
         );
+
+        $this->pipeline->deliverPush(
+            $disputeId,
+            $sellerId,
+            NotificationType::DisputeOpened,
+            fn (string $language) => (new DisputeOpenedMail($disputeId))->toPushContent($language),
+        );
     }
 }

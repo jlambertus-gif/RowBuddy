@@ -71,8 +71,11 @@ final class SendDisputeResolvedNotification implements ShouldQueue
         }
 
         $mailableFactory = fn (string $language) => new DisputeResolvedMail($disputeId, $outcome, $refundAmount, $language);
+        $pushContentFactory = fn (string $language) => (new DisputeResolvedMail($disputeId, $outcome, $refundAmount, $language))->toPushContent($language);
 
         $this->pipeline->deliver($disputeId, $snapshot->buyerId, NotificationType::DisputeResolved, $mailableFactory);
         $this->pipeline->deliver($disputeId, $snapshot->sellerId, NotificationType::DisputeResolved, $mailableFactory);
+        $this->pipeline->deliverPush($disputeId, $snapshot->buyerId, NotificationType::DisputeResolved, $pushContentFactory);
+        $this->pipeline->deliverPush($disputeId, $snapshot->sellerId, NotificationType::DisputeResolved, $pushContentFactory);
     }
 }

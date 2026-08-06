@@ -12,18 +12,18 @@ final class InMemoryNotificationDeliveryLedger implements NotificationDeliveryLe
     /** @var list<string> */
     public array $recorded = [];
 
-    public function alreadyDelivered(string $domainEventId, string $recipientId, NotificationType $type): bool
+    public function alreadyDelivered(string $domainEventId, string $recipientId, NotificationType $type, string $channel = 'email'): bool
     {
-        return in_array($this->key($domainEventId, $recipientId, $type), $this->recorded, true);
+        return in_array($this->key($domainEventId, $recipientId, $type, $channel), $this->recorded, true);
     }
 
-    public function recordDelivered(string $domainEventId, string $recipientId, NotificationType $type): void
+    public function recordDelivered(string $domainEventId, string $recipientId, NotificationType $type, string $channel = 'email'): void
     {
-        $this->recorded[] = $this->key($domainEventId, $recipientId, $type);
+        $this->recorded[] = $this->key($domainEventId, $recipientId, $type, $channel);
     }
 
-    private function key(string $domainEventId, string $recipientId, NotificationType $type): string
+    private function key(string $domainEventId, string $recipientId, NotificationType $type, string $channel): string
     {
-        return "{$domainEventId}:{$recipientId}:{$type->value}";
+        return "{$domainEventId}:{$recipientId}:{$type->value}:{$channel}";
     }
 }

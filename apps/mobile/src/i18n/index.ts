@@ -5,14 +5,20 @@ import { initReactI18next } from 'react-i18next';
 import enAuctions from './locales/en/auctions.json';
 import enAuth from './locales/en/auth.json';
 import en from './locales/en/common.json';
+import enDisputes from './locales/en/disputes.json';
 import enPayments from './locales/en/payments.json';
+import enProfile from './locales/en/profile.json';
 import enQueues from './locales/en/queues.json';
+import enRatings from './locales/en/ratings.json';
 import enTransfers from './locales/en/transfers.json';
 import esAuctions from './locales/es/auctions.json';
 import esAuth from './locales/es/auth.json';
 import es from './locales/es/common.json';
+import esDisputes from './locales/es/disputes.json';
 import esPayments from './locales/es/payments.json';
+import esProfile from './locales/es/profile.json';
 import esQueues from './locales/es/queues.json';
+import esRatings from './locales/es/ratings.json';
 import esTransfers from './locales/es/transfers.json';
 
 export const SUPPORTED_LOCALES = ['en', 'es'] as const;
@@ -31,9 +37,9 @@ function detectSupportedDeviceLocale(): SupportedLocale {
  * resolves to `fallbackLng`, per FG-001 — locale switching is out of
  * scope for web), mobile explicitly detects the device locale on first
  * launch and sets it. ADR-028 Decision 4 makes mobile locale switching a
- * real, independent capability. An explicit in-app override (Sprint 5,
- * `src/features/profile`) will call `i18n.changeLanguage()` on top of
- * this initial detection — not implemented in Sprint 0.
+ * real, independent capability. The explicit in-app override
+ * (`app/profile.tsx`, Sprint 4) calls `i18n.changeLanguage()` on top of
+ * this initial detection.
  */
 // eslint-disable-next-line import/no-named-as-default-member -- i18next's own documented chained-call pattern; `.use()` is a real instance method here, not the named export.
 void i18n.use(initReactI18next).init({
@@ -45,6 +51,9 @@ void i18n.use(initReactI18next).init({
       auctions: enAuctions,
       payments: enPayments,
       transfers: enTransfers,
+      ratings: enRatings,
+      disputes: enDisputes,
+      profile: enProfile,
     },
     es: {
       common: es,
@@ -53,6 +62,9 @@ void i18n.use(initReactI18next).init({
       auctions: esAuctions,
       payments: esPayments,
       transfers: esTransfers,
+      ratings: esRatings,
+      disputes: esDisputes,
+      profile: esProfile,
     },
   },
   lng: detectSupportedDeviceLocale(),

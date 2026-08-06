@@ -7,7 +7,9 @@ use RowBuddy\Notifications\Exceptions\NotificationRecipientUnresolved;
 use RowBuddy\Notifications\Listeners\SendAuctionWonNotification;
 use RowBuddy\Notifications\Mail\AuctionWonMail;
 use RowBuddy\Notifications\Support\NotificationDeliveryPipeline;
+use RowBuddy\Notifications\Tests\Fakes\FakeDeviceTokenRepository;
 use RowBuddy\Notifications\Tests\Fakes\FakeMailer;
+use RowBuddy\Notifications\Tests\Fakes\FakePushNotificationSender;
 use RowBuddy\Notifications\Tests\Fakes\FakeRecipientContactLookup;
 use RowBuddy\Notifications\Tests\Fakes\FakeRecipientLocalePreferenceLookup;
 use RowBuddy\Notifications\Tests\Fakes\FakeWinningBidderLookup;
@@ -24,7 +26,7 @@ function makeAuctionWonFixtures(): array
     $localePreferences = new FakeRecipientLocalePreferenceLookup;
     $ledger = new InMemoryNotificationDeliveryLedger;
     $mailer = new FakeMailer;
-    $pipeline = new NotificationDeliveryPipeline($ledger, $contacts, $localePreferences, $mailer);
+    $pipeline = new NotificationDeliveryPipeline($ledger, $contacts, $localePreferences, $mailer, new FakeDeviceTokenRepository, new FakePushNotificationSender);
 
     return compact('contacts', 'localePreferences', 'ledger', 'mailer', 'pipeline');
 }

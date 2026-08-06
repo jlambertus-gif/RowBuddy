@@ -23,10 +23,11 @@ beforeEach(function () {
         $table->string('domain_event_id');
         $table->unsignedBigInteger('recipient_id');
         $table->string('notification_type');
+        $table->string('channel')->default('email');
         $table->timestamp('delivered_at');
         $table->timestamps();
 
-        $table->unique(['domain_event_id', 'recipient_id', 'notification_type']);
+        $table->unique(['domain_event_id', 'recipient_id', 'notification_type', 'channel']);
     });
 });
 
@@ -64,4 +65,25 @@ it('tolerates recording the same logical delivery twice without throwing', funct
     $ledger->recordDelivered('auction-1', '101', NotificationType::AuctionWon);
 
     expect($ledger->alreadyDelivered('auction-1', '101', NotificationType::AuctionWon))->toBeTrue();
+});
+
+it('defaults to the email channel when none is specified, matching every pre-existing call site', function () {
+    $ledger = new EloquentNotificationDeliveryLedger(new FrozenClock);
+
+    $ledger->recordDelivered('auction-1', '101', NotificationType::AuctionWon);
+
+    expect($ledger->alreadyDelivered('auction-1', '101', NotificationType::AuctionWon, 'email'))->toBeTrue();
+});
+
+it('tracks the push channel independently of email — one never suppresses the other (ADR-028 Decision 6)', function () {
+    $ledger = new EloquentNotificationDeliveryLedger(new FrozenClock);
+
+    $ledger->recordDelivered('auction-1', '101', NotificationType::AuctionWon, 'email');
+
+    expect($ledger->alreadyDelivered('auction-1', '101', NotificationType::AuctionWon, 'push'))->toBeFalse();
+
+    $ledger->recordDelivered('auction-1', '101', NotificationType::AuctionWon, 'push');
+
+    expect($ledger->alreadyDelivered('auction-1', '101', NotificationType::AuctionWon, 'email'))->toBeTrue()
+        ->and($ledger->alreadyDelivered('auction-1', '101', NotificationType::AuctionWon, 'push'))->toBeTrue();
 });

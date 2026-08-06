@@ -1,11 +1,14 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 
 import { ApiError } from '@/api/client';
+import { useFileDispute } from '@/features/disputes/hooks/useFileDispute';
+import { useSubmitRating } from '@/features/ratings/hooks/useSubmitRating';
+import { useTransferRatings } from '@/features/ratings/hooks/useTransferRatings';
 import { useConfirmTransferAsBuyer } from '@/features/transfers/hooks/useConfirmTransferAsBuyer';
 import { useConfirmTransferAsSeller } from '@/features/transfers/hooks/useConfirmTransferAsSeller';
 import { useRevealQrToken } from '@/features/transfers/hooks/useRevealQrToken';
@@ -84,6 +87,167 @@ export default function TransferDetail() {
       {data.role === 'buyer' && data.status === 'issued' && <BuyerQrCode transferId={id} />}
       {canConfirm && data.role === 'seller' && <SellerConfirmForm transferId={id} />}
       {canConfirm && data.role === 'buyer' && <BuyerConfirmForm transferId={id} />}
+      {data.status === 'confirmed' && <RatingSection transferId={id} />}
+      {data.status === 'confirmed' && data.role === 'buyer' && (
+        <ReportProblemSection transferId={id} />
+      )}
+    </View>
+  );
+}
+
+function RatingSection({ transferId }: { transferId: string }) {
+  const { t } = useTranslation('ratings');
+  const ratings = useTransferRatings(transferId, true);
+  const submitRating = useSubmitRating(transferId);
+  const [score, setScore] = useState(5);
+  const [comment, setComment] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  function handleSubmit() {
+    setError(null);
+    submitRating.mutate(
+      { score, comment: comment.trim() || undefined },
+      {
+        onError: (submitError) =>
+          setError(submitError instanceof ApiError ? submitError.message : t('generic_error')),
+      },
+    );
+  }
+
+  if (ratings.isLoading) {
+    return null;
+  }
+
+  const mine = ratings.data?.mine ?? null;
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.label}>{t('section_title')}</Text>
+
+      {mine ? (
+        <View testID="my-rating">
+          <Text style={styles.value}>
+            {t('submitted_label')}: {mine.score}/5
+          </Text>
+          {mine.comment && <Text style={styles.subtitle}>{mine.comment}</Text>}
+        </View>
+      ) : (
+        <View>
+          <View style={styles.scoreRow}>
+            {[1, 2, 3, 4, 5].map((value) => (
+              <Pressable
+                key={value}
+                style={[styles.scoreOption, score === value && styles.scoreOptionSelected]}
+                onPress={() => setScore(value)}
+                testID={`score-option-${value}`}
+              >
+                <Text
+                  style={[
+                    styles.scoreOptionText,
+                    score === value && styles.scoreOptionTextSelected,
+                  ]}
+                >
+                  {value}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <TextInput
+            style={styles.input}
+            value={comment}
+            onChangeText={setComment}
+            placeholder={t('comment_label')}
+            multiline
+            testID="rating-comment-input"
+          />
+          {error && <Text style={styles.error}>{error}</Text>}
+          <Pressable
+            style={styles.button}
+            onPress={handleSubmit}
+            disabled={submitRating.isPending}
+            testID="submit-rating-button"
+          >
+            <Text style={styles.buttonText}>
+              {submitRating.isPending ? t('submitting') : t('submit_button')}
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
+      {ratings.data && (
+        <View style={styles.counterpartRow} testID="counterpart-rating">
+          {ratings.data.counterpart ? (
+            <Text style={styles.value}>
+              {t('counterpart_label')}: {ratings.data.counterpart.score}/5
+            </Text>
+          ) : (
+            <Text style={styles.subtitle}>
+              {ratings.data.counterpart_submitted
+                ? t('counterpart_hidden')
+                : t('counterpart_pending')}
+            </Text>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
+function ReportProblemSection({ transferId }: { transferId: string }) {
+  const { t } = useTranslation('disputes');
+  const fileDispute = useFileDispute(transferId);
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  function handleSubmit() {
+    setError(null);
+    fileDispute.mutate(
+      { reason },
+      {
+        onSuccess: (response) => router.push(`/disputes/${response.data.id}`),
+        onError: (submitError) =>
+          setError(submitError instanceof ApiError ? submitError.message : t('file.generic_error')),
+      },
+    );
+  }
+
+  if (!open) {
+    return (
+      <View style={styles.section}>
+        <Pressable
+          style={styles.reportButton}
+          onPress={() => setOpen(true)}
+          testID="open-report-problem"
+        >
+          <Text style={styles.reportButtonText}>{t('file.button')}</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.label}>{t('file.reason_label')}</Text>
+      <TextInput
+        style={styles.input}
+        value={reason}
+        onChangeText={setReason}
+        placeholder={t('file.reason_placeholder')}
+        multiline
+        testID="dispute-reason-input"
+      />
+      {error && <Text style={styles.error}>{error}</Text>}
+      <Pressable
+        style={styles.button}
+        onPress={handleSubmit}
+        disabled={fileDispute.isPending || reason.trim().length < 10}
+        testID="submit-dispute-button"
+      >
+        <Text style={styles.buttonText}>
+          {fileDispute.isPending ? t('file.submitting') : t('file.submit_button')}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -292,6 +456,51 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
+    fontWeight: '600',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    minHeight: 44,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  scoreOption: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  scoreOptionSelected: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  scoreOptionText: {
+    color: '#333',
+    fontWeight: '600',
+  },
+  scoreOptionTextSelected: {
+    color: '#fff',
+  },
+  counterpartRow: {
+    marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 8,
+  },
+  reportButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  reportButtonText: {
+    color: '#dc2626',
     fontWeight: '600',
   },
 });

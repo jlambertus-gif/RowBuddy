@@ -72,5 +72,12 @@ final class SendPaymentAuthorizationFailedNotification implements ShouldQueue
             NotificationType::PaymentAuthorizationFailed,
             fn (string $language) => new PaymentAuthorizationFailedMail($auctionId, $amount, $language),
         );
+
+        $this->pipeline->deliverPush(
+            (string) $event->auditSubjectId(),
+            $recipientId,
+            NotificationType::PaymentAuthorizationFailed,
+            fn (string $language) => (new PaymentAuthorizationFailedMail($auctionId, $amount, $language))->toPushContent($language),
+        );
     }
 }

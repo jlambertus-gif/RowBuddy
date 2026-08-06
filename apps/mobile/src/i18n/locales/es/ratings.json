@@ -1,0 +1,12 @@
+{
+  "section_title": "Califica esta transacción",
+  "score_label": "Tu calificación",
+  "comment_label": "Comentario (opcional)",
+  "submit_button": "Enviar calificación",
+  "submitting": "Enviando...",
+  "submitted_label": "Tu calificación",
+  "counterpart_pending": "La otra parte aún no ha calificado.",
+  "counterpart_hidden": "La calificación de la otra parte aparecerá una vez revelada.",
+  "counterpart_label": "Su calificación",
+  "generic_error": "Algo salió mal. Intenta de nuevo."
+}

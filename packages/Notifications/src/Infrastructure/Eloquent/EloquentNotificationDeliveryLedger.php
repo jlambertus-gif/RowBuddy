@@ -22,22 +22,24 @@ final class EloquentNotificationDeliveryLedger implements NotificationDeliveryLe
 {
     public function __construct(private readonly ClockInterface $clock) {}
 
-    public function alreadyDelivered(string $domainEventId, string $recipientId, NotificationType $type): bool
+    public function alreadyDelivered(string $domainEventId, string $recipientId, NotificationType $type, string $channel = 'email'): bool
     {
         return NotificationDeliveryModel::query()
             ->where('domain_event_id', $domainEventId)
             ->where('recipient_id', $recipientId)
             ->where('notification_type', $type->value)
+            ->where('channel', $channel)
             ->exists();
     }
 
-    public function recordDelivered(string $domainEventId, string $recipientId, NotificationType $type): void
+    public function recordDelivered(string $domainEventId, string $recipientId, NotificationType $type, string $channel = 'email'): void
     {
         try {
             NotificationDeliveryModel::query()->create([
                 'domain_event_id' => $domainEventId,
                 'recipient_id' => $recipientId,
                 'notification_type' => $type->value,
+                'channel' => $channel,
                 'delivered_at' => $this->clock->now(),
             ]);
         } catch (UniqueConstraintViolationException) {

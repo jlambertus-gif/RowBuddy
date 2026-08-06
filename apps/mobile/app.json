@@ -35,7 +35,8 @@
         {
           "cameraPermission": "RowBuddy needs camera access to scan the buyer's QR confirmation code during a transfer handoff."
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

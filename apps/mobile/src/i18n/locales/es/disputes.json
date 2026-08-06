@@ -1,0 +1,28 @@
+{
+  "file": {
+    "button": "Reportar un problema",
+    "title": "Reportar un problema",
+    "reason_label": "¿Qué salió mal?",
+    "reason_placeholder": "Describe lo que pasó...",
+    "submit_button": "Enviar reporte",
+    "submitting": "Enviando...",
+    "generic_error": "Algo salió mal. Intenta de nuevo."
+  },
+  "status": {
+    "title": "Disputa",
+    "loading": "Cargando disputa...",
+    "load_error": "No pudimos cargar esta disputa.",
+    "reason_label": "Motivo",
+    "status_label": "Estado",
+    "status_opened": "En revisión",
+    "status_resolved": "Resuelta",
+    "outcome_label": "Resultado",
+    "outcome_release_to_seller": "Liberado al vendedor",
+    "outcome_refund_to_buyer": "Reembolsado al comprador",
+    "outcome_split": "Dividido",
+    "outcome_cancelled": "Cancelada",
+    "refund_amount_label": "Monto del reembolso",
+    "opened_at_label": "Abierta",
+    "resolved_at_label": "Resuelta el"
+  }
+}

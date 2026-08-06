@@ -6,7 +6,9 @@ use RowBuddy\Notifications\Exceptions\NotificationRecipientUnresolved;
 use RowBuddy\Notifications\Listeners\SendPaymentAuthorizationFailedNotification;
 use RowBuddy\Notifications\Mail\PaymentAuthorizationFailedMail;
 use RowBuddy\Notifications\Support\NotificationDeliveryPipeline;
+use RowBuddy\Notifications\Tests\Fakes\FakeDeviceTokenRepository;
 use RowBuddy\Notifications\Tests\Fakes\FakeMailer;
+use RowBuddy\Notifications\Tests\Fakes\FakePushNotificationSender;
 use RowBuddy\Notifications\Tests\Fakes\FakeRecipientContactLookup;
 use RowBuddy\Notifications\Tests\Fakes\FakeRecipientLocalePreferenceLookup;
 use RowBuddy\Notifications\Tests\Fakes\FakeWinningBidderLookup;
@@ -22,7 +24,7 @@ it('sends the notification to the resolvable buyer', function () {
     $contacts = new FakeRecipientContactLookup;
     $contacts->emails['101'] = 'buyer@example.com';
     $mailer = new FakeMailer;
-    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, $contacts, new FakeRecipientLocalePreferenceLookup, $mailer);
+    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, $contacts, new FakeRecipientLocalePreferenceLookup, $mailer, new FakeDeviceTokenRepository, new FakePushNotificationSender);
     $listener = new SendPaymentAuthorizationFailedNotification($bidders, $pipeline);
 
     $event = new PaymentAuthorizationFailed(new FrozenClock, 'pi-1', 'auction-1', 'bid-1', new Money(11000, new Currency('USD')), 'card_declined');
@@ -39,7 +41,7 @@ it('does not send a second time once already delivered', function () {
     $contacts = new FakeRecipientContactLookup;
     $contacts->emails['101'] = 'buyer@example.com';
     $mailer = new FakeMailer;
-    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, $contacts, new FakeRecipientLocalePreferenceLookup, $mailer);
+    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, $contacts, new FakeRecipientLocalePreferenceLookup, $mailer, new FakeDeviceTokenRepository, new FakePushNotificationSender);
     $listener = new SendPaymentAuthorizationFailedNotification($bidders, $pipeline);
     $event = new PaymentAuthorizationFailed(new FrozenClock, 'pi-1', 'auction-1', 'bid-1', new Money(11000, new Currency('USD')), 'card_declined');
 
@@ -50,7 +52,7 @@ it('does not send a second time once already delivered', function () {
 });
 
 it('throws when no bidder can be resolved', function () {
-    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, new FakeRecipientContactLookup, new FakeRecipientLocalePreferenceLookup, new FakeMailer);
+    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, new FakeRecipientContactLookup, new FakeRecipientLocalePreferenceLookup, new FakeMailer, new FakeDeviceTokenRepository, new FakePushNotificationSender);
     $listener = new SendPaymentAuthorizationFailedNotification(new FakeWinningBidderLookup, $pipeline);
     $event = new PaymentAuthorizationFailed(new FrozenClock, 'pi-1', 'auction-1', 'bid-missing', new Money(11000, new Currency('USD')), 'card_declined');
 

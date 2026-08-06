@@ -46,8 +46,11 @@ final class SendTransferIssuedNotification implements ShouldQueue
         $sellerId = (string) $payload['seller_id'];
 
         $mailableFactory = fn (string $language) => new TransferIssuedMail($transferId);
+        $pushContentFactory = fn (string $language) => (new TransferIssuedMail($transferId))->toPushContent($language);
 
         $this->pipeline->deliver($transferId, $buyerId, NotificationType::TransferIssued, $mailableFactory);
         $this->pipeline->deliver($transferId, $sellerId, NotificationType::TransferIssued, $mailableFactory);
+        $this->pipeline->deliverPush($transferId, $buyerId, NotificationType::TransferIssued, $pushContentFactory);
+        $this->pipeline->deliverPush($transferId, $sellerId, NotificationType::TransferIssued, $pushContentFactory);
     }
 }

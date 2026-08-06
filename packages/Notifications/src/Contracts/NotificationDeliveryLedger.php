@@ -22,7 +22,13 @@ use RowBuddy\Notifications\ValueObjects\NotificationType;
  */
 interface NotificationDeliveryLedger
 {
-    public function alreadyDelivered(string $domainEventId, string $recipientId, NotificationType $type): bool;
+    /**
+     * $channel defaults to 'email' so every pre-existing call site
+     * (all eight email listeners, unmodified) keeps its exact prior
+     * behavior — push (ADR-028 Decision 6) is the only caller that ever
+     * passes 'push' explicitly.
+     */
+    public function alreadyDelivered(string $domainEventId, string $recipientId, NotificationType $type, string $channel = 'email'): bool;
 
-    public function recordDelivered(string $domainEventId, string $recipientId, NotificationType $type): void;
+    public function recordDelivered(string $domainEventId, string $recipientId, NotificationType $type, string $channel = 'email'): void;
 }

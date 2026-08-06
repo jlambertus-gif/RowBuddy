@@ -8,8 +8,10 @@ use RowBuddy\Notifications\Exceptions\NotificationRecipientUnresolved;
 use RowBuddy\Notifications\Listeners\SendDisputeResolvedNotification;
 use RowBuddy\Notifications\Mail\DisputeResolvedMail;
 use RowBuddy\Notifications\Support\NotificationDeliveryPipeline;
+use RowBuddy\Notifications\Tests\Fakes\FakeDeviceTokenRepository;
 use RowBuddy\Notifications\Tests\Fakes\FakeDisputeParticipantLookup;
 use RowBuddy\Notifications\Tests\Fakes\FakeMailer;
+use RowBuddy\Notifications\Tests\Fakes\FakePushNotificationSender;
 use RowBuddy\Notifications\Tests\Fakes\FakeRecipientContactLookup;
 use RowBuddy\Notifications\Tests\Fakes\FakeRecipientLocalePreferenceLookup;
 use RowBuddy\Notifications\Tests\Fakes\InMemoryNotificationDeliveryLedger;
@@ -25,7 +27,7 @@ it('sends independently to both buyer and seller, resolved via the dispute parti
     $contacts->emails['101'] = 'buyer@example.com';
     $contacts->emails['102'] = 'seller@example.com';
     $mailer = new FakeMailer;
-    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, $contacts, new FakeRecipientLocalePreferenceLookup, $mailer);
+    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, $contacts, new FakeRecipientLocalePreferenceLookup, $mailer, new FakeDeviceTokenRepository, new FakePushNotificationSender);
     $listener = new SendDisputeResolvedNotification($disputeParticipants, $pipeline);
 
     $event = new DisputeResolved(new FrozenClock, 'dispute-1', DisputeResolutionOutcome::RefundToBuyer, new Money(11000, new Currency('USD')), 'admin-1', 'buyer is correct', false);
@@ -43,7 +45,7 @@ it('carries no refund amount for an outcome that does not include one', function
     $contacts->emails['101'] = 'buyer@example.com';
     $contacts->emails['102'] = 'seller@example.com';
     $mailer = new FakeMailer;
-    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, $contacts, new FakeRecipientLocalePreferenceLookup, $mailer);
+    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, $contacts, new FakeRecipientLocalePreferenceLookup, $mailer, new FakeDeviceTokenRepository, new FakePushNotificationSender);
     $listener = new SendDisputeResolvedNotification($disputeParticipants, $pipeline);
 
     $event = new DisputeResolved(new FrozenClock, 'dispute-1', DisputeResolutionOutcome::ReleaseToSeller, null, 'admin-1', 'no issue found', false);
@@ -53,7 +55,7 @@ it('carries no refund amount for an outcome that does not include one', function
 });
 
 it('throws when no matching dispute is found', function () {
-    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, new FakeRecipientContactLookup, new FakeRecipientLocalePreferenceLookup, new FakeMailer);
+    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, new FakeRecipientContactLookup, new FakeRecipientLocalePreferenceLookup, new FakeMailer, new FakeDeviceTokenRepository, new FakePushNotificationSender);
     $listener = new SendDisputeResolvedNotification(new FakeDisputeParticipantLookup, $pipeline);
 
     $event = new DisputeResolved(new FrozenClock, 'dispute-missing', DisputeResolutionOutcome::Cancelled, null, 'admin-1', 'notes', false);

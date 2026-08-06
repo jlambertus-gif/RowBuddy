@@ -8,6 +8,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use RowBuddy\Notifications\Support\MoneyFormatter;
+use RowBuddy\Notifications\ValueObjects\PushContent;
 use RowBuddy\SharedKernel\ValueObjects\Money;
 
 /**
@@ -49,5 +50,22 @@ final class AuctionWonMail extends Mailable
         );
 
         return (new Content)->htmlString($body);
+    }
+
+    /**
+     * Push's content requirements are a strict subset of email's own
+     * (ADR-028 Decision 6/ADR-025 §9) — the same subject/body
+     * translation keys, minus the greeting/next-step paragraphs a push
+     * banner has no room for.
+     */
+    public function toPushContent(string $language): PushContent
+    {
+        return new PushContent(
+            title: __('notifications.auction_won.subject', [], $language),
+            body: __('notifications.auction_won.body', [
+                'reference' => $this->auctionReference,
+                'amount' => MoneyFormatter::format($this->winningAmount, $language),
+            ], $language),
+        );
     }
 }

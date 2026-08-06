@@ -3,6 +3,9 @@ import '@/i18n';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { ApiError } from '@/api/client';
+import { useFileDispute } from '@/features/disputes/hooks/useFileDispute';
+import { useSubmitRating } from '@/features/ratings/hooks/useSubmitRating';
+import { useTransferRatings } from '@/features/ratings/hooks/useTransferRatings';
 import { useConfirmTransferAsBuyer } from '@/features/transfers/hooks/useConfirmTransferAsBuyer';
 import { useConfirmTransferAsSeller } from '@/features/transfers/hooks/useConfirmTransferAsSeller';
 import { useRevealQrToken } from '@/features/transfers/hooks/useRevealQrToken';
@@ -13,11 +16,15 @@ import TransferDetail from '../[transferId]';
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ transferId: 'transfer-1' }),
+  router: { push: jest.fn() },
 }));
 jest.mock('@/features/transfers/hooks/useTransfer');
 jest.mock('@/features/transfers/hooks/useRevealQrToken');
 jest.mock('@/features/transfers/hooks/useConfirmTransferAsSeller');
 jest.mock('@/features/transfers/hooks/useConfirmTransferAsBuyer');
+jest.mock('@/features/ratings/hooks/useTransferRatings');
+jest.mock('@/features/ratings/hooks/useSubmitRating');
+jest.mock('@/features/disputes/hooks/useFileDispute');
 jest.mock('@/lib/location');
 jest.mock('expo-camera', () => ({
   useCameraPermissions: jest.fn(),
@@ -197,5 +204,169 @@ describe('Transfer detail screen', () => {
     await render(<TransferDetail />);
 
     expect(screen.getByText('This transfer could not be found.')).toBeVisible();
+  });
+
+  it('lets a participant submit a rating once the transfer is confirmed', async () => {
+    const mutate = jest.fn();
+    (useTransfer as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: baseTransfer({
+        role: 'buyer',
+        status: 'confirmed',
+        buyer_confirmed: true,
+        seller_confirmed: true,
+      }),
+    });
+    (useTransferRatings as jest.Mock).mockReturnValue({
+      isLoading: false,
+      data: { mine: null, counterpart: null, counterpart_submitted: false },
+    });
+    (useSubmitRating as jest.Mock).mockReturnValue({ mutate, isPending: false });
+    (useFileDispute as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+
+    await render(<TransferDetail />);
+    await fireEvent.press(screen.getByTestId('score-option-4'));
+    await fireEvent.press(screen.getByTestId('submit-rating-button'));
+
+    expect(mutate).toHaveBeenCalledWith({ score: 4, comment: undefined }, expect.anything());
+  });
+
+  it('shows the submitted rating instead of the form once this participant has already rated', async () => {
+    (useTransfer as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: baseTransfer({
+        role: 'buyer',
+        status: 'confirmed',
+        buyer_confirmed: true,
+        seller_confirmed: true,
+      }),
+    });
+    (useTransferRatings as jest.Mock).mockReturnValue({
+      isLoading: false,
+      data: {
+        mine: {
+          id: 'rating-1',
+          transfer_id: 'transfer-1',
+          score: 5,
+          comment: null,
+          submitted_at: '2026-01-01T00:00:00Z',
+        },
+        counterpart: null,
+        counterpart_submitted: false,
+      },
+    });
+    (useSubmitRating as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (useFileDispute as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+
+    await render(<TransferDetail />);
+
+    expect(screen.getByTestId('my-rating')).toBeVisible();
+    expect(screen.queryByTestId('submit-rating-button')).toBeNull();
+  });
+
+  it('distinguishes an unsubmitted counterpart rating from a submitted-but-unrevealed one', async () => {
+    (useTransfer as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: baseTransfer({
+        role: 'seller',
+        status: 'confirmed',
+        buyer_confirmed: true,
+        seller_confirmed: true,
+      }),
+    });
+    (useTransferRatings as jest.Mock).mockReturnValue({
+      isLoading: false,
+      data: { mine: null, counterpart: null, counterpart_submitted: true },
+    });
+    (useSubmitRating as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (useFileDispute as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+
+    await render(<TransferDetail />);
+
+    expect(screen.getByText("The other party's rating will appear once revealed.")).toBeVisible();
+  });
+
+  it('shows "Report a problem" for the buyer once confirmed', async () => {
+    (useTransfer as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: baseTransfer({
+        role: 'buyer',
+        status: 'confirmed',
+        buyer_confirmed: true,
+        seller_confirmed: true,
+      }),
+    });
+    (useTransferRatings as jest.Mock).mockReturnValue({
+      isLoading: false,
+      data: { mine: null, counterpart: null, counterpart_submitted: false },
+    });
+    (useSubmitRating as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (useFileDispute as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+
+    await render(<TransferDetail />);
+
+    expect(screen.getByTestId('open-report-problem')).toBeVisible();
+  });
+
+  it('never shows "Report a problem" for the seller', async () => {
+    (useTransfer as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: baseTransfer({
+        role: 'seller',
+        status: 'confirmed',
+        buyer_confirmed: true,
+        seller_confirmed: true,
+      }),
+    });
+    (useTransferRatings as jest.Mock).mockReturnValue({
+      isLoading: false,
+      data: { mine: null, counterpart: null, counterpart_submitted: false },
+    });
+    (useSubmitRating as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (useFileDispute as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+
+    await render(<TransferDetail />);
+
+    expect(screen.queryByTestId('open-report-problem')).toBeNull();
+  });
+
+  it('files a dispute and navigates to its status screen on success', async () => {
+    const mutate = jest.fn((_, options) => options?.onSuccess?.({ data: { id: 'dispute-1' } }));
+    (useTransfer as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: baseTransfer({
+        role: 'buyer',
+        status: 'confirmed',
+        buyer_confirmed: true,
+        seller_confirmed: true,
+      }),
+    });
+    (useTransferRatings as jest.Mock).mockReturnValue({
+      isLoading: false,
+      data: { mine: null, counterpart: null, counterpart_submitted: false },
+    });
+    (useSubmitRating as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (useFileDispute as jest.Mock).mockReturnValue({ mutate, isPending: false });
+    const { router } = jest.requireMock('expo-router');
+
+    await render(<TransferDetail />);
+    await fireEvent.press(screen.getByTestId('open-report-problem'));
+    await fireEvent.changeText(
+      screen.getByTestId('dispute-reason-input'),
+      'The seller never showed up at all.',
+    );
+    await fireEvent.press(screen.getByTestId('submit-dispute-button'));
+
+    expect(mutate).toHaveBeenCalledWith(
+      { reason: 'The seller never showed up at all.' },
+      expect.anything(),
+    );
+    expect(router.push).toHaveBeenCalledWith('/disputes/dispute-1');
   });
 });

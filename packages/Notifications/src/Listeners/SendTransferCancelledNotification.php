@@ -56,8 +56,11 @@ final class SendTransferCancelledNotification implements ShouldQueue
         }
 
         $mailableFactory = fn (string $language) => new TransferCancelledMail($transferId);
+        $pushContentFactory = fn (string $language) => (new TransferCancelledMail($transferId))->toPushContent($language);
 
         $this->pipeline->deliver($transferId, $snapshot->buyerId, NotificationType::TransferCancelled, $mailableFactory);
         $this->pipeline->deliver($transferId, $snapshot->sellerId, NotificationType::TransferCancelled, $mailableFactory);
+        $this->pipeline->deliverPush($transferId, $snapshot->buyerId, NotificationType::TransferCancelled, $pushContentFactory);
+        $this->pipeline->deliverPush($transferId, $snapshot->sellerId, NotificationType::TransferCancelled, $pushContentFactory);
     }
 }

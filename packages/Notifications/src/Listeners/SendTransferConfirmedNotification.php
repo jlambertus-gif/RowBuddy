@@ -54,8 +54,11 @@ final class SendTransferConfirmedNotification implements ShouldQueue
         }
 
         $mailableFactory = fn (string $language) => new TransferConfirmedMail($transferId);
+        $pushContentFactory = fn (string $language) => (new TransferConfirmedMail($transferId))->toPushContent($language);
 
         $this->pipeline->deliver($transferId, $snapshot->buyerId, NotificationType::TransferConfirmed, $mailableFactory);
         $this->pipeline->deliver($transferId, $snapshot->sellerId, NotificationType::TransferConfirmed, $mailableFactory);
+        $this->pipeline->deliverPush($transferId, $snapshot->buyerId, NotificationType::TransferConfirmed, $pushContentFactory);
+        $this->pipeline->deliverPush($transferId, $snapshot->sellerId, NotificationType::TransferConfirmed, $pushContentFactory);
     }
 }

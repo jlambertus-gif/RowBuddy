@@ -7,6 +7,7 @@ namespace RowBuddy\Notifications\Mail;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use RowBuddy\Notifications\ValueObjects\PushContent;
 
 /**
  * ADR-025 §6 (`TransferExpired` → buyer and seller). Content must remain
@@ -34,5 +35,14 @@ final class TransferExpiredMail extends Mailable
         );
 
         return (new Content)->htmlString($body);
+    }
+
+    /** See the identical note on AuctionWonMail::toPushContent(). */
+    public function toPushContent(string $language): PushContent
+    {
+        return new PushContent(
+            title: __('notifications.transfer_expired.subject', [], $language),
+            body: __('notifications.transfer_expired.body', ['reference' => $this->transferReference], $language),
+        );
     }
 }

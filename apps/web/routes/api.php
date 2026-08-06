@@ -6,16 +6,23 @@ use App\Http\Controllers\BeginBuyerPaymentMethodSetupController;
 use App\Http\Controllers\CompleteBuyerPaymentMethodSetupController;
 use App\Http\Controllers\ConfirmTransferAsBuyerController;
 use App\Http\Controllers\ConfirmTransferAsSellerController;
+use App\Http\Controllers\FileDisputeController;
+use App\Http\Controllers\ListTransferRatingsController;
 use App\Http\Controllers\LoginApiUserController;
 use App\Http\Controllers\LogoutApiUserController;
 use App\Http\Controllers\PlaceBidController;
 use App\Http\Controllers\RegisterApiUserController;
+use App\Http\Controllers\RegisterDeviceTokenController;
 use App\Http\Controllers\ResetApiPasswordController;
 use App\Http\Controllers\SendApiEmailVerificationNotificationController;
 use App\Http\Controllers\SendApiPasswordResetLinkController;
 use App\Http\Controllers\ShowApiCurrentUserController;
+use App\Http\Controllers\ShowDisputeController;
+use App\Http\Controllers\ShowProfileController;
 use App\Http\Controllers\ShowTransferController;
 use App\Http\Controllers\ShowTransferQrTokenController;
+use App\Http\Controllers\SubmitRatingController;
+use App\Http\Controllers\UpdateProfileController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -80,5 +87,35 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:transfer-confirmation');
         Route::post('transfers/{transferId}/confirm-as-buyer', ConfirmTransferAsBuyerController::class)
             ->middleware('throttle:transfer-confirmation');
+
+        // Mobile Sprint 4 (ADR-028 §3). Unlike every controller Sprints
+        // 1-3 added, these two have no existing web route to mirror —
+        // this is the first HTTP surface RatingSubmissionService/
+        // RatingRevealEvaluator have ever had, on any client.
+        Route::post('transfers/{transferId}/ratings', SubmitRatingController::class)
+            ->middleware('verified');
+        Route::get('transfers/{transferId}/ratings', ListTransferRatingsController::class);
+
+        // Mobile Sprint 4 (ADR-028 §3). The first HTTP surface
+        // DisputeFilingService has ever had. Dispute *resolution*
+        // remains exclusively the existing admin-only web surface
+        // (admin.disputes.*) — unaffected, untouched.
+        Route::post('transfers/{transferId}/disputes', FileDisputeController::class)
+            ->middleware('verified');
+        Route::get('disputes/{disputeId}', ShowDisputeController::class);
+
+        // Mobile Sprint 4 (ADR-028 §3/§4). UpdateProfileController reuses
+        // Fortify's own UpdatesUserProfileInformation contract verbatim —
+        // the same implementation web's PUT user/profile-information
+        // route already uses.
+        Route::get('profile', ShowProfileController::class);
+        Route::put('profile', UpdateProfileController::class);
+
+        // Mobile Sprint 4 (ADR-028 Decision 6). Registering/refreshing a
+        // token is always a POST regardless of whether it is the
+        // device's first registration or a refresh — the upsert-by-token
+        // behavior lives entirely in EloquentDeviceTokenRepository, not
+        // in a REST verb distinction here.
+        Route::post('devices', RegisterDeviceTokenController::class);
     });
 });

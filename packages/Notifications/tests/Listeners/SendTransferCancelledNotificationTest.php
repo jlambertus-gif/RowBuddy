@@ -6,7 +6,9 @@ use RowBuddy\Notifications\Exceptions\NotificationRecipientUnresolved;
 use RowBuddy\Notifications\Listeners\SendTransferCancelledNotification;
 use RowBuddy\Notifications\Mail\TransferCancelledMail;
 use RowBuddy\Notifications\Support\NotificationDeliveryPipeline;
+use RowBuddy\Notifications\Tests\Fakes\FakeDeviceTokenRepository;
 use RowBuddy\Notifications\Tests\Fakes\FakeMailer;
+use RowBuddy\Notifications\Tests\Fakes\FakePushNotificationSender;
 use RowBuddy\Notifications\Tests\Fakes\FakeRecipientContactLookup;
 use RowBuddy\Notifications\Tests\Fakes\FakeRecipientLocalePreferenceLookup;
 use RowBuddy\Notifications\Tests\Fakes\FakeTransferParticipantLookup;
@@ -22,7 +24,7 @@ it('sends independently to both buyer and seller, resolved via the participant l
     $contacts->emails['101'] = 'buyer@example.com';
     $contacts->emails['102'] = 'seller@example.com';
     $mailer = new FakeMailer;
-    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, $contacts, new FakeRecipientLocalePreferenceLookup, $mailer);
+    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, $contacts, new FakeRecipientLocalePreferenceLookup, $mailer, new FakeDeviceTokenRepository, new FakePushNotificationSender);
     $listener = new SendTransferCancelledNotification($transferParticipants, $pipeline);
 
     $listener->handle(new TransferCancelled(new FrozenClock, 'transfer-1', 'auction-1', 'reauthorization_failed'));
@@ -33,7 +35,7 @@ it('sends independently to both buyer and seller, resolved via the participant l
 });
 
 it('throws when no matching transfer is found', function () {
-    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, new FakeRecipientContactLookup, new FakeRecipientLocalePreferenceLookup, new FakeMailer);
+    $pipeline = new NotificationDeliveryPipeline(new InMemoryNotificationDeliveryLedger, new FakeRecipientContactLookup, new FakeRecipientLocalePreferenceLookup, new FakeMailer, new FakeDeviceTokenRepository, new FakePushNotificationSender);
     $listener = new SendTransferCancelledNotification(new FakeTransferParticipantLookup, $pipeline);
 
     expect(fn () => $listener->handle(new TransferCancelled(new FrozenClock, 'transfer-missing', 'auction-1', 'reason')))

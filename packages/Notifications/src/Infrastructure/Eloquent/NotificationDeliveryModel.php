@@ -14,6 +14,7 @@ use Illuminate\Support\Carbon;
  * @property string $domain_event_id
  * @property int $recipient_id
  * @property string $notification_type
+ * @property string $channel
  * @property Carbon $delivered_at
  */
 final class NotificationDeliveryModel extends Model
@@ -24,6 +25,7 @@ final class NotificationDeliveryModel extends Model
         'domain_event_id',
         'recipient_id',
         'notification_type',
+        'channel',
         'delivered_at',
     ];
 

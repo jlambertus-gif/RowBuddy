@@ -3,7 +3,6 @@ import '@/i18n';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { useDiscoverQueues } from '@/features/auctions/hooks/useDiscoverQueues';
-import { useLogout } from '@/features/auth/hooks/useLogout';
 import { getCurrentCoordinates, LocationPermissionDeniedError } from '@/lib/location';
 
 import Home from '../home';
@@ -12,7 +11,6 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn(), replace: jest.fn() },
 }));
 jest.mock('@/features/auctions/hooks/useDiscoverQueues');
-jest.mock('@/features/auth/hooks/useLogout');
 jest.mock('@/lib/location');
 
 describe('Home/discovery screen', () => {
@@ -22,7 +20,6 @@ describe('Home/discovery screen', () => {
 
   it('lists discovered queues once location and discovery both succeed', async () => {
     (getCurrentCoordinates as jest.Mock).mockResolvedValue({ latitude: 1, longitude: 2 });
-    (useLogout as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
     (useDiscoverQueues as jest.Mock).mockReturnValue({
       isLoading: false,
       isSuccess: true,
@@ -51,7 +48,6 @@ describe('Home/discovery screen', () => {
 
   it('shows a location-denied message and a retry button when permission is refused', async () => {
     (getCurrentCoordinates as jest.Mock).mockRejectedValue(new LocationPermissionDeniedError());
-    (useLogout as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
     (useDiscoverQueues as jest.Mock).mockReturnValue({ isLoading: false, isSuccess: false });
 
     await render(<Home />);
@@ -61,7 +57,6 @@ describe('Home/discovery screen', () => {
 
   it('navigates to payment method setup from the header link', async () => {
     (getCurrentCoordinates as jest.Mock).mockResolvedValue({ latitude: 1, longitude: 2 });
-    (useLogout as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
     (useDiscoverQueues as jest.Mock).mockReturnValue({ isLoading: false, isSuccess: false });
     const { router } = jest.requireMock('expo-router');
 
@@ -71,9 +66,19 @@ describe('Home/discovery screen', () => {
     expect(router.push).toHaveBeenCalledWith('/payment-method-setup');
   });
 
+  it('navigates to the profile screen from the header link', async () => {
+    (getCurrentCoordinates as jest.Mock).mockResolvedValue({ latitude: 1, longitude: 2 });
+    (useDiscoverQueues as jest.Mock).mockReturnValue({ isLoading: false, isSuccess: false });
+    const { router } = jest.requireMock('expo-router');
+
+    await render(<Home />);
+    await fireEvent.press(screen.getByTestId('profile-link'));
+
+    expect(router.push).toHaveBeenCalledWith('/profile');
+  });
+
   it('navigates to a transfer by entered ID, matching the auction-lookup stopgap pattern', async () => {
     (getCurrentCoordinates as jest.Mock).mockResolvedValue({ latitude: 1, longitude: 2 });
-    (useLogout as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
     (useDiscoverQueues as jest.Mock).mockReturnValue({ isLoading: false, isSuccess: false });
     const { router } = jest.requireMock('expo-router');
 

@@ -79,5 +79,16 @@ final class SendAuctionWonNotification implements ShouldQueue
             NotificationType::AuctionWon,
             fn (string $language) => new AuctionWonMail($auctionId, $winningAmount, $language),
         );
+
+        // The second channel (ADR-028 Decision 6) on this same
+        // (event, recipient) pair — see NotificationDeliveryPipeline::
+        // deliverPush()'s own docblock for why this never throws when
+        // the recipient has no registered device.
+        $this->pipeline->deliverPush(
+            $auctionId,
+            $recipientId,
+            NotificationType::AuctionWon,
+            fn (string $language) => (new AuctionWonMail($auctionId, $winningAmount, $language))->toPushContent($language),
+        );
     }
 }

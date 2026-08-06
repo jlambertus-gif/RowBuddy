@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 
 import { useDiscoverQueues } from '@/features/auctions/hooks/useDiscoverQueues';
-import { useLogout } from '@/features/auth/hooks/useLogout';
 import { getCurrentCoordinates, LocationPermissionDeniedError } from '@/lib/location';
 import { DiscoveredQueue } from '@/types/queues';
 
@@ -38,7 +37,6 @@ export default function Home() {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [auctionIdInput, setAuctionIdInput] = useState('');
   const [transferIdInput, setTransferIdInput] = useState('');
-  const logout = useLogout();
 
   function locateAndFetch() {
     getCurrentCoordinates()
@@ -67,12 +65,6 @@ export default function Home() {
 
   const discovery = useDiscoverQueues(coordinates);
 
-  function handleLogout() {
-    logout.mutate(undefined, {
-      onSettled: () => router.replace('/(auth)/login'),
-    });
-  }
-
   function renderQueue({ item }: { item: DiscoveredQueue }) {
     return (
       <View style={styles.queueRow} testID={`queue-${item.id}`}>
@@ -95,8 +87,8 @@ export default function Home() {
           >
             <Text style={styles.headerLink}>{t('discovery.payment_method_button')}</Text>
           </Pressable>
-          <Pressable onPress={handleLogout} disabled={logout.isPending} testID="home-logout">
-            <Text style={styles.logoutLabel}>Log out</Text>
+          <Pressable onPress={() => router.push('/profile')} testID="profile-link">
+            <Text style={styles.headerLink}>{t('discovery.profile_button')}</Text>
           </Pressable>
         </View>
       </View>
@@ -203,10 +195,6 @@ const styles = StyleSheet.create({
   },
   headerLink: {
     color: '#2563eb',
-    fontWeight: '600',
-  },
-  logoutLabel: {
-    color: '#dc2626',
     fontWeight: '600',
   },
   centered: {

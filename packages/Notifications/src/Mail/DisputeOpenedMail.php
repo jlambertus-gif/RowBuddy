@@ -7,6 +7,7 @@ namespace RowBuddy\Notifications\Mail;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use RowBuddy\Notifications\ValueObjects\PushContent;
 
 /**
  * ADR-025 §6 (`DisputeOpened` → seller). Surfaces only that a dispute
@@ -34,5 +35,14 @@ final class DisputeOpenedMail extends Mailable
         );
 
         return (new Content)->htmlString($body);
+    }
+
+    /** See the identical note on AuctionWonMail::toPushContent(). */
+    public function toPushContent(string $language): PushContent
+    {
+        return new PushContent(
+            title: __('notifications.dispute_opened.subject', [], $language),
+            body: __('notifications.dispute_opened.body', ['reference' => $this->disputeReference], $language),
+        );
     }
 }

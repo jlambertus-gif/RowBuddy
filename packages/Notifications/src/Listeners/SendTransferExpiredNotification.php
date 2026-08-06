@@ -54,8 +54,11 @@ final class SendTransferExpiredNotification implements ShouldQueue
         }
 
         $mailableFactory = fn (string $language) => new TransferExpiredMail($transferId);
+        $pushContentFactory = fn (string $language) => (new TransferExpiredMail($transferId))->toPushContent($language);
 
         $this->pipeline->deliver($transferId, $snapshot->buyerId, NotificationType::TransferExpired, $mailableFactory);
         $this->pipeline->deliver($transferId, $snapshot->sellerId, NotificationType::TransferExpired, $mailableFactory);
+        $this->pipeline->deliverPush($transferId, $snapshot->buyerId, NotificationType::TransferExpired, $pushContentFactory);
+        $this->pipeline->deliverPush($transferId, $snapshot->sellerId, NotificationType::TransferExpired, $pushContentFactory);
     }
 }
