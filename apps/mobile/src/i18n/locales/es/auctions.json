@@ -1,0 +1,20 @@
+{
+  "detail": {
+    "title": "Subasta",
+    "loading": "Cargando subasta...",
+    "not_found": "Esta subasta ya no está disponible.",
+    "current_price": "Precio actual",
+    "bid_count": "{{count}} oferta",
+    "bid_count_plural": "{{count}} ofertas",
+    "closes_at": "Cierra {{time}}",
+    "status_open": "Abierta",
+    "status_closing": "Cerrando pronto",
+    "status_won": "Adjudicada",
+    "status_expired": "Expirada",
+    "status_cancelled": "Cancelada",
+    "bid_amount_label": "Tu oferta",
+    "bid_button": "Ofertar",
+    "bidding": "Enviando oferta...",
+    "minimum_bid_hint": "Mínimo: {{amount}}"
+  }
+}

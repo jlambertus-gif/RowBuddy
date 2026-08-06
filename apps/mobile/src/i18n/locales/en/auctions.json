@@ -1,0 +1,20 @@
+{
+  "detail": {
+    "title": "Auction",
+    "loading": "Loading auction...",
+    "not_found": "This auction is no longer available.",
+    "current_price": "Current price",
+    "bid_count": "{{count}} bid",
+    "bid_count_plural": "{{count}} bids",
+    "closes_at": "Closes {{time}}",
+    "status_open": "Open",
+    "status_closing": "Closing soon",
+    "status_won": "Won",
+    "status_expired": "Expired",
+    "status_cancelled": "Cancelled",
+    "bid_amount_label": "Your bid",
+    "bid_button": "Place bid",
+    "bidding": "Placing bid...",
+    "minimum_bid_hint": "Minimum: {{amount}}"
+  }
+}

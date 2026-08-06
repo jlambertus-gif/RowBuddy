@@ -1,0 +1,14 @@
+{
+  "discovery": {
+    "title": "Nearby queues",
+    "loading": "Finding queues near you...",
+    "empty": "No published queues nearby right now.",
+    "distance_meters": "{{distance}} m away",
+    "location_denied": "Location access is needed to find queues near you.",
+    "location_unavailable": "We couldn't determine your location. Please try again.",
+    "retry_button": "Try again",
+    "view_auction_by_id": "View an auction by ID",
+    "auction_id_placeholder": "Auction ID",
+    "view_button": "View"
+  }
+}

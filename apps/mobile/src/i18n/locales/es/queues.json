@@ -1,0 +1,14 @@
+{
+  "discovery": {
+    "title": "Filas cercanas",
+    "loading": "Buscando filas cerca de ti...",
+    "empty": "No hay filas publicadas cerca por ahora.",
+    "distance_meters": "A {{distance}} m",
+    "location_denied": "Se necesita acceso a la ubicación para encontrar filas cercanas.",
+    "location_unavailable": "No pudimos determinar tu ubicación. Inténtalo de nuevo.",
+    "retry_button": "Reintentar",
+    "view_auction_by_id": "Ver una subasta por ID",
+    "auction_id_placeholder": "ID de la subasta",
+    "view_button": "Ver"
+  }
+}

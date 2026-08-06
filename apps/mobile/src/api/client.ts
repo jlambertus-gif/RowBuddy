@@ -1,14 +1,18 @@
 import { clearAuthToken, getAuthToken } from '@/lib/authToken';
 
 /**
- * Points at the versioned backend surface ADR-028 introduces
- * (apps/web's own routes/api.php, never a separate apps/api
- * installation — ADR-028 Decision 2). Overridable via
- * EXPO_PUBLIC_API_BASE_URL for non-local environments; defaults to the
- * local docker-compose backend used throughout this repo's own
- * development setup.
+ * The backend's own origin — apps/web (ADR-028 Decision 2, never a
+ * separate apps/api installation). Deliberately NOT pinned to /api/v1:
+ * some endpoints mobile calls (GET /queues/discover, GET /auctions/{id})
+ * are already-public, unversioned web.php routes reused as-is (no auth,
+ * no session/CSRF dependency, so no reason to mirror them); only the
+ * ones that genuinely need it (auth, bid placement) live under
+ * /api/v1. Callers pass the full path, including /api/v1 where it
+ * applies. Overridable via EXPO_PUBLIC_API_BASE_URL for non-local
+ * environments; defaults to the local docker-compose backend used
+ * throughout this repo's own development setup.
  */
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:8000/api/v1';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export class ApiError extends Error {
   constructor(
@@ -25,14 +29,16 @@ interface ApiFetchOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
   body?: object;
   authenticated?: boolean;
+  headers?: Record<string, string>;
 }
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
-  const { method = 'GET', body, authenticated = true } = options;
+  const { method = 'GET', body, authenticated = true, headers: extraHeaders } = options;
 
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
+    ...extraHeaders,
   };
 
   if (authenticated) {

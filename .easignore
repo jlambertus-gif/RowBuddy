@@ -1,0 +1,60 @@
+# EAS Build archive exclusions (repo root).
+#
+# Required because eas-cli's own nested-.gitignore matching has a
+# cross-platform bug on Windows: it compares POSIX-style glob paths
+# against Windows backslash-separated relative paths, so every NESTED
+# .gitignore rule (anything with a non-empty directory prefix) silently
+# fails to match — only root-level/default rules ever actually apply.
+# This let apps/web/vendor's entire tree, including Composer path-
+# repository symlinks pointing back into packages/*, get copied into
+# the build archive instead of excluded, crashing with EPERM on Windows
+# (which cannot recreate a symlink without elevated privileges/Developer
+# Mode enabled). .easignore's own matching doesn't have this bug (it
+# always uses an empty path prefix), so it's the correct workaround, not
+# a masking hack. NOTE: once this file exists, EVERY .gitignore in the
+# repo is ignored for archiving purposes (eas-cli's own documented
+# behavior) — this file must independently cover everything that
+# matters, not just the one exclusion that was crashing.
+
+# Composer/npm dependency directories, wherever they live in the
+# monorepo (apps/web, every packages/* bounded context, apps/mobile).
+vendor
+node_modules
+
+# Build/dev-server artifacts, none of which the build server needs.
+apps/web/public/build
+apps/web/public/hot
+apps/web/public/storage
+apps/web/storage/*.key
+apps/web/storage/pail
+apps/web/storage/logs
+apps/web/storage/framework
+apps/web/bootstrap/cache
+apps/web/database/*.sqlite
+apps/mobile/.expo
+apps/mobile/dist
+apps/mobile/web-build
+apps/mobile/ios
+apps/mobile/android
+
+# Secrets/credentials — never uploaded to any third-party build service.
+.env
+.env.*
+!.env.example
+apps/web/auth.json
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+
+# Editor/OS noise.
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+.fleet
+.nova
+.zed
+
+# Unrelated stray file at the repo root — not part of any app.
+estructura.txt

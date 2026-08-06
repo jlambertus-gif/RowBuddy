@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\LoginApiUserController;
 use App\Http\Controllers\LogoutApiUserController;
+use App\Http\Controllers\PlaceBidController;
 use App\Http\Controllers\RegisterApiUserController;
 use App\Http\Controllers\ResetApiPasswordController;
 use App\Http\Controllers\SendApiEmailVerificationNotificationController;
@@ -40,5 +41,19 @@ Route::prefix('v1')->group(function (): void {
         )->middleware('throttle:'.config('fortify.limiters.verification', '6,1'));
 
         Route::get('me', ShowApiCurrentUserController::class);
+
+        // Mobile Sprint 2. Reuses PlaceBidController verbatim — the
+        // exact same controller web.php's own /auctions/{id}/bids route
+        // already uses, with the identical throttle + verified
+        // middleware. Unlike the public GET /queues/discover and
+        // GET /auctions/{id} (which mobile calls at their existing
+        // web.php paths directly, since they need no auth at all and
+        // are already stable, public JSON contracts), bid placement's
+        // only existing route sits under the web *session* guard — a
+        // native client has no cookie/session to present, so this one
+        // genuinely needs its own auth:sanctum-guarded route, not a
+        // stylistic mirror.
+        Route::post('auctions/{auctionId}/bids', PlaceBidController::class)
+            ->middleware(['throttle:bid-placement', 'verified']);
     });
 });
