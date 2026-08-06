@@ -1,0 +1,34 @@
+{
+  "detail": {
+    "title": "Transfer",
+    "loading": "Loading transfer...",
+    "load_error": "We couldn't load this transfer.",
+    "not_found": "This transfer could not be found.",
+    "role_seller": "You are the seller",
+    "role_buyer": "You are the buyer",
+    "status_issued": "Awaiting confirmation",
+    "status_confirmed": "Confirmed",
+    "status_expired": "Expired",
+    "status_cancelled": "Cancelled",
+    "seller_confirmed_label": "Seller confirmed",
+    "buyer_confirmed_label": "Buyer confirmed",
+    "yes": "Yes",
+    "no": "No",
+    "expires_at_label": "Expires",
+    "reveal_code_button": "Show my code",
+    "your_code_label": "Show this code to the seller",
+    "scan_code_label": "Scan the buyer's code",
+    "camera_permission_denied": "Camera access is needed to scan the buyer's code.",
+    "camera_permission_button": "Allow camera access",
+    "scan_again_button": "Scan again",
+    "confirm_button": "Confirm handoff",
+    "confirming": "Confirming...",
+    "location_denied": "Location access is needed to confirm the handoff.",
+    "generic_error": "Something went wrong. Please try again."
+  },
+  "lookup": {
+    "view_transfer_by_id": "View a transfer by ID",
+    "transfer_id_placeholder": "Transfer ID",
+    "view_button": "View"
+  }
+}

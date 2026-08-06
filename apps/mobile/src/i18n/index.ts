@@ -5,11 +5,15 @@ import { initReactI18next } from 'react-i18next';
 import enAuctions from './locales/en/auctions.json';
 import enAuth from './locales/en/auth.json';
 import en from './locales/en/common.json';
+import enPayments from './locales/en/payments.json';
 import enQueues from './locales/en/queues.json';
+import enTransfers from './locales/en/transfers.json';
 import esAuctions from './locales/es/auctions.json';
 import esAuth from './locales/es/auth.json';
 import es from './locales/es/common.json';
+import esPayments from './locales/es/payments.json';
 import esQueues from './locales/es/queues.json';
+import esTransfers from './locales/es/transfers.json';
 
 export const SUPPORTED_LOCALES = ['en', 'es'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
@@ -34,8 +38,22 @@ function detectSupportedDeviceLocale(): SupportedLocale {
 // eslint-disable-next-line import/no-named-as-default-member -- i18next's own documented chained-call pattern; `.use()` is a real instance method here, not the named export.
 void i18n.use(initReactI18next).init({
   resources: {
-    en: { common: en, auth: enAuth, queues: enQueues, auctions: enAuctions },
-    es: { common: es, auth: esAuth, queues: esQueues, auctions: esAuctions },
+    en: {
+      common: en,
+      auth: enAuth,
+      queues: enQueues,
+      auctions: enAuctions,
+      payments: enPayments,
+      transfers: enTransfers,
+    },
+    es: {
+      common: es,
+      auth: esAuth,
+      queues: esQueues,
+      auctions: esAuctions,
+      payments: esPayments,
+      transfers: esTransfers,
+    },
   },
   lng: detectSupportedDeviceLocale(),
   fallbackLng: FALLBACK_LOCALE,

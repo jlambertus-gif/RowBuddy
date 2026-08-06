@@ -9,6 +9,7 @@
     "retry_button": "Reintentar",
     "view_auction_by_id": "Ver una subasta por ID",
     "auction_id_placeholder": "ID de la subasta",
-    "view_button": "Ver"
+    "view_button": "Ver",
+    "payment_method_button": "Método de pago"
   }
 }

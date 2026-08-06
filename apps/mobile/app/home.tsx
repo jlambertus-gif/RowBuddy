@@ -31,11 +31,13 @@ import { DiscoveredQueue } from '@/types/queues';
  */
 export default function Home() {
   const { t } = useTranslation('queues');
+  const { t: tTransfers } = useTranslation('transfers');
   const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(
     null,
   );
   const [locationError, setLocationError] = useState<string | null>(null);
   const [auctionIdInput, setAuctionIdInput] = useState('');
+  const [transferIdInput, setTransferIdInput] = useState('');
   const logout = useLogout();
 
   function locateAndFetch() {
@@ -86,9 +88,17 @@ export default function Home() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{t('discovery.title')}</Text>
-        <Pressable onPress={handleLogout} disabled={logout.isPending} testID="home-logout">
-          <Text style={styles.logoutLabel}>Log out</Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => router.push('/payment-method-setup')}
+            testID="payment-method-link"
+          >
+            <Text style={styles.headerLink}>{t('discovery.payment_method_button')}</Text>
+          </Pressable>
+          <Pressable onPress={handleLogout} disabled={logout.isPending} testID="home-logout">
+            <Text style={styles.logoutLabel}>Log out</Text>
+          </Pressable>
+        </View>
       </View>
 
       {locationError && (
@@ -143,6 +153,28 @@ export default function Home() {
           </Pressable>
         </View>
       </View>
+
+      <View style={styles.auctionLookup}>
+        <Text style={styles.label}>{tTransfers('lookup.view_transfer_by_id')}</Text>
+        <View style={styles.auctionLookupRow}>
+          <TextInput
+            style={styles.input}
+            value={transferIdInput}
+            onChangeText={setTransferIdInput}
+            placeholder={tTransfers('lookup.transfer_id_placeholder')}
+            autoCapitalize="none"
+            testID="transfer-id-input"
+          />
+          <Pressable
+            style={styles.button}
+            onPress={() => router.push(`/transfers/${transferIdInput.trim()}`)}
+            disabled={transferIdInput.trim().length === 0}
+            testID="view-transfer-button"
+          >
+            <Text style={styles.buttonText}>{tTransfers('lookup.view_button')}</Text>
+          </Pressable>
+        </View>
+      </View>
     </View>
   );
 }
@@ -162,6 +194,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
+    fontWeight: '600',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  headerLink: {
+    color: '#2563eb',
     fontWeight: '600',
   },
   logoutLabel: {

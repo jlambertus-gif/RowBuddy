@@ -1,0 +1,34 @@
+{
+  "detail": {
+    "title": "Transferencia",
+    "loading": "Cargando transferencia...",
+    "load_error": "No pudimos cargar esta transferencia.",
+    "not_found": "No se encontró esta transferencia.",
+    "role_seller": "Eres el vendedor",
+    "role_buyer": "Eres el comprador",
+    "status_issued": "Esperando confirmación",
+    "status_confirmed": "Confirmada",
+    "status_expired": "Expirada",
+    "status_cancelled": "Cancelada",
+    "seller_confirmed_label": "Vendedor confirmó",
+    "buyer_confirmed_label": "Comprador confirmó",
+    "yes": "Sí",
+    "no": "No",
+    "expires_at_label": "Expira",
+    "reveal_code_button": "Mostrar mi código",
+    "your_code_label": "Muestra este código al vendedor",
+    "scan_code_label": "Escanea el código del comprador",
+    "camera_permission_denied": "Se necesita acceso a la cámara para escanear el código del comprador.",
+    "camera_permission_button": "Permitir acceso a la cámara",
+    "scan_again_button": "Escanear de nuevo",
+    "confirm_button": "Confirmar entrega",
+    "confirming": "Confirmando...",
+    "location_denied": "Se necesita acceso a la ubicación para confirmar la entrega.",
+    "generic_error": "Algo salió mal. Intenta de nuevo."
+  },
+  "lookup": {
+    "view_transfer_by_id": "Ver una transferencia por ID",
+    "transfer_id_placeholder": "ID de transferencia",
+    "view_button": "Ver"
+  }
+}

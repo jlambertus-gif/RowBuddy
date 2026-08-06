@@ -1,6 +1,6 @@
 import '@/i18n';
 
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { useDiscoverQueues } from '@/features/auctions/hooks/useDiscoverQueues';
 import { useLogout } from '@/features/auth/hooks/useLogout';
@@ -57,5 +57,32 @@ describe('Home/discovery screen', () => {
     await render(<Home />);
 
     await waitFor(() => expect(screen.getByTestId('discovery-retry')).toBeVisible());
+  });
+
+  it('navigates to payment method setup from the header link', async () => {
+    (getCurrentCoordinates as jest.Mock).mockResolvedValue({ latitude: 1, longitude: 2 });
+    (useLogout as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (useDiscoverQueues as jest.Mock).mockReturnValue({ isLoading: false, isSuccess: false });
+    const { router } = jest.requireMock('expo-router');
+
+    await render(<Home />);
+    await fireEvent.press(screen.getByTestId('payment-method-link'));
+
+    expect(router.push).toHaveBeenCalledWith('/payment-method-setup');
+  });
+
+  it('navigates to a transfer by entered ID, matching the auction-lookup stopgap pattern', async () => {
+    (getCurrentCoordinates as jest.Mock).mockResolvedValue({ latitude: 1, longitude: 2 });
+    (useLogout as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (useDiscoverQueues as jest.Mock).mockReturnValue({ isLoading: false, isSuccess: false });
+    const { router } = jest.requireMock('expo-router');
+
+    await render(<Home />);
+
+    expect(screen.getByTestId('view-transfer-button')).toBeDisabled();
+    await fireEvent.changeText(screen.getByTestId('transfer-id-input'), 'transfer-1');
+    await fireEvent.press(screen.getByTestId('view-transfer-button'));
+
+    expect(router.push).toHaveBeenCalledWith('/transfers/transfer-1');
   });
 });

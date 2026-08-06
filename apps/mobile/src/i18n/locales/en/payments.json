@@ -1,0 +1,12 @@
+{
+  "setup": {
+    "title": "Payment method",
+    "loading": "Starting setup...",
+    "load_error": "We couldn't start payment method setup. Please try again.",
+    "card_label": "Card details",
+    "save_button": "Save card",
+    "saving": "Saving...",
+    "saved": "Payment method saved.",
+    "generic_error": "Something went wrong. Please try again."
+  }
+}

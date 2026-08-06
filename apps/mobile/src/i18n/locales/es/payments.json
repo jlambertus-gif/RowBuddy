@@ -1,0 +1,12 @@
+{
+  "setup": {
+    "title": "Método de pago",
+    "loading": "Iniciando configuración...",
+    "load_error": "No pudimos iniciar la configuración del método de pago. Intenta de nuevo.",
+    "card_label": "Datos de la tarjeta",
+    "save_button": "Guardar tarjeta",
+    "saving": "Guardando...",
+    "saved": "Método de pago guardado.",
+    "generic_error": "Algo salió mal. Intenta de nuevo."
+  }
+}

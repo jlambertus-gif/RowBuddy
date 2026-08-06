@@ -28,7 +28,14 @@
       "expo-router",
       "expo-status-bar",
       "expo-secure-store",
-      "expo-localization"
+      "expo-localization",
+      ["@stripe/stripe-react-native", {}],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "RowBuddy needs camera access to scan the buyer's QR confirmation code during a transfer handoff."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

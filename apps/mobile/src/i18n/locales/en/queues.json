@@ -9,6 +9,7 @@
     "retry_button": "Try again",
     "view_auction_by_id": "View an auction by ID",
     "auction_id_placeholder": "Auction ID",
-    "view_button": "View"
+    "view_button": "View",
+    "payment_method_button": "Payment method"
   }
 }
