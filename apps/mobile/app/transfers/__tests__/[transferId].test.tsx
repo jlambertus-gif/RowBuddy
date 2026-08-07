@@ -193,7 +193,7 @@ describe('Transfer detail screen', () => {
     expect(screen.getByText('Outside the handoff area.')).toBeVisible();
   });
 
-  it('shows a not-found message for an unknown transfer', async () => {
+  it('shows a not-found message for an unknown transfer, without a retry button', async () => {
     (useTransfer as jest.Mock).mockReturnValue({
       isLoading: false,
       isError: true,
@@ -204,6 +204,43 @@ describe('Transfer detail screen', () => {
     await render(<TransferDetail />);
 
     expect(screen.getByText('This transfer could not be found.')).toBeVisible();
+    expect(screen.queryByTestId('transfer-retry')).toBeNull();
+  });
+
+  it('shows a generic load error with a retry button for a non-404 failure', async () => {
+    const refetch = jest.fn();
+    (useTransfer as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isError: true,
+      error: new ApiError('Server error', 503, null),
+      refetch,
+      data: undefined,
+    });
+
+    await render(<TransferDetail />);
+    await fireEvent.press(screen.getByTestId('transfer-retry'));
+
+    expect(screen.getByText("We couldn't load this transfer.")).toBeVisible();
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a staleness label once the transfer loads', async () => {
+    (useTransfer as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isError: false,
+      dataUpdatedAt: Date.now(),
+      refetch: jest.fn(),
+      data: baseTransfer({ role: 'buyer' }),
+    });
+    (useRevealQrToken as jest.Mock).mockReturnValue({
+      data: undefined,
+      isFetching: false,
+      refetch: jest.fn(),
+    });
+
+    await render(<TransferDetail />);
+
+    expect(screen.getByTestId('transfer-staleness')).toHaveTextContent('Updated 0s ago');
   });
 
   it('lets a participant submit a rating once the transfer is confirmed', async () => {

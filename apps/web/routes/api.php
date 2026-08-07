@@ -21,6 +21,7 @@ use App\Http\Controllers\ShowDisputeController;
 use App\Http\Controllers\ShowProfileController;
 use App\Http\Controllers\ShowTransferController;
 use App\Http\Controllers\ShowTransferQrTokenController;
+use App\Http\Controllers\SubmitQueueController;
 use App\Http\Controllers\SubmitRatingController;
 use App\Http\Controllers\UpdateProfileController;
 use Illuminate\Support\Facades\Route;
@@ -117,5 +118,14 @@ Route::prefix('v1')->group(function (): void {
         // behavior lives entirely in EloquentDeviceTokenRepository, not
         // in a REST verb distinction here.
         Route::post('devices', RegisterDeviceTokenController::class);
+
+        // Mobile Sprint 5 (ADR-028 §3). Reuses QueueSubmissionService and
+        // SubmitQueueRequest verbatim — the same validation and domain
+        // logic web's own /queues route already uses, just a JSON
+        // response instead of an Inertia-form redirect. Matches web's
+        // own 'verified' gate (Phase 9 Sprint 5 security review: starting
+        // a queue submission is new transactional activity).
+        Route::post('queues', SubmitQueueController::class)
+            ->middleware('verified');
     });
 });

@@ -14,6 +14,7 @@ import { useConfirmTransferAsSeller } from '@/features/transfers/hooks/useConfir
 import { useRevealQrToken } from '@/features/transfers/hooks/useRevealQrToken';
 import { useTransfer } from '@/features/transfers/hooks/useTransfer';
 import { getCurrentCoordinates, LocationPermissionDeniedError } from '@/lib/location';
+import { useStalenessLabel } from '@/lib/useStalenessLabel';
 
 /**
  * Mirrors web's Transfers/Show.jsx (ADR-028 Sprint 3), with one
@@ -32,6 +33,7 @@ export default function TransferDetail() {
   const { transferId } = useLocalSearchParams<{ transferId: string }>();
   const id = transferId ?? '';
   const transfer = useTransfer(id);
+  const staleness = useStalenessLabel(transfer.dataUpdatedAt);
 
   if (transfer.isLoading) {
     return (
@@ -43,13 +45,21 @@ export default function TransferDetail() {
   }
 
   if (transfer.isError || !transfer.data) {
-    const message =
-      transfer.error instanceof ApiError && transfer.error.status === 404
-        ? t('detail.not_found')
-        : t('detail.load_error');
+    const isNotFound = transfer.error instanceof ApiError && transfer.error.status === 404;
     return (
       <View style={styles.centered}>
-        <Text style={styles.error}>{message}</Text>
+        <Text style={styles.error}>
+          {isNotFound ? t('detail.not_found') : t('detail.load_error')}
+        </Text>
+        {!isNotFound && (
+          <Pressable
+            style={styles.button}
+            onPress={() => transfer.refetch()}
+            testID="transfer-retry"
+          >
+            <Text style={styles.buttonText}>{t('detail.retry_button')}</Text>
+          </Pressable>
+        )}
       </View>
     );
   }
@@ -63,6 +73,9 @@ export default function TransferDetail() {
       <Text style={styles.title}>{t('detail.title')}</Text>
       <Text style={styles.subtitle}>
         {t(data.role === 'seller' ? 'detail.role_seller' : 'detail.role_buyer')}
+      </Text>
+      <Text style={styles.staleness} testID="transfer-staleness">
+        {staleness}
       </Text>
 
       <View style={styles.statusGrid}>
@@ -416,6 +429,11 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: '#666',
+  },
+  staleness: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 4,
   },
   statusGrid: {
     marginTop: 16,

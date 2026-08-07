@@ -3,6 +3,7 @@
     "title": "Auction",
     "loading": "Loading auction...",
     "not_found": "This auction is no longer available.",
+    "load_error": "We couldn't load this auction.",
     "current_price": "Current price",
     "bid_count": "{{count}} bid",
     "bid_count_plural": "{{count}} bids",

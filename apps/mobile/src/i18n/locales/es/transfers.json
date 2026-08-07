@@ -24,7 +24,8 @@
     "confirm_button": "Confirmar entrega",
     "confirming": "Confirmando...",
     "location_denied": "Se necesita acceso a la ubicación para confirmar la entrega.",
-    "generic_error": "Algo salió mal. Intenta de nuevo."
+    "generic_error": "Algo salió mal. Intenta de nuevo.",
+    "retry_button": "Reintentar"
   },
   "lookup": {
     "view_transfer_by_id": "Ver una transferencia por ID",

@@ -3,6 +3,7 @@
     "title": "Subasta",
     "loading": "Cargando subasta...",
     "not_found": "Esta subasta ya no está disponible.",
+    "load_error": "No pudimos cargar esta subasta.",
     "current_price": "Precio actual",
     "bid_count": "{{count}} oferta",
     "bid_count_plural": "{{count}} ofertas",

@@ -34,3 +34,22 @@ export interface DiscoverQueuesRequest {
   page?: number;
   per_page?: number;
 }
+
+/** Mirrors SubmitQueueController's request/response shapes exactly. */
+
+export interface SubmitQueueRequest {
+  category: string;
+  jurisdiction_country: string;
+  latitude: number;
+  longitude: number;
+  radius_meters: number;
+}
+
+export type SubmittedQueueStatus = 'pending' | 'approved' | 'published' | 'rejected';
+
+export interface SubmittedQueue {
+  id: string;
+  category: string;
+  jurisdiction_country: string;
+  status: SubmittedQueueStatus;
+}

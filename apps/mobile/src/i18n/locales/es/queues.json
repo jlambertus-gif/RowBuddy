@@ -11,6 +11,26 @@
     "auction_id_placeholder": "ID de la subasta",
     "view_button": "Ver",
     "payment_method_button": "Método de pago",
-    "profile_button": "Perfil"
+    "profile_button": "Perfil",
+    "submit_queue_button": "Enviar una cola",
+    "load_error": "No se pudo buscar colas. Inténtalo de nuevo."
+  },
+  "submit": {
+    "title": "Enviar una cola",
+    "subtitle": "Envía una cola física para revisión. Un administrador debe aprobarla antes de que pueda descubrirse.",
+    "use_current_location_button": "Usar mi ubicación actual",
+    "locating": "Ubicando...",
+    "location_error": "No pudimos determinar tu ubicación. Aún puedes ingresarla manualmente.",
+    "submit_button": "Enviar para aprobación",
+    "submitting": "Enviando...",
+    "success": "Tu cola ha sido enviada para aprobación.",
+    "generic_error": "Algo salió mal. Intenta de nuevo."
+  },
+  "fields": {
+    "category": "Categoría",
+    "jurisdiction_country": "País (código de 2 letras)",
+    "latitude": "Latitud",
+    "longitude": "Longitud",
+    "radius_meters": "Radio (metros)"
   }
 }

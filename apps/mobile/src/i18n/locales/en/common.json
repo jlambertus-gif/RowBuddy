@@ -1,4 +1,12 @@
 {
   "app_name": "RowBuddy",
-  "sprint0_placeholder": "RowBuddy Mobile — Sprint 0 scaffold"
+  "sprint0_placeholder": "RowBuddy Mobile — Sprint 0 scaffold",
+  "staleness": {
+    "seconds": "Updated {{count}}s ago",
+    "minutes": "Updated {{count}}m ago"
+  },
+  "offline": {
+    "banner": "You're offline. Some actions are unavailable until you reconnect."
+  },
+  "retry_button": "Try again"
 }

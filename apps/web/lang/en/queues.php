@@ -8,6 +8,9 @@ return [
         'restricted_category' => 'This category cannot be submitted: it is restricted and not eligible on RowBuddy.',
         'jurisdiction_not_permitted' => 'RowBuddy is not yet available for this category in the selected country.',
     ],
+    'errors' => [
+        'account_suspended' => 'Your account cannot submit queues while suspended.',
+    ],
     'fields' => [
         'category' => 'category',
         'jurisdiction_country' => 'country',

@@ -24,7 +24,8 @@
     "confirm_button": "Confirm handoff",
     "confirming": "Confirming...",
     "location_denied": "Location access is needed to confirm the handoff.",
-    "generic_error": "Something went wrong. Please try again."
+    "generic_error": "Something went wrong. Please try again.",
+    "retry_button": "Try again"
   },
   "lookup": {
     "view_transfer_by_id": "View a transfer by ID",

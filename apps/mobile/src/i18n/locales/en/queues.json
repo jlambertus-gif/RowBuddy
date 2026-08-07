@@ -11,6 +11,26 @@
     "auction_id_placeholder": "Auction ID",
     "view_button": "View",
     "payment_method_button": "Payment method",
-    "profile_button": "Profile"
+    "profile_button": "Profile",
+    "submit_queue_button": "Submit a queue",
+    "load_error": "Could not search for queues. Please try again."
+  },
+  "submit": {
+    "title": "Submit a queue",
+    "subtitle": "Submit a physical queue for review. An administrator must approve it before it can be discovered.",
+    "use_current_location_button": "Use my current location",
+    "locating": "Locating...",
+    "location_error": "We couldn't determine your location. You can still enter it manually.",
+    "submit_button": "Submit for approval",
+    "submitting": "Submitting...",
+    "success": "Your queue has been submitted for approval.",
+    "generic_error": "Something went wrong. Please try again."
+  },
+  "fields": {
+    "category": "Category",
+    "jurisdiction_country": "Country (2-letter code)",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "radius_meters": "Radius (meters)"
   }
 }

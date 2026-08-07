@@ -13,6 +13,7 @@ import {
 
 import { useDiscoverQueues } from '@/features/auctions/hooks/useDiscoverQueues';
 import { getCurrentCoordinates, LocationPermissionDeniedError } from '@/lib/location';
+import { useStalenessLabel } from '@/lib/useStalenessLabel';
 import { DiscoveredQueue } from '@/types/queues';
 
 /**
@@ -64,6 +65,7 @@ export default function Home() {
   }
 
   const discovery = useDiscoverQueues(coordinates);
+  const staleness = useStalenessLabel(discovery.dataUpdatedAt);
 
   function renderQueue({ item }: { item: DiscoveredQueue }) {
     return (
@@ -81,6 +83,9 @@ export default function Home() {
       <View style={styles.header}>
         <Text style={styles.title}>{t('discovery.title')}</Text>
         <View style={styles.headerActions}>
+          <Pressable onPress={() => router.push('/queues/submit')} testID="submit-queue-link">
+            <Text style={styles.headerLink}>{t('discovery.submit_queue_button')}</Text>
+          </Pressable>
           <Pressable
             onPress={() => router.push('/payment-method-setup')}
             testID="payment-method-link"
@@ -109,6 +114,19 @@ export default function Home() {
         </View>
       )}
 
+      {!locationError && discovery.isError && (
+        <View style={styles.centered}>
+          <Text style={styles.error}>{t('discovery.load_error')}</Text>
+          <Pressable
+            style={styles.button}
+            onPress={() => discovery.refetch()}
+            testID="discovery-load-retry"
+          >
+            <Text style={styles.buttonText}>{t('discovery.retry_button')}</Text>
+          </Pressable>
+        </View>
+      )}
+
       {!locationError && discovery.isSuccess && discovery.data.data.length === 0 && (
         <View style={styles.centered}>
           <Text style={styles.subtitle}>{t('discovery.empty')}</Text>
@@ -116,12 +134,17 @@ export default function Home() {
       )}
 
       {!locationError && discovery.isSuccess && discovery.data.data.length > 0 && (
-        <FlatList
-          data={discovery.data.data}
-          keyExtractor={(item) => item.id}
-          renderItem={renderQueue}
-          testID="queue-list"
-        />
+        <>
+          <Text style={styles.staleness} testID="discovery-staleness">
+            {staleness}
+          </Text>
+          <FlatList
+            data={discovery.data.data}
+            keyExtractor={(item) => item.id}
+            renderItem={renderQueue}
+            testID="queue-list"
+          />
+        </>
       )}
 
       <View style={styles.auctionLookup}>
@@ -196,6 +219,11 @@ const styles = StyleSheet.create({
   headerLink: {
     color: '#2563eb',
     fontWeight: '600',
+  },
+  staleness: {
+    fontSize: 11,
+    color: '#999',
+    marginBottom: 4,
   },
   centered: {
     alignItems: 'center',

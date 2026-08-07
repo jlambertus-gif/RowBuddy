@@ -1,4 +1,12 @@
 {
   "app_name": "RowBuddy",
-  "sprint0_placeholder": "RowBuddy Mobile — andamiaje del Sprint 0"
+  "sprint0_placeholder": "RowBuddy Mobile — andamiaje del Sprint 0",
+  "staleness": {
+    "seconds": "Actualizado hace {{count}}s",
+    "minutes": "Actualizado hace {{count}}m"
+  },
+  "offline": {
+    "banner": "Estás sin conexión. Algunas acciones no estarán disponibles hasta que te reconectes."
+  },
+  "retry_button": "Reintentar"
 }

@@ -6,6 +6,8 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { ApiError } from '@/api/client';
 import { useAuction } from '@/features/auctions/hooks/useAuction';
 import { usePlaceBid } from '@/features/auctions/hooks/usePlaceBid';
+import { useIsOnline } from '@/lib/network';
+import { useStalenessLabel } from '@/lib/useStalenessLabel';
 import { Money } from '@/types/auctions';
 
 function formatMoney(money: Money): string {
@@ -22,9 +24,12 @@ const STATUS_KEY: Record<string, string> = {
 
 export default function AuctionDetail() {
   const { t } = useTranslation('auctions');
+  const { t: tCommon } = useTranslation('common');
   const { auctionId } = useLocalSearchParams<{ auctionId: string }>();
   const auction = useAuction(auctionId ?? '');
   const placeBid = usePlaceBid(auctionId ?? '');
+  const isOnline = useIsOnline();
+  const staleness = useStalenessLabel(auction.dataUpdatedAt);
   const [bidAmount, setBidAmount] = useState('');
 
   if (auction.isLoading) {
@@ -37,9 +42,21 @@ export default function AuctionDetail() {
   }
 
   if (auction.isError || !auction.data) {
+    const isNotFound = auction.error instanceof ApiError && auction.error.status === 404;
     return (
       <View style={styles.centered}>
-        <Text style={styles.error}>{t('detail.not_found')}</Text>
+        <Text style={styles.error}>
+          {isNotFound ? t('detail.not_found') : t('detail.load_error')}
+        </Text>
+        {!isNotFound && (
+          <Pressable
+            style={styles.bidButton}
+            onPress={() => auction.refetch()}
+            testID="auction-retry"
+          >
+            <Text style={styles.bidButtonText}>{tCommon('retry_button')}</Text>
+          </Pressable>
+        )}
       </View>
     );
   }
@@ -69,6 +86,9 @@ export default function AuctionDetail() {
         <Text style={styles.price} testID="current-price">
           {formatMoney(snapshot.current_price)}
         </Text>
+        <Text style={styles.staleness} testID="auction-staleness">
+          {staleness}
+        </Text>
       </View>
 
       <Text style={styles.subtitle}>
@@ -96,6 +116,8 @@ export default function AuctionDetail() {
             testID="bid-amount-input"
           />
 
+          {!isOnline && <Text style={styles.error}>{tCommon('offline.banner')}</Text>}
+
           {placeBid.error instanceof ApiError && (
             <Text style={styles.error}>{placeBid.error.message}</Text>
           )}
@@ -103,7 +125,7 @@ export default function AuctionDetail() {
           <Pressable
             style={styles.bidButton}
             onPress={handlePlaceBid}
-            disabled={placeBid.isPending}
+            disabled={placeBid.isPending || !isOnline}
             testID="place-bid-button"
           >
             <Text style={styles.bidButtonText}>
@@ -151,6 +173,11 @@ const styles = StyleSheet.create({
   price: {
     fontSize: 32,
     fontWeight: '700',
+  },
+  staleness: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 2,
   },
   subtitle: {
     fontSize: 14,
