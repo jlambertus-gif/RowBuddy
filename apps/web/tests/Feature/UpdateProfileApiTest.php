@@ -145,3 +145,18 @@ it('resets email verification and re-sends the notification when the email addre
         ->and($user->email_verified_at)->toBeNull();
     Notification::assertSentTo($user, VerifyEmail::class);
 });
+
+it('rate-limits profile updates (feature, throttling — Sprint 6 IDOR/rate-limit review pass)', function () {
+    $user = User::factory()->create();
+    $token = $user->createToken('device')->plainTextToken;
+
+    for ($i = 0; $i < 10; $i++) {
+        $this->withHeader('Authorization', "Bearer {$token}")
+            ->putJson('/api/v1/profile', ['name' => $user->name, 'email' => $user->email])
+            ->assertOk();
+    }
+
+    $this->withHeader('Authorization', "Bearer {$token}")
+        ->putJson('/api/v1/profile', ['name' => $user->name, 'email' => $user->email])
+        ->assertStatus(429);
+});

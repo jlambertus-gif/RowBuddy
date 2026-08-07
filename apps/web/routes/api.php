@@ -16,6 +16,7 @@ use App\Http\Controllers\RegisterDeviceTokenController;
 use App\Http\Controllers\ResetApiPasswordController;
 use App\Http\Controllers\SendApiEmailVerificationNotificationController;
 use App\Http\Controllers\SendApiPasswordResetLinkController;
+use App\Http\Controllers\ShowAccountStandingController;
 use App\Http\Controllers\ShowApiCurrentUserController;
 use App\Http\Controllers\ShowDisputeController;
 use App\Http\Controllers\ShowProfileController;
@@ -94,7 +95,7 @@ Route::prefix('v1')->group(function (): void {
         // this is the first HTTP surface RatingSubmissionService/
         // RatingRevealEvaluator have ever had, on any client.
         Route::post('transfers/{transferId}/ratings', SubmitRatingController::class)
-            ->middleware('verified');
+            ->middleware(['verified', 'throttle:rating-submission']);
         Route::get('transfers/{transferId}/ratings', ListTransferRatingsController::class);
 
         // Mobile Sprint 4 (ADR-028 §3). The first HTTP surface
@@ -102,22 +103,25 @@ Route::prefix('v1')->group(function (): void {
         // remains exclusively the existing admin-only web surface
         // (admin.disputes.*) — unaffected, untouched.
         Route::post('transfers/{transferId}/disputes', FileDisputeController::class)
-            ->middleware('verified');
+            ->middleware(['verified', 'throttle:dispute-filing']);
         Route::get('disputes/{disputeId}', ShowDisputeController::class);
 
         // Mobile Sprint 4 (ADR-028 §3/§4). UpdateProfileController reuses
         // Fortify's own UpdatesUserProfileInformation contract verbatim —
         // the same implementation web's PUT user/profile-information
-        // route already uses.
+        // route already uses. `throttle:profile-update` added in Sprint
+        // 6's IDOR/rate-limit review pass — see AppServiceProvider.php.
         Route::get('profile', ShowProfileController::class);
-        Route::put('profile', UpdateProfileController::class);
+        Route::put('profile', UpdateProfileController::class)
+            ->middleware('throttle:profile-update');
 
         // Mobile Sprint 4 (ADR-028 Decision 6). Registering/refreshing a
         // token is always a POST regardless of whether it is the
         // device's first registration or a refresh — the upsert-by-token
         // behavior lives entirely in EloquentDeviceTokenRepository, not
         // in a REST verb distinction here.
-        Route::post('devices', RegisterDeviceTokenController::class);
+        Route::post('devices', RegisterDeviceTokenController::class)
+            ->middleware('throttle:device-registration');
 
         // Mobile Sprint 5 (ADR-028 §3). Reuses QueueSubmissionService and
         // SubmitQueueRequest verbatim — the same validation and domain
@@ -127,5 +131,15 @@ Route::prefix('v1')->group(function (): void {
         // a queue submission is new transactional activity).
         Route::post('queues', SubmitQueueController::class)
             ->middleware('verified');
+
+        // Mobile Sprint 6 (ADR-028 §3). The first HTTP surface of any
+        // kind — web or mobile — for a user's own account standing.
+        // AccountStandingRepository is Administration's own canonical
+        // read port (ADR-026 §4); apps/web is the composition root
+        // already allowed to depend on it directly, matching the
+        // existing Bids/Queues/RatingsAccountStandingLookup adapters.
+        // Not gated by 'verified': reading one's own standing is not
+        // new transactional activity.
+        Route::get('account-standing', ShowAccountStandingController::class);
     });
 });

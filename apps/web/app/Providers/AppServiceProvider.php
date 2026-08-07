@@ -319,5 +319,42 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('transfer-confirmation', function ($request) {
             return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
         });
+
+        // Mobile Sprint 6 IDOR/rate-limit review pass (mirroring Phase 9
+        // Sprint 5's own precedent): a real, evidence-backed finding —
+        // profile updates have never been rate-limited, on web or
+        // mobile, and an email change unconditionally re-sends the
+        // verification notification to whatever address was supplied,
+        // not only to addresses that already belong to a RowBuddy
+        // account. An authenticated attacker could otherwise spam an
+        // arbitrary third-party inbox with RowBuddy verification emails
+        // by repeatedly PUTting their own profile with that address.
+        // Fixed here, on the mobile route this sprint owns; web's own
+        // `PUT user/profile-information` (Fortify's own default route)
+        // carries the identical, pre-existing gap and is intentionally
+        // left untouched — out of this sprint's mobile scope, matching
+        // the same posture Sprint 5 took with the SubmitterAccountSuspended
+        // finding. See docs/security/mobile-security-checklist.md.
+        RateLimiter::for('profile-update', function ($request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Same review pass, same reasoning as bid-placement/transfer-
+        // confirmation above: not a response to any demonstrated
+        // exploit (a second attempt against any of these three is
+        // already rejected by its own domain guard — RatingAlready
+        // ExistsForTransferAndRater, DisputeAlreadyExistsForTransfer,
+        // or simply a harmless upsert), but consistency with the two
+        // existing mobile-mutation limiters, not an accident of which
+        // sprint happened to add the route.
+        RateLimiter::for('rating-submission', function ($request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
+        RateLimiter::for('dispute-filing', function ($request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
+        RateLimiter::for('device-registration', function ($request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }

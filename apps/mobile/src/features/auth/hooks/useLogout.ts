@@ -4,8 +4,6 @@ import { logout } from '@/api/auth';
 import { clearAuthToken } from '@/lib/authToken';
 import { clearStoredPushToken, getStoredPushToken } from '@/lib/pushToken';
 
-import { authQueryKeys } from './queryKeys';
-
 export function useLogout() {
   const queryClient = useQueryClient();
 
@@ -16,15 +14,16 @@ export function useLogout() {
         const expoPushToken = await getStoredPushToken();
         await logout(expoPushToken ?? undefined);
       } finally {
-        // Always clear both local values, even if the network request
+        // Always clear all local state, even if the network request
         // itself failed — an unreachable backend must never leave the
-        // app looking logged in or holding a stale push token.
+        // app looking logged in, holding a stale push token, or (on a
+        // shared device where a second account logs in without the app
+        // fully restarting) showing the previous user's cached profile,
+        // transfers, or ratings from TanStack Query's in-memory cache.
         await clearAuthToken();
         await clearStoredPushToken();
+        queryClient.clear();
       }
-    },
-    onSuccess: () => {
-      queryClient.setQueryData(authQueryKeys.currentUser, null);
     },
   });
 }

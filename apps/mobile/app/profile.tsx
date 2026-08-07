@@ -7,6 +7,7 @@ import { ApiError } from '@/api/client';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import { useNotificationPermissionStatus } from '@/features/notifications/hooks/useNotificationPermissionStatus';
 import { useRegisterPushNotifications } from '@/features/notifications/hooks/useRegisterPushNotifications';
+import { useAccountStanding } from '@/features/profile/hooks/useAccountStanding';
 import { useProfile } from '@/features/profile/hooks/useProfile';
 import { useUpdateProfile } from '@/features/profile/hooks/useUpdateProfile';
 import i18n, { SUPPORTED_LOCALES, SupportedLocale } from '@/i18n';
@@ -23,6 +24,7 @@ import { NotificationPermissionDeniedError } from '@/lib/pushNotifications';
 export default function Profile() {
   const { t } = useTranslation('profile');
   const profile = useProfile();
+  const accountStanding = useAccountStanding();
   const updateProfile = useUpdateProfile();
   const logout = useLogout();
   const permissionStatus = useNotificationPermissionStatus();
@@ -118,6 +120,19 @@ export default function Profile() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t('title')}</Text>
+
+      {accountStanding.data && (
+        <View testID="account-standing">
+          <Text style={styles.label}>{t('account_status_label')}</Text>
+          <Text style={accountStanding.data.state === 'suspended' ? styles.error : styles.subtitle}>
+            {t(
+              accountStanding.data.state === 'suspended'
+                ? 'account_status_suspended'
+                : 'account_status_active',
+            )}
+          </Text>
+        </View>
+      )}
 
       <Text style={styles.label}>{t('name_label')}</Text>
       <TextInput

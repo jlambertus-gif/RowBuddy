@@ -4,6 +4,7 @@ import { ApiError } from '@/api/client';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import { useNotificationPermissionStatus } from '@/features/notifications/hooks/useNotificationPermissionStatus';
 import { useRegisterPushNotifications } from '@/features/notifications/hooks/useRegisterPushNotifications';
+import { useAccountStanding } from '@/features/profile/hooks/useAccountStanding';
 import { useProfile } from '@/features/profile/hooks/useProfile';
 import { useUpdateProfile } from '@/features/profile/hooks/useUpdateProfile';
 import i18n from '@/i18n';
@@ -16,6 +17,7 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@/features/profile/hooks/useProfile');
 jest.mock('@/features/profile/hooks/useUpdateProfile');
+jest.mock('@/features/profile/hooks/useAccountStanding');
 jest.mock('@/features/auth/hooks/useLogout');
 jest.mock('@/features/notifications/hooks/useNotificationPermissionStatus');
 jest.mock('@/features/notifications/hooks/useRegisterPushNotifications');
@@ -33,6 +35,10 @@ function baseProfile(overrides: Record<string, unknown> = {}) {
 }
 
 describe('Profile screen', () => {
+  beforeEach(() => {
+    (useAccountStanding as jest.Mock).mockReturnValue({ data: { state: 'active' } });
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
     void i18n.changeLanguage('en');
@@ -216,5 +222,53 @@ describe('Profile screen', () => {
     await fireEvent.press(screen.getByTestId('save-profile-button'));
 
     await waitFor(() => expect(screen.getByText('Unsupported language.')).toBeVisible());
+  });
+
+  it('shows an active account status', async () => {
+    (useProfile as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: baseProfile(),
+    });
+    (useUpdateProfile as jest.Mock).mockReturnValue({
+      mutate: jest.fn(),
+      isPending: false,
+      isSuccess: false,
+    });
+    (useLogout as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (useNotificationPermissionStatus as jest.Mock).mockReturnValue({ data: false });
+    (useRegisterPushNotifications as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(),
+      isPending: false,
+    });
+
+    await render(<Profile />);
+
+    expect(screen.getByTestId('account-standing')).toBeVisible();
+    expect(screen.getByText('Active')).toBeVisible();
+  });
+
+  it('shows a suspended account status warning', async () => {
+    (useAccountStanding as jest.Mock).mockReturnValue({ data: { state: 'suspended' } });
+    (useProfile as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: baseProfile(),
+    });
+    (useUpdateProfile as jest.Mock).mockReturnValue({
+      mutate: jest.fn(),
+      isPending: false,
+      isSuccess: false,
+    });
+    (useLogout as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
+    (useNotificationPermissionStatus as jest.Mock).mockReturnValue({ data: false });
+    (useRegisterPushNotifications as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(),
+      isPending: false,
+    });
+
+    await render(<Profile />);
+
+    expect(screen.getByText('Suspended — some actions may be unavailable')).toBeVisible();
   });
 });
