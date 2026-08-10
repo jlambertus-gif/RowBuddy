@@ -1,6 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import * as ScreenCapture from 'expo-screen-capture';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -268,6 +269,21 @@ function ReportProblemSection({ transferId }: { transferId: string }) {
 function BuyerQrCode({ transferId }: { transferId: string }) {
   const { t } = useTranslation('transfers');
   const reveal = useRevealQrToken(transferId);
+
+  // ADR-028 Decision 7: screenshot/recording protection is scoped to the
+  // moment the QR code is actually on screen, not this component's whole
+  // mounted lifetime (which also covers the "reveal code" button).
+  useEffect(() => {
+    if (!reveal.data) {
+      return;
+    }
+
+    void ScreenCapture.preventScreenCaptureAsync();
+
+    return () => {
+      void ScreenCapture.allowScreenCaptureAsync();
+    };
+  }, [reveal.data]);
 
   return (
     <View style={styles.section}>

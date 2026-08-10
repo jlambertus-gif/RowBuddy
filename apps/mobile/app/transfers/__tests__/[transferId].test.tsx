@@ -31,8 +31,13 @@ jest.mock('expo-camera', () => ({
   CameraView: 'CameraView',
 }));
 jest.mock('react-native-qrcode-svg', () => 'QRCode');
+jest.mock('expo-screen-capture', () => ({
+  preventScreenCaptureAsync: jest.fn().mockResolvedValue(undefined),
+  allowScreenCaptureAsync: jest.fn().mockResolvedValue(undefined),
+}));
 
 const { useCameraPermissions } = jest.requireMock('expo-camera');
+const ScreenCapture = jest.requireMock('expo-screen-capture');
 
 function baseTransfer(overrides: Record<string, unknown> = {}) {
   return {
@@ -95,6 +100,54 @@ describe('Transfer detail screen', () => {
     await render(<TransferDetail />);
 
     expect(screen.getByTestId('qr-code-display')).toBeVisible();
+  });
+
+  it('prevents screen capture only once the QR code is actually revealed, not before', async () => {
+    (useTransfer as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: baseTransfer({ role: 'buyer' }),
+    });
+    (useRevealQrToken as jest.Mock).mockReturnValue({
+      data: undefined,
+      isFetching: false,
+      refetch: jest.fn(),
+    });
+    (useConfirmTransferAsBuyer as jest.Mock).mockReturnValue({
+      mutate: jest.fn(),
+      isPending: false,
+      error: null,
+    });
+
+    await render(<TransferDetail />);
+
+    expect(ScreenCapture.preventScreenCaptureAsync).not.toHaveBeenCalled();
+  });
+
+  it('re-allows screen capture once the QR code is no longer displayed', async () => {
+    (useTransfer as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isError: false,
+      data: baseTransfer({ role: 'buyer' }),
+    });
+    (useRevealQrToken as jest.Mock).mockReturnValue({
+      data: 'plaintext-token',
+      isFetching: false,
+      refetch: jest.fn(),
+    });
+    (useConfirmTransferAsBuyer as jest.Mock).mockReturnValue({
+      mutate: jest.fn(),
+      isPending: false,
+      error: null,
+    });
+
+    const view = await render(<TransferDetail />);
+
+    await waitFor(() => expect(ScreenCapture.preventScreenCaptureAsync).toHaveBeenCalledTimes(1));
+
+    await view.unmount();
+
+    expect(ScreenCapture.allowScreenCaptureAsync).toHaveBeenCalledTimes(1);
   });
 
   it("prompts for camera permission before showing the seller's scanner", async () => {

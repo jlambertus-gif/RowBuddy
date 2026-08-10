@@ -66,6 +66,8 @@ export default function Home() {
 
   const discovery = useDiscoverQueues(coordinates);
   const staleness = useStalenessLabel(discovery.dataUpdatedAt);
+  const discoveredQueues: DiscoveredQueue[] =
+    discovery.data?.pages.flatMap((page) => page.data) ?? [];
 
   function renderQueue({ item }: { item: DiscoveredQueue }) {
     return (
@@ -74,6 +76,18 @@ export default function Home() {
         <Text style={styles.queueDistance}>
           {t('discovery.distance_meters', { distance: Math.round(item.distance_meters) })}
         </Text>
+      </View>
+    );
+  }
+
+  function renderFooter() {
+    if (!discovery.isFetchingNextPage) {
+      return null;
+    }
+
+    return (
+      <View style={styles.footer} testID="discovery-loading-more">
+        <ActivityIndicator />
       </View>
     );
   }
@@ -127,21 +141,28 @@ export default function Home() {
         </View>
       )}
 
-      {!locationError && discovery.isSuccess && discovery.data.data.length === 0 && (
+      {!locationError && discovery.isSuccess && discoveredQueues.length === 0 && (
         <View style={styles.centered}>
           <Text style={styles.subtitle}>{t('discovery.empty')}</Text>
         </View>
       )}
 
-      {!locationError && discovery.isSuccess && discovery.data.data.length > 0 && (
+      {!locationError && discovery.isSuccess && discoveredQueues.length > 0 && (
         <>
           <Text style={styles.staleness} testID="discovery-staleness">
             {staleness}
           </Text>
           <FlatList
-            data={discovery.data.data}
+            data={discoveredQueues}
             keyExtractor={(item) => item.id}
             renderItem={renderQueue}
+            onEndReached={() => {
+              if (discovery.hasNextPage && !discovery.isFetchingNextPage) {
+                void discovery.fetchNextPage();
+              }
+            }}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
             testID="queue-list"
           />
         </>
@@ -230,6 +251,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 32,
     gap: 8,
+  },
+  footer: {
+    paddingVertical: 16,
+    alignItems: 'center',
   },
   subtitle: {
     fontSize: 14,

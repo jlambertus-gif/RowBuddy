@@ -24,20 +24,27 @@ describe('Home/discovery screen', () => {
       isLoading: false,
       isSuccess: true,
       dataUpdatedAt: Date.now(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      fetchNextPage: jest.fn(),
       data: {
-        data: [
+        pages: [
           {
-            id: 'queue-1',
-            category: 'concert',
-            jurisdiction_country: 'US',
-            authorship: 'admin_curated',
-            organizer_reference: 'venue-1',
-            status: 'published',
-            geofence: { latitude: 1, longitude: 2, radius_meters: 100 },
-            distance_meters: 42.3,
+            data: [
+              {
+                id: 'queue-1',
+                category: 'concert',
+                jurisdiction_country: 'US',
+                authorship: 'admin_curated',
+                organizer_reference: 'venue-1',
+                status: 'published',
+                geofence: { latitude: 1, longitude: 2, radius_meters: 100 },
+                distance_meters: 42.3,
+              },
+            ],
+            meta: { page: 1, per_page: 20, total: 1, has_more: false },
           },
         ],
-        meta: { page: 1, per_page: 20, total: 1, has_more: false },
       },
     });
 
@@ -46,6 +53,82 @@ describe('Home/discovery screen', () => {
     await waitFor(() => expect(screen.getByTestId('queue-queue-1')).toBeVisible());
     expect(screen.getByText('42 m away')).toBeVisible();
     expect(screen.getByTestId('discovery-staleness')).toBeVisible();
+  });
+
+  it('shows a footer spinner while fetching the next page, and does not re-trigger it', async () => {
+    const fetchNextPage = jest.fn();
+    (getCurrentCoordinates as jest.Mock).mockResolvedValue({ latitude: 1, longitude: 2 });
+    (useDiscoverQueues as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isSuccess: true,
+      dataUpdatedAt: Date.now(),
+      hasNextPage: true,
+      isFetchingNextPage: true,
+      fetchNextPage,
+      data: {
+        pages: [
+          {
+            data: [
+              {
+                id: 'queue-1',
+                category: 'concert',
+                jurisdiction_country: 'US',
+                authorship: 'admin_curated',
+                organizer_reference: 'venue-1',
+                status: 'published',
+                geofence: { latitude: 1, longitude: 2, radius_meters: 100 },
+                distance_meters: 42.3,
+              },
+            ],
+            meta: { page: 1, per_page: 20, total: 40, has_more: true },
+          },
+        ],
+      },
+    });
+
+    await render(<Home />);
+
+    await waitFor(() => expect(screen.getByTestId('discovery-loading-more')).toBeVisible());
+    await fireEvent(screen.getByTestId('queue-list'), 'onEndReached');
+
+    expect(fetchNextPage).not.toHaveBeenCalled();
+  });
+
+  it('fetches the next page when the list end is reached and no fetch is already in flight', async () => {
+    const fetchNextPage = jest.fn();
+    (getCurrentCoordinates as jest.Mock).mockResolvedValue({ latitude: 1, longitude: 2 });
+    (useDiscoverQueues as jest.Mock).mockReturnValue({
+      isLoading: false,
+      isSuccess: true,
+      dataUpdatedAt: Date.now(),
+      hasNextPage: true,
+      isFetchingNextPage: false,
+      fetchNextPage,
+      data: {
+        pages: [
+          {
+            data: [
+              {
+                id: 'queue-1',
+                category: 'concert',
+                jurisdiction_country: 'US',
+                authorship: 'admin_curated',
+                organizer_reference: 'venue-1',
+                status: 'published',
+                geofence: { latitude: 1, longitude: 2, radius_meters: 100 },
+                distance_meters: 42.3,
+              },
+            ],
+            meta: { page: 1, per_page: 20, total: 40, has_more: true },
+          },
+        ],
+      },
+    });
+
+    await render(<Home />);
+    await fireEvent(screen.getByTestId('queue-list'), 'onEndReached');
+
+    expect(fetchNextPage).toHaveBeenCalledTimes(1);
   });
 
   it('shows a retry button when discovery itself fails, distinct from a location error', async () => {
