@@ -57,6 +57,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
+    // Matches the native splash screen's own background (app.json's
+    // expo-splash-screen config) so there's no color flash the instant
+    // the native splash hides and this token-bootstrap screen mounts.
+    backgroundColor: '#E6F4FE',
   },
 });
